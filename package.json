@@ -1,0 +1,43 @@
+{
+  "name": "marinmc-launcher",
+  "version": "1.0.0",
+  "description": "Official Minecraft Launcher for MarinMC",
+  "main": "dist-electron/main.js",
+  "author": "MarinMC",
+  "license": "MIT",
+  "scripts": {
+    "dev:renderer": "vite",
+    "dev:electron": "tsc -p tsconfig.node.json && electron .",
+    "dev": "concurrently -n \"vite,electron\" -c \"blue,green\" \"npm run dev:renderer\" \"tsc -p tsconfig.node.json -w\" \"wait-on http://localhost:5173 && electron .\"",
+    "build:renderer": "tsc && vite build",
+    "build:electron": "tsc -p tsconfig.node.json",
+    "build": "npm run build:renderer && npm run build:electron && electron-builder",
+    "build:win": "npm run build:renderer && npm run build:electron && electron-builder --win",
+    "build:mac": "npm run build:renderer && npm run build:electron && electron-builder --mac",
+    "build:linux": "npm run build:renderer && npm run build:electron && electron-builder --linux"
+  },
+  "dependencies": {
+    "axios": "^1.6.7",
+    "electron-updater": "^6.1.7",
+    "lucide-react": "^0.344.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.0",
+    "zustand": "^4.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.20",
+    "@types/react": "^18.2.57",
+    "@types/react-dom": "^18.2.19",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "concurrently": "^8.2.2",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.1",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.0",
+    "wait-on": "^7.2.0"
+  }
+}

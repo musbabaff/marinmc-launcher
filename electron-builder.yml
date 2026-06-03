@@ -1,0 +1,33 @@
+appId: com.marinmc.launcher
+productName: MarinMC Launcher
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+asar: true
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  publish:
+    provider: github
+    owner: USERNAME
+    repo: marinmc-launcher
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: MarinMC Launcher
+mac:
+  target:
+    - dmg
+  category: public.app-category.games
+linux:
+  target:
+    - AppImage
+  category: Game

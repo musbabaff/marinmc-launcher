@@ -4,10 +4,12 @@ import { autoUpdater } from 'electron-updater';
 import { createSplash, closeSplash } from './splash.js';
 import { setupTray, destroyTray, setGameRunning } from './tray.js';
 
-// Import IPC handlers so they are registered in the main process
+// Import non-game IPC handlers (these register globally via side-effects)
 import './ipc/auth.js';
-import './ipc/game.js';
 import './ipc/system.js';
+
+// Game handlers are registered explicitly with mainWindow reference
+import { registerGameHandlers } from './ipc/game.js';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -43,6 +45,9 @@ function createWindow() {
     backgroundColor: '#0F111A',
     show: false, // Don't show until ready
   });
+
+  // Register game IPC handlers with mainWindow reference
+  registerGameHandlers(mainWindow);
 
   // When main window content is loaded, close splash and show main
   mainWindow.once('ready-to-show', () => {

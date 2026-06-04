@@ -6,11 +6,15 @@ export interface IElectronAPI {
     ram: number; 
     jvmArgs: string; 
     username: string; 
+    accessToken?: string;
     version: string;
     serverId: string;
     gameDir: string;
-  }) => Promise<void>;
+    javaPath?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
   stopGame: () => Promise<{ success: boolean }>;
+  isGameRunning: () => Promise<{ running: boolean }>;
+  detectJava: () => Promise<{ found: boolean; version: string | null }>;
   onGameLog: (callback: (log: string) => void) => () => void;
   onDownloadProgress: (callback: (percent: number) => void) => () => void;
   onGameStatus: (callback: (status: 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'LAUNCHING' | 'RUNNING' | 'ERROR') => void) => () => void;

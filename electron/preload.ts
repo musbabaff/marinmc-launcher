@@ -9,6 +9,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Game Launching
   launchGame: (options: any) => ipcRenderer.invoke('game:launch', options),
   stopGame: () => ipcRenderer.invoke('game:stop'),
+  isGameRunning: () => ipcRenderer.invoke('game-is-running'),
+  detectJava: () => ipcRenderer.invoke('detect-java'),
+
+  // Game event listeners
   onGameLog: (callback: (log: string) => void) => {
     const subscription = (_event: any, log: string) => callback(log);
     ipcRenderer.on('game:log', subscription);

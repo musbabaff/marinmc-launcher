@@ -97,6 +97,7 @@ export default function ServerDetailPage() {
   const [launchStatus, setLaunchStatus] = useState<'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'LAUNCHING' | 'RUNNING' | 'ERROR'>('IDLE');
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [news, setNews] = useState<any[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
   const [lang, setLang] = useState<'tr' | 'en'>('tr');
@@ -212,22 +213,59 @@ export default function ServerDetailPage() {
     );
   }
 
+  const getErrorInfo = (msg: string) => {
+    if (msg.includes('java') || msg.includes('Java') || msg.includes('ENOENT'))
+      return { text: 'Java bulunamadı! Lütfen Java 21 yükleyin.', link: 'https://adoptium.net', linkText: 'Java 21 İndir' };
+    if (msg.includes('network') || msg.includes('ENOTFOUND') || msg.includes('ECONNREFUSED'))
+      return { text: 'İnternet bağlantınızı kontrol edin.', link: null, linkText: null };
+    if (msg.includes('session') || msg.includes('auth') || msg.includes('token'))
+      return { text: 'Oturum geçersiz, lütfen tekrar giriş yapın.', link: null, linkText: null };
+    return { text: msg, link: null, linkText: null };
+  };
+
   const handleLaunch = async () => {
     if (launchStatus !== 'IDLE' && launchStatus !== 'ERROR') return;
 
     setLogs([]);
     setProgress(0);
+    setErrorMessage('');
 
     try {
       if (window.electronAPI) {
-        await window.electronAPI.launchGame({
+        // Step 1: Check Java availability
+        setLaunchStatus('CHECKING');
+        setLogs(['[MarinMC Launcher] Java kontrol ediliyor...']);
+
+        const javaCheck = await window.electronAPI.detectJava();
+        if (!javaCheck.found) {
+          setLaunchStatus('ERROR');
+          setErrorMessage('Java bulunamadı! Lütfen Java 21 yükleyin: https://adoptium.net');
+          setLogs((prev) => [...prev, '[HATA] Java bulunamadı. Lütfen Java 21 yükleyip tekrar deneyin.']);
+          return;
+        }
+        setLogs((prev) => [...prev, `[MarinMC Launcher] Java bulundu: ${javaCheck.version}`]);
+
+        // Step 2: Launch game with full options
+        const launchOptions = {
           ram,
           jvmArgs,
           username: session?.name || 'Player',
+          accessToken: session?.token,
           version: selectedServer.version || '1.21',
           serverId: selectedServer.id,
-          gameDir: launcherDir
-        });
+          gameDir: launcherDir,
+          javaPath: useSettingsStore.getState().javaPath
+        };
+
+        const result = await window.electronAPI.launchGame(launchOptions);
+
+        if (!result.success) {
+          setLaunchStatus('ERROR');
+          setErrorMessage(result.error || 'Bilinmeyen başlatma hatası');
+          setLogs((prev) => [...prev, `[HATA] ${result.error || 'Bilinmeyen başlatma hatası'}`]);
+        }
+        // RUNNING/CLOSED/ERROR states are handled by onGameStatus listener
+
       } else {
         // Simulated browser launch sequence
         setLaunchStatus('CHECKING');
@@ -254,6 +292,7 @@ export default function ServerDetailPage() {
       }
     } catch (err: any) {
       setLaunchStatus('ERROR');
+      setErrorMessage(err.message || 'Beklenmeyen hata');
       setLogs((prev) => [...prev, `[HATA] Oyun başlatılamadı: ${err.message}`]);
     }
   };
@@ -348,13 +387,28 @@ export default function ServerDetailPage() {
             <span>{t.running}</span>
           </button>
         );
-      case 'ERROR':
+      case 'ERROR': {
+        const errInfo = getErrorInfo(errorMessage);
         return (
-          <button onClick={handleLaunch} className="w-full py-3.5 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-[11px] rounded-xl transition-all flex items-center justify-center space-x-2 shadow-md">
-            <Play className="w-3.5 h-3.5 fill-white" />
-            <span>{t.relaunch}</span>
-          </button>
+          <div className="space-y-2">
+            <div className="text-[9px] text-red-400 font-semibold text-center truncate px-1" title={errInfo.text}>
+              {errInfo.text}
+            </div>
+            {errInfo.link && (
+              <button
+                onClick={() => handleOpenLink(errInfo.link!)}
+                className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] rounded-lg transition-colors flex items-center justify-center space-x-1.5"
+              >
+                <span>{errInfo.linkText}</span>
+              </button>
+            )}
+            <button onClick={handleLaunch} className="w-full py-3.5 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-[11px] rounded-xl transition-all flex items-center justify-center space-x-2 shadow-md">
+              <Play className="w-3.5 h-3.5 fill-white" />
+              <span>{t.relaunch}</span>
+            </button>
+          </div>
         );
+      }
       case 'IDLE':
       default:
         return (

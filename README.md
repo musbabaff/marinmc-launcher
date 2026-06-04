@@ -1,62 +1,138 @@
-# MarinMC Launcher
+# 🎮 MarinMC Launcher
 
-[![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-blue.svg)](https://nodejs.org)
-[![Electron Version](https://img.shields.io/badge/electron-28+-brightgreen.svg)](https://www.electronjs.org)
-[![Platform Support](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-orange.svg)](#)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+Official Minecraft Launcher for the **MarinMC** network. Built with Electron + React + TypeScript.
 
-Official, branded Minecraft launcher for the **MarinMC Network**, built with Electron, React, TypeScript, Vite, and Zustand.
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 
----
+## ✨ Features
 
-## Features
+- **Custom Frameless Window** — Draggable titlebar with MarinMC branding
+- **Splash Screen** — Animated loading screen with progress bar
+- **Multi-language** — Turkish (TR) and English (EN) with instant switching
+- **Server Selection** — Card-based UI with live player counts and server status
+- **Game Launch** — Full download/verification/launch state machine
+- **Settings Panel** — Slide-in drawer with Account, Launcher, Java, and Advanced sections
+- **Mod Manager** — Server mods (locked) + custom mods with drag-and-drop, conflict detection
+- **System Tray** — Background running, quick access menu
+- **Auto-Updater** — GitHub Releases integration via `electron-updater`
+- **Security** — Context isolation, no `nodeIntegration`, validated external links
 
-- **Frameless UI**: Modern dark-themed dashboard (960x600 size constraints).
-- **Custom Titlebar**: Native window operations (minimize, close) mapped via secure IPC context bridges.
-- **Cracked & Premium Auth**: Dual authentication flows allowing Microsoft Xbox Live logins and offline names.
-- **Server Hub**: Real-time server status, player capacity counts, and ping latency metrics.
-- **Launch Configurations**: In-app slider configurations for physical memory allocation (RAM), java executables, and custom JVM arguments.
-- **Live Output Stream**: Implements logging terminals monitoring client launch status.
-- **Auto Updater**: Integrated `electron-updater` querying GitHub Releases for launcher upgrades.
+## 🏗 Tech Stack
 
----
+| Layer | Technology |
+|-------|-----------|
+| Desktop Runtime | Electron 28 |
+| Frontend | React 18, TypeScript 5 |
+| Styling | TailwindCSS 3 |
+| State Management | Zustand 4 |
+| Animations | Framer Motion 12 |
+| Routing | React Router 6 |
+| i18n | i18next + react-i18next |
+| Icons | Lucide React |
+| Build | Vite 5, electron-builder 24 |
+| CI/CD | GitHub Actions |
 
-## Tech Stack
+## 📦 Quick Start
 
-- **Framework**: Electron (v28+)
-- **UI Engine**: React (v18+) + TypeScript
-- **Bundler**: Vite
-- **Styling**: Tailwind CSS
-- **State Management**: Zustand
-- **Packager**: electron-builder
-- **Auto-Update**: electron-updater
+### Prerequisites
+- [Node.js](https://nodejs.org/) 20+
+- [Git](https://git-scm.com/)
 
----
-
-## Installation & Setup
-
-Ensure you have [Node.js](https://nodejs.org) (v20+) installed on your machine.
-
-### 1. Clone & Install Dependencies
+### Install & Dev
 ```bash
+# Clone the repository
+git clone https://github.com/musbabaff/marinmc-launcher.git
+cd marinmc-launcher
+
+# Install dependencies
 npm install
-```
 
-### 2. Run in Development Mode
-Starts the Vite dev server for the React UI and boots the Electron main process concurrently:
-```bash
+# Start development (renderer + electron)
 npm run dev
 ```
 
-### 3. Package Application
-Bundles React assets and compiles TypeScript sources into self-contained executable packages:
-- **Windows (NSIS)**: `npm run build:win`
-- **macOS (DMG)**: `npm run build:mac`
-- **Linux (AppImage)**: `npm run build:linux`
-- **All Targets**: `npm run build`
+### Build for Production
+```bash
+# Full build (renderer + electron + installer)
+npm run build
+
+# Platform-specific builds
+npm run build:win    # Windows (.exe)
+npm run build:mac    # macOS (.dmg)
+npm run build:linux  # Linux (.AppImage)
+```
+
+Build output goes to the `release/` directory.
+
+## 📁 Project Structure
+
+```
+marinmc-launcher/
+├── assets/                  # Icons, images, installer assets
+│   ├── icon.ico / .icns / .png
+│   ├── tray-icon.png
+│   ├── splash-bg.png
+│   ├── installer-sidebar.bmp
+│   ├── login-bg.jpg
+│   └── logo.svg
+├── electron/                # Electron main process
+│   ├── main.ts              # App lifecycle, window creation
+│   ├── preload.ts           # Context bridge (IPC)
+│   ├── splash.ts            # Splash screen module
+│   ├── splash.html          # Splash screen UI
+│   ├── tray.ts              # System tray module
+│   └── ipc/
+│       ├── auth.ts          # Authentication handlers
+│       ├── game.ts          # Game launch state machine
+│       └── system.ts        # System info, dialogs, shell
+├── src/                     # React renderer process
+│   ├── App.tsx              # Router, layout, lazy loading
+│   ├── main.tsx             # Entry point + i18n init
+│   ├── index.css            # Global styles, scrollbar, glass
+│   ├── components/
+│   │   ├── TitleBar.tsx     # Custom frameless titlebar
+│   │   └── SettingsPanel.tsx # Global settings drawer
+│   ├── pages/
+│   │   ├── LoginPage.tsx    # Login with cracked/Microsoft auth
+│   │   ├── ServersPage.tsx  # Server selection grid
+│   │   ├── ServerDetailPage.tsx # Server detail + launch
+│   │   ├── SettingsPage.tsx # Legacy settings page
+│   │   └── ModManagerPage.tsx # Mod management
+│   ├── stores/
+│   │   ├── authStore.ts     # Authentication state
+│   │   └── settingsStore.ts # Settings with persistence
+│   ├── lib/
+│   │   ├── api.ts           # API client
+│   │   ├── constants.ts     # App constants
+│   │   └── i18n.ts          # i18next initialization
+│   ├── locales/
+│   │   ├── tr.json          # Turkish translations
+│   │   └── en.json          # English translations
+│   ├── auth/                # Auth service
+│   └── types/               # TypeScript definitions
+├── .github/workflows/
+│   └── build.yml            # CI/CD: build + release
+├── electron-builder.yml     # Installer configuration
+├── package.json
+├── tsconfig.json            # Renderer TypeScript config
+├── tsconfig.node.json       # Electron TypeScript config
+├── vite.config.ts           # Vite bundler config
+└── tailwind.config.ts       # Tailwind theme config
+```
+
+## 🔒 Security
+
+- All renderer ↔ main process communication uses `contextBridge` + `ipcRenderer.invoke`
+- `nodeIntegration: false`, `contextIsolation: true`
+- External links are validated against trusted domains
+- No sensitive data stored in plaintext
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-## License
-
-This project is licensed under the [MIT License](LICENSE) - see the file for details.
+**MarinMC Minecraft Network** · [Website](https://marinmc.com) · [Discord](https://discord.gg/marinmc) · [Telegram](https://t.me/marinmc)

@@ -1,33 +1,69 @@
 appId: com.marinmc.launcher
 productName: MarinMC Launcher
+copyright: Copyright © 2026 MarinMC
+
 directories:
   output: release
   buildResources: build
+
 files:
   - dist/**/*
   - dist-electron/**/*
   - package.json
+
+extraFiles:
+  - from: assets/
+    to: assets/
+    filter:
+      - "**/*"
+      - "!*.psd"
+      - "!*.ai"
+
 asar: true
+
 win:
   target:
     - target: nsis
       arch:
         - x64
+  icon: assets/icon.ico
+  requestedExecutionLevel: asInvoker
   publish:
     provider: github
-    owner: USERNAME
+    owner: musbabaff
     repo: marinmc-launcher
+
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+  installerIcon: assets/icon.ico
+  installerHeaderIcon: assets/icon.ico
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: MarinMC Launcher
+  deleteAppDataOnUninstall: false
+
 mac:
   target:
     - dmg
+  icon: assets/icon.icns
   category: public.app-category.games
+  publish:
+    provider: github
+    owner: musbabaff
+    repo: marinmc-launcher
+
 linux:
   target:
     - AppImage
+  icon: assets/icon.png
   category: Game
+  publish:
+    provider: github
+    owner: musbabaff
+    repo: marinmc-launcher
+
+publish:
+  provider: github
+  owner: musbabaff
+  repo: marinmc-launcher

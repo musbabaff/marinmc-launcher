@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarinMC Launcher</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      -webkit-app-region: drag;
+      user-select: none;
+    }
+
+    .splash-container {
+      width: 400px;
+      height: 300px;
+      background: linear-gradient(145deg, #0D0F14 0%, #131622 50%, #0B0D15 100%);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.6),
+        0 0 40px rgba(59, 130, 246, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Subtle animated background glow */
+    .splash-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(
+        circle at 50% 50%,
+        rgba(59, 130, 246, 0.06) 0%,
+        transparent 50%
+      );
+      animation: rotate-glow 6s linear infinite;
+    }
+
+    @keyframes rotate-glow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .logo-wrapper {
+      position: relative;
+      z-index: 2;
+      animation: pulse-logo 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-logo {
+      0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.3));
+      }
+      50% {
+        transform: scale(1.05);
+        filter: drop-shadow(0 0 24px rgba(59, 130, 246, 0.5));
+      }
+    }
+
+    .logo-wrapper svg {
+      width: 80px;
+      height: 80px;
+    }
+
+    .brand-text {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+
+    .brand-text h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    .brand-text p {
+      font-size: 11px;
+      color: rgba(148, 163, 184, 0.6);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .loading-section {
+      position: relative;
+      z-index: 2;
+      width: 200px;
+      text-align: center;
+    }
+
+    .loading-text {
+      font-size: 10px;
+      color: rgba(148, 163, 184, 0.5);
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3B82F6, #8B5CF6);
+      border-radius: 2px;
+      transition: width 0.1s linear;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+    }
+
+    .version-badge {
+      position: absolute;
+      bottom: 14px;
+      right: 18px;
+      font-size: 9px;
+      color: rgba(148, 163, 184, 0.25);
+      font-weight: 600;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+  <div class="splash-container">
+    <div class="logo-wrapper">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#3B82F6" />
+            <stop offset="100%" stop-color="#8B5CF6" />
+          </linearGradient>
+        </defs>
+        <rect x="10" y="10" width="80" height="80" rx="20" fill="#131622" stroke="url(#logoGrad)" stroke-width="2.5" />
+        <path d="M 28,70 L 28,35 L 43,53 L 50,45 L 57,53 L 72,35 L 72,70"
+              stroke="url(#logoGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        <circle cx="50" cy="30" r="4" fill="#3B82F6" />
+      </svg>
+    </div>
+
+    <div class="brand-text">
+      <h1>MarinMC Launcher</h1>
+      <p>Minecraft Network</p>
+    </div>
+
+    <div class="loading-section">
+      <div class="loading-text" id="statusText">Yükleniyor...</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressBar"></div>
+      </div>
+    </div>
+
+    <div class="version-badge">v1.0.0</div>
+  </div>
+
+  <script>
+    const bar = document.getElementById('progressBar');
+    const statusText = document.getElementById('statusText');
+    let progress = 0;
+
+    const stages = [
+      { at: 20, text: 'Modüller yükleniyor...' },
+      { at: 50, text: 'Arayüz hazırlanıyor...' },
+      { at: 75, text: 'Bağlantı kontrol ediliyor...' },
+      { at: 95, text: 'Neredeyse hazır...' },
+    ];
+
+    const interval = setInterval(() => {
+      progress += Math.random() * 4 + 1;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+      }
+      bar.style.width = progress + '%';
+
+      for (const stage of stages) {
+        if (progress >= stage.at) {
+          statusText.textContent = stage.text;
+        }
+      }
+    }, 40);
+  </script>
+</body>
+</html>

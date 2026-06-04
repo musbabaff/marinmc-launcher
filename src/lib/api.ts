@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { ServerInfo } from '../types/server';
-import { API_BASE, SERVER_IP } from './constants';
+import { API_BASE } from './constants';
 
 const apiClient = axios.create({
   baseURL: API_BASE,
@@ -8,53 +8,85 @@ const apiClient = axios.create({
 });
 
 export const api = {
-  // Fetch servers list with status
-  async getServers(): Promise<ServerInfo[]> {
+  // Fetch new servers list structure
+  async getServerList(): Promise<ServerInfo[]> {
     try {
       const response = await apiClient.get('/servers');
       return response.data;
     } catch (err) {
       console.warn('API error fetching servers, using mock fallback:', err);
-      // Return beautiful mock game nodes for testing
+      // Return three premium mock servers requested
       return [
+        {
+          id: 'towny',
+          name: 'MarinMC Towny',
+          ip: 'towny.marinmc.com',
+          port: 25565,
+          mode: 'TOWNY',
+          description: 'Şehir kur, toprak kazan!',
+          playerCount: 428,
+          maxPlayers: 1000,
+          tags: ['POPÜLER'],
+          themeColor: 'teal',
+          version: '1.20.4',
+          ping: 14,
+          online: true,
+          players: { online: 428, max: 1000 },
+          artworkUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=800&auto=format&fit=crop&q=60'
+        },
+        {
+          id: 'creative',
+          name: 'MarinMC Creative',
+          ip: 'creative.marinmc.com',
+          port: 25565,
+          mode: 'CREATIVE',
+          description: 'Sınırsız yaratıcılık!',
+          playerCount: 156,
+          maxPlayers: 500,
+          tags: ['YENİ'],
+          themeColor: 'purple',
+          version: '1.20.4',
+          ping: 18,
+          online: true,
+          players: { online: 156, max: 500 },
+          artworkUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=60'
+        },
         {
           id: 'survival',
           name: 'MarinMC Survival',
-          ip: SERVER_IP,
+          ip: 'survival.marinmc.com',
           port: 25565,
-          description: 'Sonsuz hayatta kalma macerası, özel ekonomi ve klan savaşları!',
-          online: true,
-          players: { online: 342, max: 1000 },
+          mode: 'SURVIVAL',
+          description: 'Hayatta kal, efsane ol!',
+          playerCount: 664,
+          maxPlayers: 1500,
+          tags: ['POPÜLER', 'SEZONLUK'],
+          themeColor: 'orange',
           version: '1.20.4',
-          ping: 15,
-          bannerUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=800&auto=format&fit=crop&q=60'
-        },
-        {
-          id: 'skyblock',
-          name: 'MarinMC Skyblock',
-          ip: SERVER_IP,
-          port: 25565,
-          description: 'Gökyüzündeki adanı büyüt, görevleri tamamla ve en zengin sen ol!',
+          ping: 11,
           online: true,
-          players: { online: 189, max: 500 },
-          version: '1.20.4',
-          ping: 18,
-          bannerUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=60'
-        },
-        {
-          id: 'bedwars',
-          name: 'MarinMC Bedwars',
-          ip: SERVER_IP,
-          port: 25565,
-          description: 'Yatakları koru, rakipleri yok et. Hızlı tempolu PVP mücadelesi!',
-          online: true,
-          players: { online: 256, max: 800 },
-          version: '1.20.4',
-          ping: 12,
-          bannerUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=60'
+          players: { online: 664, max: 1500 },
+          artworkUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=60'
         }
       ];
     }
+  },
+
+  // Fetch global online counts
+  async getOnlineCount(): Promise<{ total: number }> {
+    try {
+      const response = await apiClient.get('/stats/online');
+      return response.data;
+    } catch (err) {
+      // Mock global player count fallback
+      const totalMock = 1248;
+      return { total: totalMock };
+    }
+  },
+
+  // Legacy fallback method for other parts of the project
+  async getServers(): Promise<ServerInfo[]> {
+    return this.getServerList();
   },
 
   // Fetch launcher announcement or updates

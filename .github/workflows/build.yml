@@ -1,18 +1,33 @@
-name: Build & Package Launcher
+name: Build & Release Launcher
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+    tags:
+      - 'v*'
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: write
 
 jobs:
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            artifact_name: MarinMC-Launcher-Windows
+            artifact_ext: exe
+          - os: macos-latest
+            artifact_name: MarinMC-Launcher-macOS
+            artifact_ext: dmg
+          - os: ubuntu-latest
+            artifact_name: MarinMC-Launcher-Linux
+            artifact_ext: AppImage
 
     steps:
       - name: Checkout Source Code
@@ -22,19 +37,50 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Application
-        run: npm run build
+      - name: Build Renderer (TypeScript + Vite)
+        run: npm run build:renderer
+
+      - name: Build Electron (TypeScript)
+        run: npm run build:electron
+
+      - name: Package Application
+        run: npx electron-builder --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.AppImage
+            release/*.yml
+          if-no-files-found: warn
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

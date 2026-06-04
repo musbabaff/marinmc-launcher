@@ -19,9 +19,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('game:progress', subscription);
     return () => ipcRenderer.removeListener('game:progress', subscription);
   },
+  onGameStatus: (callback: (status: 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'LAUNCHING' | 'RUNNING' | 'ERROR') => void) => {
+    const subscription = (_event: any, status: 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'LAUNCHING' | 'RUNNING' | 'ERROR') => callback(status);
+    ipcRenderer.on('game:status', subscription);
+    return () => ipcRenderer.removeListener('game:status', subscription);
+  },
 
   // System Information
   getSystemInfo: () => ipcRenderer.invoke('system:info'),
+  selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
+  openExternal: (url: string) => ipcRenderer.invoke('system:open-external', url),
 
   // Authentication IPCs
   loginCracked: (username: string) => ipcRenderer.invoke('auth:login-cracked', username),

@@ -1,6 +1,8 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import { autoUpdater } from 'electron-updater';
+import { createSplash, closeSplash } from './splash.js';
+import { setupTray, destroyTray, setGameRunning } from './tray.js';
 
 // Import IPC handlers so they are registered in the main process
 import './ipc/auth.js';
@@ -8,7 +10,6 @@ import './ipc/game.js';
 import './ipc/system.js';
 
 let mainWindow: BrowserWindow | null = null;
-let tray: Tray | null = null;
 
 // Single instance lock
 const isFirstInstance = app.requestSingleInstanceLock();
@@ -18,12 +19,16 @@ if (!isFirstInstance) {
   app.on('second-instance', () => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
       mainWindow.focus();
     }
   });
 }
 
 function createWindow() {
+  // Show splash screen first
+  const splash = createSplash();
+
   mainWindow = new BrowserWindow({
     width: 960,
     height: 600,
@@ -36,11 +41,17 @@ function createWindow() {
       nodeIntegration: false,
     },
     backgroundColor: '#0F111A',
-    show: false,
+    show: false, // Don't show until ready
   });
 
+  // When main window content is loaded, close splash and show main
   mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
+    // Give a small delay so splash progress bar finishes visually
+    setTimeout(() => {
+      closeSplash();
+      mainWindow?.show();
+      mainWindow?.focus();
+    }, 2200); // ~2.2s matches splash progress bar duration
   });
 
   if (app.isPackaged) {
@@ -55,50 +66,32 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-}
 
-// System Tray Support
-function setupTray() {
-  // A tray icon would ordinarily reside in the build/assets directory.
-  // We specify a fallback configuration if file access errors occur in testing.
-  const iconPath = path.join(__dirname, app.isPackaged ? '../dist/assets/favicon.ico' : '../assets/favicon.ico');
-  
-  try {
-    tray = new Tray(iconPath);
-    const contextMenu = Menu.buildFromTemplate([
-      { label: 'Restore Window', click: () => mainWindow?.show() },
-      { type: 'separator' },
-      { label: 'Exit Launcher', click: () => {
-          app.quit();
-        }
-      }
-    ]);
-    tray.setToolTip('MarinMC Launcher');
-    tray.setContextMenu(contextMenu);
-    tray.on('click', () => {
-      if (mainWindow?.isVisible()) {
-        mainWindow.focus();
-      } else {
-        mainWindow?.show();
-      }
-    });
-  } catch (e) {
-    console.warn('System tray failed to initialize (likely due to missing icon asset in test workspace):', e);
-  }
+  // Listen for game state changes from renderer to update tray
+  mainWindow.webContents.on('ipc-message', (_event, channel) => {
+    if (channel === 'game:running') {
+      setGameRunning(true);
+    } else if (channel === 'game:stopped') {
+      setGameRunning(false);
+    }
+  });
 }
 
 app.whenReady().then(() => {
   createWindow();
   setupTray();
 
-  // Initialize auto updater
-  autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-    console.error('Error starting auto-updater:', err);
-  });
+  // Initialize auto updater (only in packaged builds)
+  if (app.isPackaged) {
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      console.error('Error starting auto-updater:', err);
+    });
+  }
 });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    destroyTray();
     app.quit();
   }
 });

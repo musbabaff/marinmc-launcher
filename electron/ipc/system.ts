@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { ipcMain, dialog, shell } from 'electron';
 import * as os from 'os';
 import { execSync } from 'child_process';
 
@@ -30,4 +30,25 @@ ipcMain.handle('system:info', async () => {
     javaPath,
     os: osType === 'win32' ? 'Windows' : osType === 'darwin' ? 'macOS' : 'Linux'
   };
+});
+
+ipcMain.handle('system:select-directory', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+    title: 'Oyun Klasörünü Seçin'
+  });
+  if (result.canceled) {
+    return null;
+  }
+  return result.filePaths[0];
+});
+
+ipcMain.handle('system:open-external', async (_event, url: string) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (err) {
+    console.error('Failed to open external link:', err);
+    return { success: false };
+  }
 });

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { UserSession } from '../types/auth';
+import { authService } from '../auth/authService';
 
 interface AuthState {
   session: UserSession | null;
@@ -9,74 +10,49 @@ interface AuthState {
   loginWithMicrosoft: () => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
+  initializeSession: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  session: (() => {
-    try {
-      return JSON.parse(localStorage.getItem('marinmc_session') || 'null');
-    } catch {
-      return null;
-    }
-  })(),
+  session: authService.getStoredSession(),
   isLoading: false,
   error: null,
   clearError: () => set({ error: null }),
+  
+  initializeSession: () => {
+    const session = authService.getStoredSession();
+    set({ session });
+  },
+
   loginWithCracked: async (username) => {
     set({ isLoading: true, error: null });
     try {
-      let session: UserSession;
-      if (window.electronAPI) {
-        session = await window.electronAPI.loginCracked(username);
-      } else {
-        // Browser fallback
-        session = {
-          id: 'offline-' + username.toLowerCase(),
-          name: username,
-          token: `mock_token_${Date.now()}`,
-          type: 'cracked',
-          avatar: `https://mc-heads.net/avatar/${username}/64`
-        };
-      }
-      localStorage.setItem('marinmc_session', JSON.stringify(session));
+      const session = await authService.loginCracked(username);
       set({ session, isLoading: false });
     } catch (err: any) {
-      set({ error: err.message || 'Giriş yapılamadı', isLoading: false });
+      set({ error: err.message || 'Giriş yapılamadı.', isLoading: false });
     }
   },
+
   loginWithMicrosoft: async () => {
     set({ isLoading: true, error: null });
     try {
-      let session: UserSession;
-      if (window.electronAPI) {
-        session = await window.electronAPI.loginMicrosoft();
-      } else {
-        // Browser mock callback
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        session = {
-          id: 'ms-mock-uuid',
-          name: 'MarinPremium',
-          token: `mock_ms_token_${Date.now()}`,
-          type: 'ms',
-          avatar: 'https://mc-heads.net/avatar/MarinPremium/64'
-        };
-      }
-      localStorage.setItem('marinmc_session', JSON.stringify(session));
+      const session = await authService.loginMicrosoft();
       set({ session, isLoading: false });
     } catch (err: any) {
-      set({ error: err.message || 'Microsoft ile giriş yapılamadı', isLoading: false });
+      set({ error: err.message || 'Microsoft ile giriş yapılamadı.', isLoading: false });
     }
   },
+
   logout: async () => {
     set({ isLoading: true });
     try {
-      if (window.electronAPI) {
-        await window.electronAPI.logout();
-      }
-    } catch (e) {
-      console.error(e);
+      await authService.logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      set({ session: null, isLoading: false });
     }
-    localStorage.removeItem('marinmc_session');
-    set({ session: null, isLoading: false });
   }
 }));
+

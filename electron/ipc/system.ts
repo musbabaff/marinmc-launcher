@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell } from 'electron';
+import { ipcMain, dialog, shell, clipboard } from 'electron';
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -67,5 +67,86 @@ ipcMain.handle('validate-directory', async (_event, dirPath: string) => {
     return { valid: true, path: dirPath };
   } catch (err: any) {
     return { valid: false, error: err.message };
+  }
+});
+
+ipcMain.handle('get-screenshots', async (_event, gameDir: string) => {
+  const screenshotsDir = path.join(gameDir, 'screenshots');
+  try {
+    if (!fs.existsSync(screenshotsDir)) {
+      return { success: true, screenshots: [] };
+    }
+    const files = fs.readdirSync(screenshotsDir)
+      .filter(f => f.endsWith('.png') || f.endsWith('.jpg'))
+      .map(f => {
+        const filePath = path.join(screenshotsDir, f);
+        const stat = fs.statSync(filePath);
+        return {
+          name: f,
+          path: filePath,
+          size: stat.size,
+          date: stat.mtime
+        };
+      });
+    return { success: true, screenshots: files };
+  } catch {
+    return { success: true, screenshots: [] };
+  }
+});
+
+ipcMain.handle('upload-skin', async () => {
+  const result = await dialog.showOpenDialog({
+    filters: [{ name: 'PNG Images', extensions: ['png'] }],
+    properties: ['openFile']
+  });
+  if (!result.canceled && result.filePaths[0]) {
+    return { success: true, path: result.filePaths[0] };
+  }
+  return { success: false };
+});
+
+ipcMain.handle('open-crash-log', async (_event, crashPath: string) => {
+  try {
+    if (fs.existsSync(crashPath)) {
+      const stats = fs.statSync(crashPath);
+      if (stats.isDirectory()) {
+        const files = fs.readdirSync(crashPath);
+        if (files.length > 0) {
+          const latest = files.sort().reverse()[0];
+          await shell.openPath(path.join(crashPath, latest));
+          return { success: true };
+        }
+      } else {
+        await shell.openPath(crashPath);
+        return { success: true };
+      }
+    }
+    return { success: false, error: 'Hata günlüğü dosyası bulunamadı.' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('copy-crash-log', async (_event, crashPath: string) => {
+  try {
+    if (fs.existsSync(crashPath)) {
+      const stats = fs.statSync(crashPath);
+      let targetFile = crashPath;
+      if (stats.isDirectory()) {
+        const files = fs.readdirSync(crashPath);
+        if (files.length > 0) {
+          const latest = files.sort().reverse()[0];
+          targetFile = path.join(crashPath, latest);
+        } else {
+          return { success: false, error: 'Dosya bulunamadı.' };
+        }
+      }
+      const content = fs.readFileSync(targetFile, 'utf-8');
+      clipboard.writeText(content);
+      return { success: true };
+    }
+    return { success: false, error: 'Dosya bulunamadı.' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 });

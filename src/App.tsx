@@ -1,92 +1,47 @@
-import { useState, lazy, Suspense } from 'react';
-import { HashRouter, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore.ts';
+import { useAppStore } from './stores/appStore.ts';
+import { useSettingsStore } from './stores/settingsStore.ts';
 import TitleBar from './components/TitleBar.tsx';
-import SettingsPanel from './components/SettingsPanel.tsx';
-import { Server, Settings, LogOut } from 'lucide-react';
+import Sidebar from './components/Sidebar.tsx';
+import OfflineBanner from './components/OfflineBanner.tsx';
+import CrashModal from './components/CrashModal.tsx';
+import { checkConnectivity } from './lib/api.ts';
 
 // Lazy-loaded pages for performance
 const LoginPage = lazy(() => import('./pages/LoginPage.tsx'));
-const ServersPage = lazy(() => import('./pages/ServersPage.tsx'));
-const ServerDetailPage = lazy(() => import('./pages/ServerDetailPage.tsx'));
+const HomePage = lazy(() => import('./pages/HomePage.tsx'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage.tsx'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage.tsx'));
+const ChatPage = lazy(() => import('./pages/ChatPage.tsx'));
+const CosmeticsPage = lazy(() => import('./pages/CosmeticsPage.tsx'));
+const GalleryPage = lazy(() => import('./pages/GalleryPage.tsx'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage.tsx'));
-const ModManagerPage = lazy(() => import('./pages/ModManagerPage.tsx'));
 
 // Loading fallback
 const PageLoader = () => (
-  <div className="flex-1 flex items-center justify-center bg-brand-bg">
+  <div className="flex-grow flex items-center justify-center bg-[#0A0A0A]">
     <div className="flex flex-col items-center gap-3">
-      <div className="w-8 h-8 border-2 border-brand-accent/30 border-t-brand-accent rounded-full animate-spin" />
-      <span className="text-[10px] text-brand-textMuted font-semibold uppercase tracking-wider">Yükleniyor...</span>
+      <div className="w-8 h-8 border-2 border-[#8B5CF6]/30 border-t-[#8B5CF6] rounded-full animate-spin" />
+      <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-wider">Yükleniyor...</span>
     </div>
   </div>
 );
 
-// Sidebar / Layout Wrapper
-const MainLayout = ({ children, onOpenSettings }: { children: React.ReactNode; onOpenSettings: () => void }) => {
-  const { t } = useTranslation();
+// Layout wrapper structure
+const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { logout } = useAuthStore();
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
-  const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
-  };
-
-  const isFullScreenPage = location.pathname === '/servers' || location.pathname.startsWith('/server') || location.pathname.startsWith('/mods');
+  const isLoginPage = location.pathname === '/login';
 
   return (
-    <div className="flex h-[560px] w-full relative overflow-hidden bg-launcher-bg bg-cover bg-center">
-      {/* Sidebar Navigation - Hidden on Fullscreen Pages */}
-      {!isFullScreenPage && (
-        <div className="w-20 bg-[#0B0D15]/80 border-r border-white/[0.03] flex flex-col items-center justify-between py-6 z-20">
-          <div className="flex flex-col space-y-6">
-            <Link
-              to="/servers"
-              className={`p-3 rounded-xl transition-all duration-300 relative group ${
-                isActive('/servers')
-                  ? 'bg-brand-accent text-white shadow-glow-purple'
-                  : 'text-brand-textMuted hover:text-brand-text hover:bg-white/5'
-              }`}
-            >
-              <Server className="w-5 h-5" />
-              <span className="absolute left-24 bg-brand-card border border-white/5 text-brand-text text-[11px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-xl">
-                Sunucular
-              </span>
-            </Link>
-
-            <button
-              onClick={onOpenSettings}
-              className="p-3 rounded-xl transition-all duration-300 relative group text-brand-textMuted hover:text-brand-text hover:bg-white/5"
-            >
-              <Settings className="w-5 h-5" />
-              <span className="absolute left-24 bg-brand-card border border-white/5 text-brand-text text-[11px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-xl">
-                {t('servers.settingsTooltip')}
-              </span>
-            </button>
-          </div>
-
-          {/* User control / Logout */}
-          <button
-            onClick={handleLogout}
-            className="p-3 rounded-xl text-brand-textMuted hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 group relative"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="absolute left-24 bg-brand-card border border-white/5 text-brand-text text-[11px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-xl">
-              {t('servers.logout')}
-            </span>
-          </button>
-        </div>
-      )}
+    <div className="flex h-[560px] w-full relative overflow-hidden bg-[#0A0A0A]">
+      {/* Sidebar Navigation */}
+      {!isLoginPage && <Sidebar />}
 
       {/* Main View Area */}
-      <div className="flex-1 h-full overflow-hidden bg-gradient-to-b from-transparent to-[#0B0D15]/90 z-10 flex flex-col">
+      <div className="flex-1 h-full overflow-hidden flex flex-col relative bg-[#0A0A0A]">
+        <OfflineBanner />
         {children}
       </div>
     </div>
@@ -94,66 +49,158 @@ const MainLayout = ({ children, onOpenSettings }: { children: React.ReactNode; o
 };
 
 // Route Guard logic
-const ProtectedRoute = ({ children, onOpenSettings }: { children: React.ReactNode; onOpenSettings: () => void }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const session = useAuthStore((state) => state.session);
 
   if (!session) {
     return <Navigate to="/login" replace />;
   }
 
-  return <MainLayout onOpenSettings={onOpenSettings}>{children}</MainLayout>;
+  return <MainLayout>{children}</MainLayout>;
 };
 
 // App Main Router
 export default function App() {
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const setOnline = useAppStore((state) => state.setOnline);
+  const settings = useSettingsStore();
+
+  // Crash Modal States
+  const [crashOpen, setCrashOpen] = useState(false);
+  const [crashCode, setCrashCode] = useState(0);
+  const [crashPath, setCrashPath] = useState('');
+
+  // Periodically check API connectivity (30s)
+  useEffect(() => {
+    const check = async () => {
+      const online = await checkConnectivity();
+      setOnline(online);
+    };
+    check();
+    const interval = setInterval(check, 30000);
+    return () => clearInterval(interval);
+  }, [setOnline]);
+
+  // Load global settings on startup
+  useEffect(() => {
+    settings.loadSettings();
+  }, []);
+
+  // Listen for game-crash events from the Electron main process
+  useEffect(() => {
+    let unsubscribeCrash: (() => void) | undefined;
+    if (window.electronAPI) {
+      unsubscribeCrash = window.electronAPI.onGameCrash((data) => {
+        setCrashCode(data.exitCode);
+        setCrashPath(data.crashLogPath);
+        setCrashOpen(true);
+      });
+    }
+    return () => {
+      if (unsubscribeCrash) unsubscribeCrash();
+    };
+  }, []);
+
+  const handleRelaunch = () => {
+    if (window.electronAPI) {
+      const settingsState = useSettingsStore.getState();
+      window.electronAPI.launchGame({
+        ram: settingsState.ram,
+        jvmArgs: settingsState.jvmArgs,
+        username: useAuthStore.getState().session?.name || 'Player',
+        accessToken: useAuthStore.getState().session?.token,
+        version: settingsState.selectedVersion,
+        serverId: 'towny',
+        gameDir: settingsState.launcherDir,
+        javaPath: settingsState.javaPath
+      });
+    }
+  };
 
   return (
     <HashRouter>
-      <div className="flex flex-col w-[960px] h-[600px] overflow-hidden select-none bg-brand-bg relative">
+      <div className="flex flex-col w-[960px] h-[600px] overflow-hidden select-none bg-[#0A0A0A] relative text-[#FFFFFF]">
         <TitleBar />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route
-              path="/servers"
+              path="/home"
               element={
-                <ProtectedRoute onOpenSettings={() => setSettingsOpen(true)}>
-                  <ServersPage />
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Version triggers open HomePage with version modal active */}
+            <Route
+              path="/versions"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/server/:id"
+              path="/profile"
               element={
-                <ProtectedRoute onOpenSettings={() => setSettingsOpen(true)}>
-                  <ServerDetailPage />
+                <ProtectedRoute>
+                  <ProfilePage />
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/mods/:serverId?"
+              path="/notifications"
               element={
-                <ProtectedRoute onOpenSettings={() => setSettingsOpen(true)}>
-                  <ModManagerPage />
+                <ProtectedRoute>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <ProtectedRoute>
+                  <ChatPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cosmetics"
+              element={
+                <ProtectedRoute>
+                  <CosmeticsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/gallery"
+              element={
+                <ProtectedRoute>
+                  <GalleryPage />
                 </ProtectedRoute>
               }
             />
             <Route
               path="/settings"
               element={
-                <ProtectedRoute onOpenSettings={() => setSettingsOpen(true)}>
+                <ProtectedRoute>
                   <SettingsPage />
                 </ProtectedRoute>
               }
             />
-            {/* Redirect to servers by default */}
-            <Route path="*" element={<Navigate to="/servers" replace />} />
+            {/* Redirect to home by default */}
+            <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>
         </Suspense>
 
-        {/* Global Settings Drawer */}
-        <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        {/* Global Crash Modal Overlay */}
+        <CrashModal
+          isOpen={crashOpen}
+          exitCode={crashCode}
+          crashLogPath={crashPath}
+          onClose={() => setCrashOpen(false)}
+          onRelaunch={handleRelaunch}
+        />
       </div>
     </HashRouter>
   );

@@ -103,5 +103,48 @@
     "bannerText": "New version available: {{version}} — Download and Update",
     "updateBtn": "Update",
     "laterBtn": "Later"
+  },
+  "home": {
+    "greeting": "Welcome back",
+    "lastPlayed": "Last played",
+    "totalPlaytime": "Total playtime",
+    "launch": "LAUNCH",
+    "changeVersion": "CHANGE VERSION",
+    "latestProfiles": "LATEST PROFILES",
+    "partners": "PARTNERS",
+    "newsFeed": "NEWS"
+  },
+  "chat": {
+    "title": "MarinMC Relay",
+    "searchInbox": "Search inbox...",
+    "pinned": "Pinned",
+    "groups": "Groups",
+    "directMessages": "Direct Messages",
+    "typeMessage": "Type message..."
+  },
+  "gallery": {
+    "title": "GALLERY",
+    "search": "Search gallery...",
+    "filterByPlayer": "Filter by player",
+    "filterByServer": "Filter by server",
+    "filterByDate": "Filter by date"
+  },
+  "cosmetics": {
+    "title": "LOCKER",
+    "currentSkin": "CURRENT SKIN",
+    "uploadSkin": "UPLOAD SKIN",
+    "capes": "CAPES",
+    "favorites": "FAVORITES"
+  },
+  "crash": {
+    "title": "Game Crashed",
+    "suspectedCause": "Suspected Cause",
+    "relaunch": "Relaunch Game",
+    "copyCrashLog": "Copy Crash Log",
+    "openCrashLog": "Open Crash Log"
+  },
+  "offline": {
+    "banner": "MarinMC is running in offline mode. No connection available.",
+    "solutions": "Potential Solutions"
   }
 }

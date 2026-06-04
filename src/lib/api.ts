@@ -112,3 +112,12 @@ export const api = {
     }
   }
 };
+
+export async function checkConnectivity(): Promise<boolean> {
+  try {
+    await axios.get('https://api.marinmc.com/ping', { timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
+}

@@ -1,5 +1,17 @@
 import { create } from 'zustand';
 
+export interface RecentProfile {
+  id: string;
+  name: string;
+  version: string;
+  subVersion: string;
+  timePlayed: string;
+  artworkUrl?: string;
+  mode?: string;
+  ip?: string;
+  port?: number;
+}
+
 interface SettingsState {
   ram: number; // in MB
   jvmArgs: string;
@@ -11,6 +23,9 @@ interface SettingsState {
   language: 'tr' | 'en';
   theme: 'dark' | 'light';
   autoUpdate: boolean;
+  selectedVersion: string;
+  selectedSubVersion: string;
+  recentProfiles: RecentProfile[];
   loadSettings: () => Promise<void>;
   saveSettings: (settings: { 
     ram: number; 
@@ -23,10 +38,19 @@ interface SettingsState {
   setTheme: (theme: 'dark' | 'light') => void;
   setAutoUpdate: (enabled: boolean) => void;
   setLauncherBehavior: (behavior: 'minimize' | 'close' | 'nothing') => void;
+  setSelectedVersion: (version: string) => void;
+  setSelectedSubVersion: (subVersion: string) => void;
+  addRecentProfile: (profile: RecentProfile) => void;
   resetAll: () => void;
 }
 
 const DEFAULT_JVM_ARGS = "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch";
+
+const INITIAL_MOCK_RECENT_PROFILES: RecentProfile[] = [
+  { id: 'towny', name: 'MarinMC Towny', version: '1.21', subVersion: '1.21.11', timePlayed: '2 hours ago', mode: 'TOWNY', ip: 'oyna.marinmc.com', port: 25565, artworkUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=800&auto=format&fit=crop&q=60' },
+  { id: 'survival', name: 'MarinMC Survival', version: '1.21', subVersion: '1.21.11', timePlayed: '1 day ago', mode: 'SURVIVAL', ip: 'oyna.marinmc.com', port: 25565, artworkUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=60' },
+  { id: 'creative', name: 'MarinMC Creative', version: '1.20', subVersion: '1.20.4', timePlayed: '3 days ago', mode: 'CREATIVE', ip: 'oyna.marinmc.com', port: 25565, artworkUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=60' }
+];
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   ram: (() => {
@@ -53,6 +77,16 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   autoUpdate: (() => {
     const val = localStorage.getItem('marinmc_setting_autoUpdate');
     return val !== 'false'; // default true
+  })(),
+  selectedVersion: localStorage.getItem('marinmc_setting_selectedVersion') || '1.21',
+  selectedSubVersion: localStorage.getItem('marinmc_setting_selectedSubVersion') || '1.21.11',
+  recentProfiles: (() => {
+    try {
+      const saved = localStorage.getItem('marinmc_setting_recentProfiles');
+      return saved ? JSON.parse(saved) : INITIAL_MOCK_RECENT_PROFILES;
+    } catch {
+      return INITIAL_MOCK_RECENT_PROFILES;
+    }
   })(),
 
   loadSettings: async () => {
@@ -134,11 +168,33 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     set({ launcherBehavior: behavior });
   },
 
+  setSelectedVersion: (version) => {
+    localStorage.setItem('marinmc_setting_selectedVersion', version);
+    set({ selectedVersion: version });
+  },
+
+  setSelectedSubVersion: (subVersion) => {
+    localStorage.setItem('marinmc_setting_selectedSubVersion', subVersion);
+    set({ selectedSubVersion: subVersion });
+  },
+
+  addRecentProfile: (profile) => {
+    set((state) => {
+      // Remove duplicate if exists
+      const filtered = state.recentProfiles.filter((p) => p.id !== profile.id);
+      const updated = [profile, ...filtered].slice(0, 5); // keep last 5
+      localStorage.setItem('marinmc_setting_recentProfiles', JSON.stringify(updated));
+      return { recentProfiles: updated };
+    });
+  },
+
   resetAll: () => {
     const keys = [
       'marinmc_setting_ram', 'marinmc_setting_jvmArgs', 'marinmc_setting_launcherDir',
       'marinmc_setting_javaPath', 'marinmc_setting_behavior', 'marinmc_setting_language',
-      'marinmc_setting_theme', 'marinmc_setting_autoUpdate'
+      'marinmc_setting_theme', 'marinmc_setting_autoUpdate',
+      'marinmc_setting_selectedVersion', 'marinmc_setting_selectedSubVersion',
+      'marinmc_setting_recentProfiles'
     ];
     keys.forEach(k => localStorage.removeItem(k));
     import('../lib/i18n.ts').then(mod => mod.default.changeLanguage('tr'));
@@ -151,6 +207,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       language: 'tr',
       theme: 'dark',
       autoUpdate: true,
+      selectedVersion: '1.21',
+      selectedSubVersion: '1.21.11',
+      recentProfiles: INITIAL_MOCK_RECENT_PROFILES
     });
   }
 }));

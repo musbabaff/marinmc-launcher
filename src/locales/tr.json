@@ -103,5 +103,48 @@
     "bannerText": "Yeni sürüm mevcut: {{version}} — İndir ve Güncelle",
     "updateBtn": "Güncelle",
     "laterBtn": "Sonra"
+  },
+  "home": {
+    "greeting": "Tekrar hoş geldin",
+    "lastPlayed": "Son oynanan",
+    "totalPlaytime": "Toplam oynanma süresi",
+    "launch": "BAŞLAT",
+    "changeVersion": "VERSİYON DEĞİŞTİR",
+    "latestProfiles": "SON PROFİLLER",
+    "partners": "ORTAKLAR",
+    "newsFeed": "HABERLER"
+  },
+  "chat": {
+    "title": "MarinMC Relay",
+    "searchInbox": "Gelen kutusu ara...",
+    "pinned": "Sabitlenmiş",
+    "groups": "Gruplar",
+    "directMessages": "Direkt Mesajlar",
+    "typeMessage": "Mesaj yaz..."
+  },
+  "gallery": {
+    "title": "GALERİ",
+    "search": "Galeride ara...",
+    "filterByPlayer": "Oyuncuya göre filtrele",
+    "filterByServer": "Sunucuya göre filtrele",
+    "filterByDate": "Tarihe göre filtrele"
+  },
+  "cosmetics": {
+    "title": "DOLAP",
+    "currentSkin": "MEVCUT KOSTÜMÜM",
+    "uploadSkin": "KOSTÜM YÜKLE",
+    "capes": "PELERİNLER",
+    "favorites": "FAVORİLER"
+  },
+  "crash": {
+    "title": "Oyun Çöktü",
+    "suspectedCause": "Muhtemel Neden",
+    "relaunch": "Oyunu Yeniden Başlat",
+    "copyCrashLog": "Hata Günlüğünü Kopyala",
+    "openCrashLog": "Hata Günlüğünü Aç"
+  },
+  "offline": {
+    "banner": "MarinMC çevrimdışı modda çalışıyor. Bağlantı yok.",
+    "solutions": "Olası Çözümler"
   }
 }

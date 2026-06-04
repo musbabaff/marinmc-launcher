@@ -28,12 +28,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('game:status', subscription);
     return () => ipcRenderer.removeListener('game:status', subscription);
   },
+  onGameCrash: (callback: (data: { exitCode: number; crashLogPath: string }) => void) => {
+    const subscription = (_event: any, data: { exitCode: number; crashLogPath: string }) => callback(data);
+    ipcRenderer.on('game-crash', subscription);
+    return () => ipcRenderer.removeListener('game-crash', subscription);
+  },
 
   // System Information
   getSystemInfo: () => ipcRenderer.invoke('system:info'),
   selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
   validateDirectory: (dirPath: string) => ipcRenderer.invoke('validate-directory', dirPath),
   openExternal: (url: string) => ipcRenderer.invoke('system:open-external', url),
+  getScreenshots: (gameDir: string) => ipcRenderer.invoke('get-screenshots', gameDir),
+  uploadSkin: () => ipcRenderer.invoke('upload-skin'),
+  openCrashLog: (crashPath: string) => ipcRenderer.invoke('open-crash-log', crashPath),
+  copyCrashLog: (crashPath: string) => ipcRenderer.invoke('copy-crash-log', crashPath),
 
   // Authentication IPCs
   loginCracked: (username: string) => ipcRenderer.invoke('auth:login-cracked', username),

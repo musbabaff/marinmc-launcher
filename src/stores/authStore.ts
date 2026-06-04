@@ -11,6 +11,7 @@ interface AuthState {
   logout: () => Promise<void>;
   clearError: () => void;
   initializeSession: () => void;
+  setSession: (session: UserSession | null) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -18,6 +19,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
   error: null,
   clearError: () => set({ error: null }),
+  
+  setSession: (session) => {
+    if (session) {
+      localStorage.setItem('marinmc_session', JSON.stringify(session));
+    } else {
+      localStorage.removeItem('marinmc_session');
+    }
+    set({ session });
+  },
   
   initializeSession: () => {
     const session = authService.getStoredSession();

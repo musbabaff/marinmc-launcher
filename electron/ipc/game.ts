@@ -163,6 +163,13 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         mainWindow.webContents.send('game:log',
           `[MarinMC Launcher] Minecraft kapandı (çıkış kodu: ${code}).`);
         mainWindow.webContents.send('game:progress', 0);
+
+        if (code !== 0 && code !== null) {
+          mainWindow.webContents.send('game-crash', {
+            exitCode: code,
+            crashLogPath: path.join(gameDir, 'crash-reports')
+          });
+        }
       });
 
       // Launch Minecraft

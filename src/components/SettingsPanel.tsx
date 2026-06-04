@@ -35,6 +35,9 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [javaTestResult, setJavaTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [cacheCleared, setCacheCleared] = useState(false);
+  const [defaultGameDir, setDefaultGameDir] = useState('');
+  const [dirError, setDirError] = useState<string | null>(null);
+  const [dirSuccess, setDirSuccess] = useState(false);
 
   useEffect(() => {
     setRamValue(settings.ram);
@@ -42,6 +45,16 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
     setLauncherDirVal(settings.launcherDir);
     setJavaPathVal(settings.javaPath);
   }, [settings.ram, settings.jvmArgs, settings.launcherDir, settings.javaPath]);
+
+  useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.getSystemInfo().then((info) => {
+        if (info && info.defaultGameDir) {
+          setDefaultGameDir(info.defaultGameDir);
+        }
+      });
+    }
+  }, []);
 
   // Close on Escape
   useEffect(() => {
@@ -52,7 +65,16 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isOpen, onClose]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setDirError(null);
+    if (launcherDirVal.trim() !== '' && window.electronAPI) {
+      const validation = await window.electronAPI.validateDirectory(launcherDirVal);
+      if (!validation.valid) {
+        setDirError(validation.error || 'Dizin yazılamaz.');
+        return;
+      }
+    }
+
     settings.saveSettings({
       ram: ramValue,
       jvmArgs: jvmArgsVal,
@@ -81,8 +103,20 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
 
   const handleSelectDir = async () => {
     if (window.electronAPI) {
+      setDirError(null);
+      setDirSuccess(false);
       const dir = await window.electronAPI.selectDirectory();
-      if (dir) setLauncherDirVal(dir);
+      if (!dir) return;
+
+      const validation = await window.electronAPI.validateDirectory(dir);
+      if (!validation.valid) {
+        setDirError(validation.error || 'Seçilen dizin yazılamaz.');
+        return;
+      }
+
+      setLauncherDirVal(dir);
+      setDirSuccess(true);
+      setTimeout(() => setDirSuccess(false), 3000);
     }
   };
 
@@ -433,7 +467,12 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                       <input
                         type="text"
                         value={launcherDirVal}
-                        onChange={(e) => setLauncherDirVal(e.target.value)}
+                        onChange={(e) => {
+                          setLauncherDirVal(e.target.value);
+                          setDirError(null);
+                          setDirSuccess(false);
+                        }}
+                        placeholder={defaultGameDir || "Örn: C:\\marinmc"}
                         className="flex-1 px-3 py-2.5 rounded-xl glass-input text-xs font-semibold text-white placeholder-white/20"
                       />
                       <button
@@ -443,6 +482,16 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                         <FolderOpenDot className="w-4 h-4" />
                       </button>
                     </div>
+                    {dirError && (
+                      <p className="text-[10px] text-red-400 font-semibold mt-1">
+                        Klasör yazılamıyor: {dirError}
+                      </p>
+                    )}
+                    {dirSuccess && (
+                      <p className="text-[10px] text-emerald-400 font-semibold mt-1">
+                        Oyun klasörü geçerli ve yazılabilir.
+                      </p>
+                    )}
                   </div>
 
                   {/* Save button */}

@@ -18,8 +18,9 @@ export interface IElectronAPI {
   onGameLog: (callback: (log: string) => void) => () => void;
   onDownloadProgress: (callback: (percent: number) => void) => () => void;
   onGameStatus: (callback: (status: 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'LAUNCHING' | 'RUNNING' | 'ERROR') => void) => () => void;
-  getSystemInfo: () => Promise<{ totalRAM: number; javaPath: string; os: string }>;
+  getSystemInfo: () => Promise<{ totalRAM: number; javaPath: string; os: string; defaultGameDir?: string }>;
   selectDirectory: () => Promise<string | null>;
+  validateDirectory: (dirPath: string) => Promise<{ valid: boolean; path?: string; error?: string }>;
   openExternal: (url: string) => Promise<{ success: boolean }>;
   loginCracked: (username: string) => Promise<any>;
   loginMicrosoft: () => Promise<any>;

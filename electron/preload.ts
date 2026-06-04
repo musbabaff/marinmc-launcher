@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // System Information
   getSystemInfo: () => ipcRenderer.invoke('system:info'),
   selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
+  validateDirectory: (dirPath: string) => ipcRenderer.invoke('validate-directory', dirPath),
   openExternal: (url: string) => ipcRenderer.invoke('system:open-external', url),
 
   // Authentication IPCs

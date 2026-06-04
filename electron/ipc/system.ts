@@ -1,6 +1,9 @@
 import { ipcMain, dialog, shell } from 'electron';
 import * as os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
 import { execSync } from 'child_process';
+import { resolveGameDir } from './game.js';
 
 ipcMain.handle('system:info', async () => {
   const totalRAM = Math.round(os.totalmem() / (1024 * 1024)); // Total memory in MB
@@ -28,7 +31,8 @@ ipcMain.handle('system:info', async () => {
   return {
     totalRAM,
     javaPath,
-    os: osType === 'win32' ? 'Windows' : osType === 'darwin' ? 'macOS' : 'Linux'
+    os: osType === 'win32' ? 'Windows' : osType === 'darwin' ? 'macOS' : 'Linux',
+    defaultGameDir: resolveGameDir()
   };
 });
 
@@ -50,5 +54,18 @@ ipcMain.handle('system:open-external', async (_event, url: string) => {
   } catch (err) {
     console.error('Failed to open external link:', err);
     return { success: false };
+  }
+});
+
+ipcMain.handle('validate-directory', async (_event, dirPath: string) => {
+  try {
+    fs.mkdirSync(dirPath, { recursive: true });
+    // Test write access
+    const testFile = path.join(dirPath, '.write-test');
+    fs.writeFileSync(testFile, 'test');
+    fs.unlinkSync(testFile);
+    return { valid: true, path: dirPath };
+  } catch (err: any) {
+    return { valid: false, error: err.message };
   }
 });

@@ -60,6 +60,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     let sysRAM = 8192;
     let sysOS = 'Windows';
     let sysJava = 'Bundled Java';
+    let defaultGameDirResolved = '';
 
     if (window.electronAPI) {
       try {
@@ -67,12 +68,15 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         sysRAM = sysInfo.totalRAM;
         sysOS = sysInfo.os;
         sysJava = sysInfo.javaPath;
+        if (sysInfo.defaultGameDir) {
+          defaultGameDirResolved = sysInfo.defaultGameDir;
+        }
       } catch (err) {
         console.error('Error fetching system specs:', err);
       }
     }
 
-    // Set OS-specific default directories if empty
+    // Set OS-specific default directories if empty as fallback
     if (sysOS === 'Windows') {
       defaultDir = 'C:\\Users\\Default\\AppData\\Roaming\\.marinmc';
     } else if (sysOS === 'macOS') {
@@ -81,7 +85,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       defaultDir = '/home/default/.marinmc';
     }
 
-    const savedDir = localStorage.getItem('marinmc_setting_launcherDir') || defaultDir;
+    const finalDefaultDir = defaultGameDirResolved || defaultDir;
+    const savedDir = localStorage.getItem('marinmc_setting_launcherDir') || finalDefaultDir;
     const savedJava = localStorage.getItem('marinmc_setting_javaPath') || sysJava;
     const savedBehavior = localStorage.getItem('marinmc_setting_behavior') || 'minimize';
 

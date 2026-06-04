@@ -1,8 +1,15 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
+import * as os from 'os';
 import { autoUpdater } from 'electron-updater';
 import { createSplash, closeSplash } from './splash.js';
 import { setupTray, destroyTray, setGameRunning } from './tray.js';
+
+// Force correct userData path on Windows
+if (process.platform === 'win32') {
+  const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
+  app.setPath('userData', path.join(appData, 'MarinMC Launcher'));
+}
 
 // Import non-game IPC handlers (these register globally via side-effects)
 import './ipc/auth.js';

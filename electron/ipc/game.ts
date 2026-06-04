@@ -2,6 +2,35 @@ import { ipcMain, BrowserWindow, app } from 'electron';
 import { Client, Authenticator } from 'minecraft-launcher-core';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
+
+export function resolveGameDir(customDir?: string): string {
+  if (customDir && customDir.trim() !== '') {
+    return customDir;
+  }
+
+  // Try Electron's userData first (most reliable)
+  try {
+    const userData = app.getPath('userData');
+    if (userData && !userData.includes('\\Default\\')) {
+      return path.join(userData, 'game');
+    }
+  } catch {}
+
+  // Fallback 1: APPDATA environment variable
+  if (process.env.APPDATA && !process.env.APPDATA.includes('\\Default\\')) {
+    return path.join(process.env.APPDATA, '.marinmc');
+  }
+
+  // Fallback 2: USERPROFILE environment variable
+  if (process.env.USERPROFILE && !process.env.USERPROFILE.includes('\\Default')) {
+    return path.join(process.env.USERPROFILE, 'AppData', 'Roaming', '.marinmc');
+  }
+
+  // Fallback 3: os.homedir()
+  const home = os.homedir();
+  return path.join(home, '.marinmc');
+}
 
 let gameProcess: any = null;
 
@@ -25,11 +54,20 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
       const launcher = new Client();
 
       // Determine game directory
-      const gameDir = options.gameDir ||
-        path.join(app.getPath('appData'), '.marinmc');
+      const gameDir = resolveGameDir(options.gameDir);
+
+      console.log('[game.ts] Using game directory:', gameDir);
 
       // Ensure game directory exists
-      fs.mkdirSync(gameDir, { recursive: true });
+      try {
+        fs.mkdirSync(gameDir, { recursive: true });
+      } catch (mkdirErr: any) {
+        throw new Error(
+          `Oyun klasörü oluşturulamadı: ${gameDir}\n` +
+          `Lütfen Ayarlar'dan farklı bir klasör seçin.\n` +
+          `Hata: ${mkdirErr.message}`
+        );
+      }
 
       mainWindow.webContents.send('game:log',
         `[MarinMC Launcher] Oyun başlatma motoru hazırlandı.`);

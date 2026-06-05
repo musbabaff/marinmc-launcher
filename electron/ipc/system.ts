@@ -1,5 +1,6 @@
 import { ipcMain, dialog, shell, clipboard } from 'electron';
 import * as os from 'os';
+import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
@@ -148,5 +149,17 @@ ipcMain.handle('copy-crash-log', async (_event, crashPath: string) => {
     return { success: false, error: 'Dosya bulunamadı.' };
   } catch (err: any) {
     return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('system:validate-mojang', async (_event, username: string) => {
+  try {
+    const res = await axios.get(`https://api.mojang.com/users/profiles/minecraft/${username}`, { timeout: 4000 });
+    if (res.status === 200 && res.data && res.data.name) {
+      return { success: true, uuid: res.data.id, name: res.data.name };
+    }
+    return { success: false };
+  } catch (err) {
+    return { success: false };
   }
 });

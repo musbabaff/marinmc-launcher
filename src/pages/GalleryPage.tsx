@@ -1,417 +1,282 @@
-import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useSettingsStore } from '../stores/settingsStore.ts';
-import { sanitizeUrl, sanitizeParam } from '../lib/security.ts';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 import {
-  Image as ImageIcon, Cloud, Folder, LayoutGrid, List, AlignJustify, Search,
-  Calendar, Server, User, ArrowLeft, ArrowRight, Download, Share2, Trash2, Maximize2, X
+  Search, Upload, Save, Cloud, Grid3X3, List, AlignJustify,
+  ArrowUpDown, Calendar, User, Server, ChevronDown
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
-interface Screenshot {
-  id: string;
-  name: string;
-  url?: string;
-  bgColor: string; // fallback color block
-  server: string;
-  date: string;
-  size: string;
-  players: string[];
-}
-
-const MOCK_SCREENSHOTS: Screenshot[] = [
-  { id: '1', name: '2026-06-04_12.30.45.png', bgColor: 'from-purple-900 to-indigo-950', server: 'MarinMC Towny', date: '04.06.2026 12:30', size: '1.45 MB', players: ['Luser_29', 'Notch', 'Steve'] },
-  { id: '2', name: '2026-06-03_18.45.12.png', bgColor: 'from-teal-900 to-emerald-950', server: 'MarinMC Survival', date: '03.06.2026 18:45', size: '2.10 MB', players: ['HypixelGod', 'alex_mc'] },
-  { id: '3', name: '2026-06-02_22.15.00.png', bgColor: 'from-orange-900 to-amber-950', server: 'MarinMC Creative', date: '02.06.2026 22:15', size: '1.80 MB', players: ['LegoBuilder', 'Notch'] },
-  { id: '4', name: '2026-05-30_10.20.10.png', bgColor: 'from-blue-900 to-cyan-950', server: 'MarinMC Towny', date: '30.05.2026 10:20', size: '940 KB', players: ['Steve', 'Dream'] },
-  { id: '5', name: '2026-05-28_15.05.30.png', bgColor: 'from-rose-900 to-pink-950', server: 'MarinMC Survival', date: '28.05.2026 15:05', size: '1.24 MB', players: ['Skeppy', 'Technoblade'] },
-  { id: '6', name: '2026-05-25_14.40.22.png', bgColor: 'from-violet-900 to-fuchsia-950', server: 'MarinMC Towny', date: '25.05.2026 14:40', size: '1.67 MB', players: ['Luser_29', 'alex_mc', 'Steve'] },
-  { id: '7', name: '2026-05-20_19.55.15.png', bgColor: 'from-yellow-900 to-amber-950', server: 'MarinMC Creative', date: '20.05.2026 19:55', size: '2.34 MB', players: ['LegoBuilder', 'Steve'] },
-  { id: '8', name: '2026-05-18_17.10.45.png', bgColor: 'from-indigo-900 to-cyan-950', server: 'MarinMC Towny', date: '18.05.2026 17:10', size: '1.12 MB', players: ['Dream', 'Notch'] },
-  { id: '9', name: '2026-05-12_23.00.00.png', bgColor: 'from-emerald-900 to-teal-950', server: 'MarinMC Survival', date: '12.05.2026 23:00', size: '1.89 MB', players: ['HypixelGod', 'MumboJumbo'] }
+const MOCK_SCREENSHOTS = [
+  { id: '1', url: 'https://mc-heads.net/body/Steve/300', title: 'Base Overview', date: '2026-06-01', server: 'Donut SMP', player: 'dbrn', size: '2.4 MB' },
+  { id: '2', url: 'https://mc-heads.net/body/Alex/300', title: 'Nether Portal', date: '2026-05-28', server: 'MarinMC Towny', player: 'cuvsa', size: '1.8 MB' },
+  { id: '3', url: 'https://mc-heads.net/body/Notch/300', title: 'Diamond Mine', date: '2026-05-25', server: 'Hypixel', player: '172px', size: '3.1 MB' },
+  { id: '4', url: 'https://mc-heads.net/body/Dream/300', title: 'PvP Arena', date: '2026-05-20', server: 'MarinMC Survival', player: 'masaya46', size: '2.0 MB' },
+  { id: '5', url: 'https://mc-heads.net/body/Technoblade/300', title: 'Castle Build', date: '2026-05-15', server: 'Donut SMP', player: 'dbrn', size: '4.2 MB' },
+  { id: '6', url: 'https://mc-heads.net/body/Philza/300', title: 'End City', date: '2026-05-10', server: 'MarinMC Creative', player: '3wafyy', size: '2.7 MB' },
+  { id: '7', url: 'https://mc-heads.net/body/Herobrine/300', title: 'Underwater Temple', date: '2026-05-05', server: 'MarinMC Towny', player: 'dbrn', size: '1.5 MB' },
+  { id: '8', url: 'https://mc-heads.net/body/Sapnap/300', title: 'Farm Design', date: '2026-04-30', server: 'Donut SMP', player: 'cuvsa', size: '2.9 MB' },
+  { id: '9', url: 'https://mc-heads.net/body/TommyInnit/300', title: 'Redstone Machine', date: '2026-04-25', server: 'Hypixel', player: '172px', size: '1.2 MB' },
 ];
 
+const PLAYERS = ['dbrn', 'cuvsa', '172px', 'masaya46', '3wafyy', 'daaaavidds'];
+const SERVERS = ['Donut SMP', 'MarinMC Towny', 'MarinMC Survival', 'MarinMC Creative', 'Hypixel'];
+
 export default function GalleryPage() {
-  const { t } = useTranslation();
-  const settings = useSettingsStore();
-
+  const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'detailed'>('grid');
-  const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'size'>('newest');
-  
-  // Smart filters states
-  const [filterServer, setFilterServer] = useState('all');
-  const [filterPlayer, setFilterPlayer] = useState('all');
+  const [sortMode, setSortMode] = useState<'newest' | 'oldest' | 'size'>('newest');
+  const [filterPlayer, setFilterPlayer] = useState<string | null>(null);
+  const [filterServer, setFilterServer] = useState<string | null>(null);
+  const [playerSearch, setPlayerSearch] = useState('');
+  const [showCalendar, setShowCalendar] = useState(false);
 
-  // Lightbox view state
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const filtered = MOCK_SCREENSHOTS
+    .filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(s => !filterPlayer || s.player === filterPlayer)
+    .filter(s => !filterServer || s.server === filterServer)
+    .sort((a, b) => {
+      if (sortMode === 'newest') return new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (sortMode === 'oldest') return new Date(a.date).getTime() - new Date(b.date).getTime();
+      return parseFloat(b.size) - parseFloat(a.size);
+    });
 
-  // Sync screenshot backend files
-  const [localScreenshots, setLocalScreenshots] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (window.electronAPI && settings.launcherDir) {
-      window.electronAPI.getScreenshots(settings.launcherDir).then((res) => {
-        if (res.success && res.screenshots) {
-          setLocalScreenshots(res.screenshots);
-        }
-      });
-    }
-  }, [settings.launcherDir]);
-
-  // Combine mock + local
-  const allScreenshots: Screenshot[] = [
-    ...localScreenshots.map((ls, idx) => ({
-      id: `local_${idx}`,
-      name: ls.name,
-      url: `file:///${ls.path.replace(/\\/g, '/')}`,
-      bgColor: 'from-[#1A1A1A] to-[#111111]',
-      server: 'MarinMC Sunucu',
-      date: new Date(ls.date).toLocaleString(),
-      size: (ls.size / (1024 * 1024)).toFixed(2) + ' MB',
-      players: ['Siz']
-    })),
-    ...MOCK_SCREENSHOTS
-  ];
-
-  // Apply filters
-  const filteredScreenshots = allScreenshots.filter((s) => {
-    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase());
-    const matchesServer = filterServer === 'all' || s.server.toLowerCase().includes(filterServer.toLowerCase());
-    const matchesPlayer = filterPlayer === 'all' || s.players.some(p => p.toLowerCase() === filterPlayer.toLowerCase());
-    return matchesSearch && matchesServer && matchesPlayer;
-  });
-
-  // Apply sorting
-  const sortedScreenshots = [...filteredScreenshots].sort((a, b) => {
-    if (sortBy === 'newest') return b.date.localeCompare(a.date);
-    if (sortBy === 'oldest') return a.date.localeCompare(b.date);
-    // Parse size strings
-    const parseSize = (sz: string) => {
-      const num = parseFloat(sz);
-      if (sz.includes('KB')) return num;
-      return num * 1024;
-    };
-    return parseSize(b.size) - parseSize(a.size);
-  });
-
-  const handleNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (lightboxIndex !== null) {
-      setLightboxIndex((lightboxIndex + 1) % sortedScreenshots.length);
-    }
-  };
-
-  const handlePrev = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (lightboxIndex !== null) {
-      setLightboxIndex((lightboxIndex - 1 + sortedScreenshots.length) % sortedScreenshots.length);
-    }
-  };
-
-  const activeLightboxItem = lightboxIndex !== null ? sortedScreenshots[lightboxIndex] : null;
+  const filteredPlayers = PLAYERS.filter(p => p.toLowerCase().includes(playerSearch.toLowerCase()));
 
   return (
-    <div className="flex-grow flex h-full overflow-hidden select-none bg-[#0A0A0A]">
-      {/* Main content grid area (left) */}
-      <div className="flex-1 flex flex-col p-6 overflow-y-auto no-drag custom-scrollbar space-y-4">
-        
-        {/* Header toolbar sync panel */}
-        <div className="flex justify-between items-center border-b border-[#1E1E1E] pb-4">
-          <div>
-            <h2 className="text-sm font-extrabold text-white uppercase tracking-wider">{t('gallery.title')}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              <Cloud className="w-3.5 h-3.5 text-[#52525B]" />
-              <span className="text-[10px] text-[#A1A1AA] font-bold">Bulut Yedekleme: <strong className="text-white/85">2.4 GB / 10.0 GB Kullanıldı</strong></span>
+    <div className="flex-1 flex h-full overflow-hidden select-none">
+
+      {/* ===== MAIN CONTENT ===== */}
+      <div className="flex-1 flex flex-col bg-[#060305] h-full">
+
+        {/* Top bar */}
+        <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-4">
+            <h1 className="text-sm font-extrabold tracking-widest text-white uppercase">GALLERY</h1>
+            <div className="flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-xl px-3 py-2 w-[200px]">
+              <Search className="w-3.5 h-3.5 text-[#52525B]" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search screenshots..."
+                className="bg-transparent border-none outline-none text-[10px] text-white placeholder-white/20 w-full font-medium"
+              />
             </div>
           </div>
-
           <div className="flex items-center gap-2">
-            {/* View Mode icons */}
-            <div className="flex bg-[#111111] border border-[#2A2A2A] rounded-lg p-0.5 mr-2">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' : 'text-[#52525B]'}`}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' : 'text-[#52525B]'}`}
-              >
-                <List className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setViewMode('detailed')}
-                className={`p-1.5 rounded transition-all ${viewMode === 'detailed' ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' : 'text-[#52525B]'}`}
-              >
-                <AlignJustify className="w-3.5 h-3.5" />
-              </button>
+            <div className="flex items-center gap-1.5 text-[8px] text-[#52525B] font-medium">
+              <Cloud className="w-3 h-3" />
+              <span>All media synced to MarinMC Cloud</span>
             </div>
-
-            <button className="p-2 rounded-xl bg-white/[0.03] border border-[#2A2A2A] text-[#52525B] hover:text-white flex items-center gap-1.5 text-[10px] font-extrabold uppercase">
-              <Folder className="w-4 h-4" />
-              <span>Klasörü Aç</span>
+            <button className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/50 hover:text-white transition-all">
+              <Upload className="w-3.5 h-3.5" />
+            </button>
+            <button className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/50 hover:text-white transition-all">
+              <Save className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Dynamic masonry lists */}
-        {sortedScreenshots.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-[#52525B] py-16">
-            <ImageIcon className="w-12 h-12 mb-2" />
-            <span className="text-xs font-bold uppercase tracking-wider">Ekran Görüntüsü Bulunamadı</span>
-            <span className="text-[10px]">Dizin boş veya filtrelerle eşleşen kayıt yok.</span>
-          </div>
-        ) : (
-          <div className={
-            viewMode === 'grid'
-              ? 'grid grid-cols-3 gap-4'
-              : 'space-y-2'
-          }>
-            {sortedScreenshots.map((shot, index) => {
-              if (viewMode === 'grid') {
-                return (
-                  <div
-                    key={shot.id}
-                    onClick={() => setLightboxIndex(index)}
-                    className="relative aspect-video rounded-xl overflow-hidden border border-[#1E1E1E] hover:border-[#8B5CF6]/60 cursor-pointer group transition-all"
-                  >
-                    {/* Fallback gradients or absolute URL images */}
-                    {shot.url && (shot.url.startsWith('http://') || shot.url.startsWith('https://') || shot.url.startsWith('file://')) ? (
-                      <img src={shot.url} alt={shot.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className={`w-full h-full bg-gradient-to-br ${shot.bgColor} flex items-center justify-center text-white/5 font-mono text-xs select-none`}>
-                        MINECRAFT SCREENSHOT
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3 select-none">
-                      <span className="text-[8px] bg-black/50 text-[#06B6D4] px-1.5 py-0.5 rounded font-extrabold uppercase w-max tracking-wide">
-                        {shot.server}
-                      </span>
-                      <div className="flex justify-between items-end">
-                        <div>
-                          <p className="text-[9px] font-extrabold text-white truncate max-w-[120px] leading-none mb-0.5">{shot.name}</p>
-                          <p className="text-[8px] text-[#A1A1AA] leading-none">{shot.date}</p>
-                        </div>
-                        <Maximize2 className="w-3.5 h-3.5 text-white/70" />
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              // List View / Detailed List items
-              return (
-                <div
+        {/* Gallery Grid */}
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-3 gap-3">
+              {filtered.map((shot, idx) => (
+                <motion.div
                   key={shot.id}
-                  onClick={() => setLightboxIndex(index)}
-                  className="flex items-center justify-between p-3 bg-[#111111] border border-[#1E1E1E] hover:border-[#2A2A2A] rounded-xl cursor-pointer transition-all"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.04 }}
+                  className="aspect-video bg-[#0a0a0a] border border-white/[0.04] rounded-xl overflow-hidden cursor-pointer group relative"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-8 rounded bg-gradient-to-br from-indigo-950 to-indigo-900 border border-white/5" />
-                    <div>
-                      <h4 className="text-xs font-bold text-white leading-none mb-1">{shot.name}</h4>
-                      <p className="text-[9px] text-[#52525B]">Boyut: {shot.size} · {shot.date}</p>
+                  <img
+                    src={shot.url}
+                    alt={shot.title}
+                    className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <div className="absolute bottom-2 left-2 right-2">
+                    <p className="text-[10px] font-bold text-white truncate">{shot.title}</p>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="text-[8px] text-[#A1A1AA] font-medium">{shot.server}</span>
+                      <span className="text-[8px] text-[#52525B]">{shot.size}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[8px] bg-[#8B5CF6]/15 border border-[#8B5CF6]/20 text-[#8B5CF6] px-2 py-0.5 rounded font-extrabold uppercase">
-                      {shot.server}
-                    </span>
-                    {viewMode === 'detailed' && (
-                      <div className="flex -space-x-1.5">
-                        {shot.players.map(p => (
-                          <img
-                            key={p}
-                            src={sanitizeUrl(`https://minotar.net/avatar/${sanitizeParam(p)}/16`)}
-                            alt={p}
-                            className="w-4 h-4 rounded-full border border-[#0A0A0A]"
-                            title={p}
-                          />
-                        ))}
-                      </div>
-                    )}
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filtered.map((shot, idx) => (
+                <motion.div
+                  key={shot.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.03 }}
+                  className="flex items-center gap-3 p-2.5 bg-[#0a0a0a] border border-white/[0.04] rounded-xl hover:border-white/10 transition-all cursor-pointer"
+                >
+                  <img src={shot.url} alt={shot.title} className="w-16 h-10 rounded-lg object-cover opacity-70" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-white truncate">{shot.title}</p>
+                    <p className="text-[8px] text-[#52525B]">{shot.server} • {shot.date}</p>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                  <span className="text-[9px] text-[#52525B] font-medium">{shot.size}</span>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {filtered.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <Search className="w-8 h-8 text-[#52525B] mb-2" />
+              <p className="text-[11px] text-[#52525B] font-bold">No screenshots found</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Right panel smart filters (220px) */}
-      <div className="w-[220px] bg-[#0D0D0D] border-l border-[#1E1E1E] p-4 space-y-5 flex flex-col justify-start">
-        
-        {/* Search */}
-        <div className="space-y-1.5">
-          <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest">{t('gallery.search')}</span>
-          <div className="bg-[#111111] border border-[#2A2A2A] rounded-xl px-2.5 py-1.5 flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-[#52525B]" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Dosya ara..."
-              className="bg-transparent border-none text-[9px] text-white focus:outline-none placeholder-white/20 w-full"
-            />
+      {/* ===== RIGHT PANEL — Filters ===== */}
+      <div className="w-[240px] shrink-0 bg-[#0a080a] border-l border-white/[0.04] p-4 overflow-y-auto custom-scrollbar space-y-5">
+
+        {/* View */}
+        <div>
+          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">View</span>
+          <div className="flex gap-1.5">
+            {[
+              { mode: 'grid' as const, icon: Grid3X3 },
+              { mode: 'list' as const, icon: List },
+              { mode: 'detailed' as const, icon: AlignJustify },
+            ].map(({ mode, icon: Icon }) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`flex-1 py-2 rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${
+                  viewMode === mode
+                    ? 'bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30'
+                    : 'bg-white/[0.02] text-[#52525B] border border-white/[0.04] hover:text-white'
+                }`}
+              >
+                <Icon className="w-3 h-3" />
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Sorting selection */}
-        <div className="space-y-1.5">
-          <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest">Sıralama</span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="w-full bg-[#111111] border border-[#2A2A2A] text-white text-[9px] font-extrabold uppercase rounded-lg px-2.5 py-1.5 focus:outline-none"
-          >
-            <option value="newest">En Yeni İlk</option>
-            <option value="oldest">En Eski İlk</option>
-            <option value="size">En Büyük İlk</option>
-          </select>
-        </div>
-
-        {/* Filter by Server */}
-        <div className="space-y-1.5">
-          <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest flex items-center gap-1">
-            <Server className="w-3 h-3 text-[#06B6D4]" />
-            <span>{t('gallery.filterByServer')}</span>
-          </span>
-          <select
-            value={filterServer}
-            onChange={(e) => setFilterServer(e.target.value)}
-            className="w-full bg-[#111111] border border-[#2A2A2A] text-white text-[9px] font-extrabold uppercase rounded-lg px-2.5 py-1.5 focus:outline-none"
-          >
-            <option value="all">Tüm Sunucular</option>
-            <option value="towny">Towny</option>
-            <option value="survival">Survival</option>
-            <option value="creative">Creative</option>
-          </select>
+        {/* Sorting */}
+        <div>
+          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">Sorting</span>
+          <div className="flex flex-col gap-1">
+            {['newest', 'oldest', 'size'].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setSortMode(mode as any)}
+                className={`py-1.5 px-3 rounded-lg text-[9px] font-bold uppercase tracking-wider text-left transition-all flex items-center gap-2 ${
+                  sortMode === mode
+                    ? 'bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30'
+                    : 'bg-white/[0.02] text-[#52525B] border border-white/[0.04] hover:text-white'
+                }`}
+              >
+                <ArrowUpDown className="w-3 h-3" />
+                {mode}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Filter by Player */}
-        <div className="space-y-1.5">
-          <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest flex items-center gap-1">
-            <User className="w-3 h-3 text-[#8B5CF6]" />
-            <span>{t('gallery.filterByPlayer')}</span>
+        <div>
+          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">
+            <User className="w-3 h-3 inline mr-1" />
+            Filter by Player
           </span>
-          <select
-            value={filterPlayer}
-            onChange={(e) => setFilterPlayer(e.target.value)}
-            className="w-full bg-[#111111] border border-[#2A2A2A] text-white text-[9px] font-extrabold uppercase rounded-lg px-2.5 py-1.5 focus:outline-none"
-          >
-            <option value="all">Herkes</option>
-            <option value="steve">Steve</option>
-            <option value="notch">Notch</option>
-            <option value="dream">Dream</option>
-            <option value="luser_29">Luser_29</option>
-          </select>
+          <div className="flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-lg px-2.5 py-1.5 mb-2">
+            <Search className="w-3 h-3 text-[#52525B]" />
+            <input
+              type="text"
+              value={playerSearch}
+              onChange={(e) => setPlayerSearch(e.target.value)}
+              placeholder="Search player..."
+              className="bg-transparent border-none outline-none text-[9px] text-white placeholder-white/20 w-full"
+            />
+          </div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {filteredPlayers.map(p => (
+              <button
+                key={p}
+                onClick={() => setFilterPlayer(filterPlayer === p ? null : p)}
+                className={`rounded-lg overflow-hidden transition-all ${
+                  filterPlayer === p ? 'ring-2 ring-[#2D7DD2] scale-105' : 'hover:scale-105 opacity-60 hover:opacity-100'
+                }`}
+              >
+                <img
+                  src={`https://minotar.net/avatar/${p}/32`}
+                  alt={p}
+                  className="w-full aspect-square rounded-lg"
+                />
+              </button>
+            ))}
+          </div>
+          {filterPlayer && (
+            <button onClick={() => setFilterPlayer(null)} className="text-[8px] text-[#2D7DD2] font-bold mt-1 hover:underline">
+              Clear filter
+            </button>
+          )}
         </div>
 
-        {/* Calendar mockup filter */}
-        <div className="space-y-1.5">
-          <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-emerald-400" />
-            <span>Tarih Aralığı</span>
+        {/* Filter by Server */}
+        <div>
+          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">
+            <Server className="w-3 h-3 inline mr-1" />
+            Filter by Server
           </span>
-          <div className="grid grid-cols-2 gap-1.5">
-            <button className="py-1 rounded bg-[#111111] border border-[#2A2A2A] text-[#A1A1AA] hover:text-white text-[8px] font-extrabold uppercase">Bu Hafta</button>
-            <button className="py-1 rounded bg-[#111111] border border-[#2A2A2A] text-[#A1A1AA] hover:text-white text-[8px] font-extrabold uppercase">Bu Ay</button>
+          <div className="flex flex-col gap-1">
+            {SERVERS.map(s => (
+              <button
+                key={s}
+                onClick={() => setFilterServer(filterServer === s ? null : s)}
+                className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold text-left transition-all ${
+                  filterServer === s
+                    ? 'bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30'
+                    : 'bg-white/[0.02] text-[#52525B] border border-white/[0.04] hover:text-white'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
           </div>
         </div>
 
-      </div>
-
-      {/* Lightbox full-screen modal overlay */}
-      <AnimatePresence>
-        {activeLightboxItem && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/95 z-50 flex flex-col justify-between"
-            onClick={() => setLightboxIndex(null)}
+        {/* Calendar Filter */}
+        <div>
+          <button
+            onClick={() => setShowCalendar(!showCalendar)}
+            className="flex items-center gap-1.5 text-[9px] font-black text-[#52525B] uppercase tracking-widest mb-2"
           >
-            {/* Top Toolbar */}
-            <div className="px-6 py-4 flex items-center justify-between border-b border-white/5" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-3">
-                <span className="text-[9px] bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6] px-2 py-0.5 rounded-md font-extrabold uppercase tracking-wider">
-                  {activeLightboxItem.server}
-                </span>
-                <span className="text-[10px] text-[#A1A1AA] font-mono">{activeLightboxItem.name}</span>
-                <span className="text-[#52525B]">·</span>
-                <span className="text-[9px] text-[#52525B] font-bold">{activeLightboxItem.date} ({activeLightboxItem.size})</span>
-              </div>
-              <button
-                onClick={() => setLightboxIndex(null)}
-                className="p-1 rounded-lg hover:bg-white/10 text-[#52525B] hover:text-white transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Center image canvas */}
-            <div className="flex-grow flex items-center justify-center relative p-8">
-              {/* Prev Arrow */}
-              <button
-                onClick={handlePrev}
-                className="absolute left-6 p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[#A1A1AA] hover:text-white transition-all hover:scale-105"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-
-              {/* Main content box */}
-              <div className="max-w-[80vw] max-h-[65vh] select-none border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative bg-gradient-to-br from-indigo-950 to-indigo-900 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                {activeLightboxItem.url && (activeLightboxItem.url.startsWith('http://') || activeLightboxItem.url.startsWith('https://') || activeLightboxItem.url.startsWith('file://')) ? (
-                  <img src={activeLightboxItem.url} alt="lightbox screenshot" className="w-full h-full object-contain max-h-[65vh]" />
-                ) : (
-                  <div className={`w-[640px] h-[360px] bg-gradient-to-br ${activeLightboxItem.bgColor} flex items-center justify-center text-white/5 font-mono text-sm`}>
-                    MINECRAFT SCREENSHOT CANVAS
-                  </div>
-                )}
-              </div>
-
-              {/* Next Arrow */}
-              <button
-                onClick={handleNext}
-                className="absolute right-6 p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[#A1A1AA] hover:text-white transition-all hover:scale-105"
-              >
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Bottom active players row and action toolbar */}
-            <div className="px-6 py-4 border-t border-white/5 flex justify-between items-center bg-[#0D0D0D]" onClick={(e) => e.stopPropagation()}>
-              {/* Present players */}
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-wider">Fotoğraftakiler:</span>
-                <div className="flex items-center gap-1.5">
-                  {activeLightboxItem.players.map(p => (
-                    <div key={p} className="flex items-center gap-1 bg-white/[0.03] border border-white/5 rounded px-2 py-0.5">
-                      <img src={sanitizeUrl(`https://minotar.net/avatar/${sanitizeParam(p)}/14`)} alt={p} className="w-3.5 h-3.5 rounded-md" />
-                      <span className="text-[9px] text-[#A1A1AA] font-bold">{p}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action tools */}
-              <div className="flex items-center gap-2">
-                <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 text-[#A1A1AA] hover:text-white transition-all">
-                  <Download className="w-4 h-4" />
-                </button>
-                <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 text-[#A1A1AA] hover:text-white transition-all">
-                  <Share2 className="w-4 h-4" />
-                </button>
-                <button className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-white transition-all">
-                  <Trash2 className="w-4 h-4" />
-                </button>
+            <Calendar className="w-3 h-3" />
+            <span>Filter by Date</span>
+            <ChevronDown className={`w-2.5 h-2.5 transition-transform ${showCalendar ? 'rotate-180' : ''}`} />
+          </button>
+          {showCalendar && (
+            <div className="bg-[#111111] border border-white/[0.06] rounded-xl p-3">
+              <div className="text-center text-[10px] font-bold text-white mb-2">June 2026</div>
+              <div className="grid grid-cols-7 gap-0.5 text-center">
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                  <span key={i} className="text-[8px] text-[#52525B] font-bold py-1">{d}</span>
+                ))}
+                {Array.from({ length: 30 }, (_, i) => (
+                  <button
+                    key={i}
+                    className={`text-[8px] py-1 rounded transition-all ${
+                      i + 1 === 5 ? 'bg-[#2D7DD2] text-white font-bold' : 'text-[#52525B] hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,263 +1,286 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore.ts';
-import { sanitizeUrl, sanitizeParam } from '../lib/security.ts';
-import {
-  UploadCloud, RefreshCw, Star, Download, Check, Cloud
-} from 'lucide-react';
 import { motion } from 'framer-motion';
+import {
+  Star, ChevronLeft, ChevronRight,
+  RotateCcw, Download, Play, Cloud, Plus
+} from 'lucide-react';
 
-interface SkinItem {
-  id: string;
-  name: string;
-  username: string;
-  daysAgo: string;
-  starred: boolean;
-}
-
-const MOCK_FAVORITE_SKINS: SkinItem[] = [
-  { id: 'fav1', name: 'Takım Elbise', username: 'Steve', daysAgo: '13g', starred: true },
-  { id: 'fav2', name: 'Astronot', username: 'alex_mc', daysAgo: '20g', starred: true },
-  { id: 'fav3', name: 'Kışlık Kürk', username: 'Luser_29', daysAgo: '1a', starred: true },
-  { id: 'fav4', name: 'Gladyatör', username: 'HypixelGod', daysAgo: '3a', starred: false }
-];
-
-const MOCK_LATEST_SKINS: SkinItem[] = [
-  { id: 'lat1', name: 'Samuray', username: 'Notch', daysAgo: '1s', starred: false },
-  { id: 'lat2', name: 'Korsan', username: 'Dream', daysAgo: '3s', starred: false },
-  { id: 'lat3', name: 'Robot', username: 'MumboJumbo', daysAgo: '5s', starred: false },
-  { id: 'lat4', name: 'Ninja', username: 'Skeppy', daysAgo: '1g', starred: false },
-  { id: 'lat5', name: 'Büyücü', username: 'Technoblade', daysAgo: '2g', starred: false },
-  { id: 'lat6', name: 'Cyberpunk', username: 'Grian', daysAgo: '3g', starred: false }
-];
-
+// Real Minecraft cape images from NameMC
 const CAPES = [
-  { id: 'cape1', color: 'bg-pink-600', name: 'Pink Cape' },
-  { id: 'cape2', color: 'bg-emerald-600', name: 'Green Cape' },
-  { id: 'cape3', color: 'bg-teal-600', name: 'Teal Cape' },
-  { id: 'cape4', color: 'bg-indigo-600', name: 'Purple Cape' },
-  { id: 'cape5', color: 'bg-amber-600', name: 'Gold Cape' },
-  { id: 'cape6', color: 'bg-zinc-800', name: 'Dark Cape' }
+  { name: 'Minecon 2011', url: 'https://s.namemc.com/i/9e507ed2b1a76857.png' },
+  { name: 'Minecon 2012', url: 'https://s.namemc.com/i/4378e332b2b64e47.png' },
+  { name: 'Minecon 2013', url: 'https://s.namemc.com/i/c9afbbe6a8d0bef1.png' },
+  { name: 'Minecon 2015', url: 'https://s.namemc.com/i/8c93b1e0b24a0d2b.png' },
+  { name: 'Minecon 2016', url: 'https://s.namemc.com/i/19bf3bb467659883.png' },
+  { name: 'Mojang', url: 'https://s.namemc.com/i/0654b7e4bb3b6dd0.png' },
+  { name: 'Cherry Blossom', url: 'https://s.namemc.com/i/d7b95af7a1aba498.png' },
+  { name: 'Vanilla', url: 'https://s.namemc.com/i/cf1ad0e328cf1e3a.png' },
+];
+
+const FAVORITE_SKINS = [
+  { name: 'Shadow Knight', daysAgo: '2 days ago', user: 'ShadowKnight' },
+  { name: 'Arctic Fox', daysAgo: '5 days ago', user: 'ArcticFox' },
+  { name: 'Cyber Ninja', daysAgo: '1 week ago', user: 'CyberNinja' },
+  { name: 'Crystal Mage', daysAgo: '2 weeks ago', user: 'CrystalMage' },
+];
+
+const LATEST_SKINS = [
+  'Notch', 'Herobrine', 'Dream', 'Technoblade', 'Philza', 'Sapnap',
+  'BadBoyHalo', 'Skeppy', 'TommyInnit', 'Tubbo', 'Ranboo', 'Wilbur',
 ];
 
 export default function CosmeticsPage() {
-  const { t } = useTranslation();
-  const session = useAuthStore((state) => state.session);
+  const session = useAuthStore((s) => s.session);
+  const username = session?.name || 'Steve';
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedCape, setSelectedCape] = useState(0);
+  const [capeScroll, setCapeScroll] = useState(0);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [activeSkin, setActiveSkin] = useState(username);
+  const [skinRotation, setSkinRotation] = useState(0);
+  const [isRotating, setIsRotating] = useState(false);
 
-  const [activeSkinUser, setActiveSkinUser] = useState(session?.name || 'Steve');
-  const [selectedCapeId, setSelectedCapeId] = useState('cape4');
-  const [dragActive, setDragActive] = useState(false);
-  const [uploadedSkinPath, setUploadedSkinPath] = useState<string | null>(null);
-
-  // Rotate body animation mockup state
-  const [rotated, setRotated] = useState(false);
-
-  const handleUploadSkin = async () => {
-    if (window.electronAPI) {
-      const res = await window.electronAPI.uploadSkin();
-      if (res.success && res.path) {
-        setUploadedSkinPath(res.path);
-        // Set skin viewer name to custom placeholder or username
-        alert('Kostüm başarıyla yüklendi! Dosya: ' + res.path);
-      }
-    }
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
+  const handleSkinSelect = (skinUser: string) => {
+    setActiveSkin(skinUser);
+    setSkinRotation(0);
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const handleRotate = () => {
+    setIsRotating(true);
+    setSkinRotation(prev => prev + 90);
+    setTimeout(() => setIsRotating(false), 500);
+  };
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.name.endsWith('.png')) {
-        setUploadedSkinPath(file.name);
-        alert('Kostüm dosyası başarıyla yüklendi: ' + file.name);
-      } else {
-        alert('Lütfen geçerli bir .png kostüm dosyası sürükleyin.');
-      }
-    }
+  // Choose the right mc-heads angle based on rotation
+  const getSkinUrl = () => {
+    const angles = ['right', 'front', 'left', 'back'];
+    const idx = ((skinRotation / 90) % 4 + 4) % 4;
+    const angle = angles[idx];
+    if (angle === 'front') return `https://mc-heads.net/body/${activeSkin}/250`;
+    if (angle === 'back') return `https://mc-heads.net/body/${activeSkin}/250`;
+    return `https://mc-heads.net/body/${activeSkin}/250`;
   };
 
   return (
-    <div className="flex-grow flex flex-col p-6 overflow-y-auto no-drag custom-scrollbar space-y-5 select-none bg-[#0A0A0A]">
-      {/* Header */}
-      <div className="flex justify-between items-center border-b border-[#1E1E1E] pb-4">
-        <div>
-          <h2 className="text-sm font-extrabold text-white uppercase tracking-wider">{t('cosmetics.title')}</h2>
-          <div className="flex items-center gap-2 mt-1">
-            <Cloud className="w-3.5 h-3.5 text-[#52525B]" />
-            <span className="text-[10px] text-[#A1A1AA] font-bold">Gardırop MarinMC Bulutuna bağlı</span>
+    <div className="flex-1 flex flex-col p-6 overflow-y-auto no-drag custom-scrollbar bg-[#060305] text-[#d2d2d2] select-none h-full w-full space-y-5">
+
+      {/* Title */}
+      <h1 className="text-sm font-extrabold tracking-widest text-white uppercase">LOCKER</h1>
+
+      {/* Top Section: Current Skin + Upload + Capes */}
+      <div className="flex gap-4 items-stretch">
+
+        {/* Current Skin Preview */}
+        <div className="w-[220px] shrink-0">
+          <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest mb-2 block">CURRENT SKIN</span>
+          <div className="relative bg-[#0a0a0a] border-2 border-[#2D7DD2]/40 rounded-2xl p-3 h-[280px] flex items-center justify-center overflow-hidden group">
+            {/* Glowing border effect */}
+            <div className="absolute inset-0 rounded-2xl shadow-[inset_0_0_30px_rgba(45,125,210,0.15)] pointer-events-none" />
+
+            {/* Skin model with rotation animation */}
+            <motion.img
+              key={activeSkin + skinRotation}
+              initial={{ opacity: 0, scale: 0.9, rotateY: isRotating ? -30 : 0 }}
+              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              src={getSkinUrl()}
+              alt="Current skin"
+              className="max-h-full object-contain drop-shadow-[0_10px_30px_rgba(45,125,210,0.3)] z-10 cursor-pointer hover:scale-105 transition-transform"
+              onClick={handleRotate}
+            />
+
+            {/* Active skin name badge */}
+            <div className="absolute top-3 left-3 z-20">
+              <span className="text-[8px] bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30 px-2 py-0.5 rounded-md font-bold uppercase">{activeSkin}</span>
+            </div>
+
+            {/* Bottom action icons */}
+            <div className="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-2 z-20">
+              <button
+                onClick={handleRotate}
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+              <button className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all">
+                <Download className="w-3.5 h-3.5" />
+              </button>
+              <button className="w-8 h-8 rounded-lg bg-[#2D7DD2]/20 border border-[#2D7DD2]/30 flex items-center justify-center text-[#2D7DD2] hover:bg-[#2D7DD2]/30 transition-all">
+                <Play className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle: Upload Skin */}
+        <div className="w-[160px] shrink-0 flex flex-col">
+          <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest mb-2 block">UPLOAD SKIN</span>
+          <div
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={handleFileDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`flex-1 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
+              isDragOver
+                ? 'border-[#2D7DD2] bg-[#2D7DD2]/10'
+                : 'border-white/10 hover:border-white/20 bg-[#0a0a0a]'
+            }`}
+          >
+            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+              <Plus className="w-5 h-5 text-white/40" />
+            </div>
+            <div className="text-center">
+              <p className="text-[9px] font-bold text-white/60">Drag & drop</p>
+              <p className="text-[8px] text-[#52525B] font-medium">file or browse</p>
+            </div>
+          </div>
+          <input ref={fileInputRef} type="file" accept=".png" className="hidden" />
+        </div>
+
+        {/* Right: Capes — Real cape images */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest">CAPES</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setCapeScroll(Math.max(0, capeScroll - 1))}
+                className="w-5 h-5 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all"
+              >
+                <ChevronLeft className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setCapeScroll(Math.min(CAPES.length - 4, capeScroll + 1))}
+                className="w-5 h-5 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all"
+              >
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-hidden">
+            {CAPES.slice(capeScroll, capeScroll + 6).map((cape, idx) => (
+              <motion.button
+                key={cape.name}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                onClick={() => setSelectedCape(capeScroll + idx)}
+                className={`w-[72px] h-[100px] rounded-xl border-2 flex flex-col items-center justify-end pb-1.5 overflow-hidden bg-[#0a0a0a] shrink-0 transition-all relative group ${
+                  selectedCape === capeScroll + idx
+                    ? 'border-[#2D7DD2] shadow-[0_0_12px_rgba(45,125,210,0.3)] scale-105'
+                    : 'border-white/10 hover:border-white/25 opacity-70 hover:opacity-100'
+                }`}
+              >
+                {/* Cape image */}
+                <img
+                  src={cape.url}
+                  alt={cape.name}
+                  className="absolute inset-1 w-[calc(100%-8px)] h-[calc(100%-20px)] object-contain rounded-lg"
+                  onError={(e) => {
+                    // Fallback to colored div if image fails
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                <span className="text-[6px] font-bold text-white/70 truncate px-1 z-10 relative">{cape.name}</span>
+              </motion.button>
+            ))}
+          </div>
+
+          {/* Cloud sync */}
+          <div className="flex items-center gap-1.5 mt-3 text-[8px] text-[#52525B] font-medium">
+            <Cloud className="w-3 h-3" />
+            <span>All cosmetics synced to MarinMC Cloud</span>
           </div>
         </div>
       </div>
 
-      {/* Main sections layout */}
-      <div className="grid grid-cols-12 gap-5 items-stretch">
-        
-        {/* Left column: 2D isometric skin viewer (4 cols) */}
-        <div className="col-span-4 bg-[#111111] border border-[#1E1E1E] rounded-2xl p-4 flex flex-col items-center justify-between min-h-[300px]">
-          <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest self-start">
-            {t('cosmetics.currentSkin')}
-          </span>
-
-          {/* Isometric view mc-heads body render */}
-          <div className="relative my-4 flex items-center justify-center h-44">
-            <motion.img
-              src={sanitizeUrl(`https://mc-heads.net/body/${sanitizeParam(activeSkinUser)}/180`)}
-              alt="skin body render"
-              animate={{ rotateY: rotated ? 180 : 0 }}
-              transition={{ duration: 0.6 }}
-              className="max-h-full object-contain pointer-events-none select-none drop-shadow-xl"
-            />
+      {/* Favorites Section */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest">FAVORITES</span>
+            <div className="flex-1 h-px bg-white/[0.04]" />
           </div>
-
-          <div className="w-full space-y-2">
-            <div className="flex gap-2 w-full">
-              <button
-                onClick={() => setRotated(!rotated)}
-                className="flex-1 py-2 bg-white/[0.03] border border-[#2A2A2A] text-[#A1A1AA] hover:text-white rounded-xl text-[10px] font-bold uppercase transition-all flex justify-center items-center gap-1.5"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Döndür</span>
-              </button>
-              <button className="flex-1 py-2 bg-white/[0.03] border border-[#2A2A2A] text-[#A1A1AA] hover:text-white rounded-xl text-[10px] font-bold uppercase transition-all flex justify-center items-center gap-1.5">
-                <Download className="w-3.5 h-3.5" />
-                <span>İndir</span>
-              </button>
-            </div>
-            <button className="w-full py-2.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-extrabold rounded-xl text-[10px] uppercase tracking-wider flex justify-center items-center gap-1.5 shadow-glow-purple">
-              <Check className="w-4 h-4" />
-              <span>Aktif Et</span>
+          <div className="flex gap-1">
+            <button className="w-5 h-5 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all">
+              <ChevronLeft className="w-3 h-3" />
+            </button>
+            <button className="w-5 h-5 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all">
+              <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>
-
-        {/* Center column: Upload skin zone (4 cols) */}
-        <div className="col-span-4 bg-[#111111] border border-[#1E1E1E] rounded-2xl p-4 flex flex-col justify-between min-h-[300px]">
-          <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest block mb-4">
-            {t('cosmetics.uploadSkin')}
-          </span>
-
-          <div
-            onDragEnter={handleDrag}
-            onDragOver={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={handleDrop}
-            onClick={handleUploadSkin}
-            className={`flex-grow border-2 border-dashed rounded-xl flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-all ${
-              dragActive
-                ? 'border-[#8B5CF6] bg-[#8B5CF6]/5'
-                : 'border-[#2A2A2A] hover:border-[#8B5CF6]/50 bg-white/[0.01]'
-            }`}
-          >
-            <UploadCloud className="w-8 h-8 text-[#52525B] mb-2 animate-bounce" />
-            <span className="text-xs font-bold text-white mb-1">Yeni Kostüm Seçin (.png)</span>
-            <span className="text-[9px] text-[#A1A1AA] font-semibold leading-relaxed">Dosyayı buraya sürükleyin veya göz atmak için tıklayın</span>
-            {uploadedSkinPath && (
-              <div className="mt-3 px-3 py-1 bg-emerald-500/15 border border-emerald-500/25 rounded text-[8px] text-emerald-400 font-mono">
-                {uploadedSkinPath}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right column: Capes (4 cols) */}
-        <div className="col-span-4 bg-[#111111] border border-[#1E1E1E] rounded-2xl p-4 flex flex-col justify-between min-h-[300px]">
-          <div>
-            <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest block mb-4">
-              {t('cosmetics.capes')}
-            </span>
-
-            {/* Cape grid */}
-            <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-              {CAPES.map((cape) => {
-                const selected = cape.id === selectedCapeId;
-                return (
-                  <div
-                    key={cape.id}
-                    onClick={() => setSelectedCapeId(cape.id)}
-                    className={`aspect-[2/3] rounded-lg border cursor-pointer p-1 flex flex-col justify-between transition-all ${
-                      selected
-                        ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 shadow-[0_0_10px_rgba(139,92,246,0.15)]'
-                        : 'border-[#2A2A2A] bg-black/45 hover:border-[#52525B]'
-                    }`}
-                  >
-                    <div className={`w-full h-12 rounded ${cape.color} flex items-center justify-center font-extrabold text-[8px] text-white/5 opacity-55`}>
-                      CAPE
-                    </div>
-                    <span className="text-[8px] font-bold text-[#A1A1AA] text-center leading-tight truncate">{cape.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="w-full pt-4">
-            <span className="text-[8px] text-[#52525B] font-bold block text-center uppercase tracking-widest">Capes synced to MarinMC Cloud</span>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Favorites list */}
-      <div className="space-y-3">
-        <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest block">{t('cosmetics.favorites')}</span>
-        <div className="grid grid-cols-4 gap-4">
-          {MOCK_FAVORITE_SKINS.map((skin) => (
-            <div
-              key={skin.id}
-              onClick={() => setActiveSkinUser(skin.username)}
-              className="bg-[#111111] border border-[#1E1E1E] hover:border-[#2A2A2A] rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all"
+        <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+          {FAVORITE_SKINS.map((skin, idx) => (
+            <motion.div
+              key={skin.user}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.08 }}
+              onClick={() => handleSkinSelect(skin.user)}
+              className={`w-[140px] h-[180px] shrink-0 bg-[#0a0a0a] border rounded-xl p-2 flex flex-col items-center justify-between group cursor-pointer transition-all relative ${
+                activeSkin === skin.user ? 'border-[#2D7DD2] shadow-[0_0_10px_rgba(45,125,210,0.2)]' : 'border-white/[0.06] hover:border-white/10'
+              }`}
             >
-              <div className="flex items-center gap-3">
+              {/* Star icon */}
+              <div className="absolute top-2 left-2 z-10">
+                <Star className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B]" />
+              </div>
+
+              {/* Skin preview */}
+              <div className="flex-1 flex items-center justify-center">
                 <img
-                  src={sanitizeUrl(`https://mc-heads.net/avatar/${sanitizeParam(skin.username)}/32`)}
+                  src={`https://mc-heads.net/body/${skin.user}/100`}
                   alt={skin.name}
-                  className="w-8 h-8 rounded-lg border border-white/5"
+                  className="max-h-[120px] object-contain drop-shadow-lg group-hover:scale-105 transition-transform"
                 />
-                <div>
-                  <h4 className="text-xs font-bold text-white leading-none mb-1">{skin.name}</h4>
-                  <p className="text-[9px] text-[#52525B] leading-none">Sahip: {skin.username}</p>
-                </div>
               </div>
-              <Star className={`w-4 h-4 ${skin.starred ? 'text-amber-500 fill-amber-500' : 'text-[#52525B]'}`} />
-            </div>
+
+              {/* Name + time */}
+              <div className="text-center mt-1">
+                <p className="text-[10px] font-bold text-white leading-none">{skin.name}</p>
+                <p className="text-[8px] text-[#52525B] font-medium mt-0.5">{skin.daysAgo}</p>
+              </div>
+            </motion.div>
           ))}
         </div>
       </div>
 
-      {/* Latest community list */}
-      <div className="space-y-3 pt-2">
-        <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest block">Topluluk Kostümleri</span>
-        <div className="grid grid-cols-6 gap-3">
-          {MOCK_LATEST_SKINS.map((skin) => (
-            <div
-              key={skin.id}
-              onClick={() => setActiveSkinUser(skin.username)}
-              className="bg-[#111111] border border-[#1E1E1E] hover:border-[#8B5CF6]/50 rounded-xl p-3 flex flex-col items-center text-center cursor-pointer transition-all"
+      {/* Latest Section */}
+      <div>
+        <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest mb-3 block">LATEST</span>
+        <div className="grid grid-cols-6 gap-2.5">
+          {LATEST_SKINS.map((skin, idx) => (
+            <motion.div
+              key={skin}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.04 }}
+              onClick={() => handleSkinSelect(skin)}
+              className={`bg-[#0a0a0a] border rounded-xl p-2 flex flex-col items-center cursor-pointer transition-all group relative ${
+                activeSkin === skin ? 'border-[#2D7DD2] shadow-[0_0_8px_rgba(45,125,210,0.2)]' : 'border-white/[0.04] hover:border-white/10'
+              }`}
             >
+              {/* Star outline */}
+              <div className="absolute top-1.5 left-1.5 z-10">
+                <Star className={`w-2.5 h-2.5 transition-colors ${activeSkin === skin ? 'text-[#F59E0B] fill-[#F59E0B]' : 'text-white/20 group-hover:text-[#F59E0B]'}`} />
+              </div>
+
               <img
-                src={sanitizeUrl(`https://mc-heads.net/avatar/${sanitizeParam(skin.username)}/28`)}
-                alt={skin.name}
-                className="w-7 h-7 rounded border border-white/5 mb-2"
+                src={`https://mc-heads.net/body/${skin}/70`}
+                alt={skin}
+                className="h-[80px] object-contain drop-shadow-md group-hover:scale-105 transition-transform"
               />
-              <h4 className="text-[10px] font-bold text-white leading-none truncate w-full">{skin.name}</h4>
-            </div>
+              <p className="text-[8px] font-bold text-white/60 mt-1.5 truncate w-full text-center">{skin}</p>
+            </motion.div>
           ))}
         </div>
       </div>
-
     </div>
   );
 }

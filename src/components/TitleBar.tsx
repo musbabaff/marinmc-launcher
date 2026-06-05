@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useAuthStore } from '../stores/authStore.ts';
-import { Shield, Minus, Square, X } from 'lucide-react';
-import { APP_VERSION } from '../lib/constants.ts';
+import { useAppStore } from '../stores/appStore.ts';
+import { Minus, Square, X } from 'lucide-react';
 import { api } from '../lib/api.ts';
 
 export default function TitleBar() {
-  const session = useAuthStore((state) => state.session);
-  const [onlineCount, setOnlineCount] = useState(1248);
+  const isOnline = useAppStore((state) => state.isOnline);
+  const [onlineCount, setOnlineCount] = useState(9671);
 
   useEffect(() => {
     api.getOnlineCount().then((res) => {
@@ -28,79 +27,55 @@ export default function TitleBar() {
     if (window.electronAPI) window.electronAPI.minimize();
   };
 
-  const handleMaximize = () => {
-    if (window.electronAPI) window.electronAPI.maximize();
-  };
-
   const handleClose = () => {
     if (window.electronAPI) window.electronAPI.close();
   };
 
   return (
-    <div className="h-[40px] w-full drag-region bg-[#0A0A0A] flex items-center justify-between px-4 border-b border-[#1E1E1E] select-none text-xs text-[#A1A1AA] font-medium z-50 shrink-0">
+    <div className="h-[40px] w-full drag-region bg-[#060305] flex items-center justify-between px-6 select-none text-[11px] text-[#A1A1AA] font-semibold z-50 shrink-0">
       {/* Brand */}
-      <div className="flex items-center space-x-2">
-        <div className="w-5 h-5 rounded-md bg-gradient-to-br from-[#8B5CF6] to-[#06B6D4] flex items-center justify-center shadow-lg shadow-[#8B5CF6]/20">
-          <Shield className="w-3 h-3 text-white" />
+      <div className="flex items-center space-x-3 text-[10px] tracking-wide font-normal">
+        <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2 20V4h3.5l4.5 8 4.5-8H18v16h-3V9l-3.5 6h-3L5 9v11H2z" />
+        </svg>
+        <span className="text-white hover:text-white/80 transition-colors">MarinMC Client</span>
+        <span className="text-[#333]">Build 0.9.2</span>
+        <div className="flex items-center space-x-1.5">
+          <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#259457]' : 'bg-[#EF4444]'}`} />
+          <span className={`${isOnline ? 'text-[#259457]' : 'text-[#EF4444]'} font-bold`}>
+            {isOnline ? `${onlineCount} Online` : 'Offline'}
+          </span>
         </div>
-        <span className="font-extrabold text-white select-none tracking-wider text-[11px] uppercase">MarinMC Client</span>
-        <span className="text-[#52525B]">|</span>
-        <span className="text-[9px] font-bold text-[#A1A1AA] bg-[#1A1A1A] px-1.5 py-0.5 rounded border border-[#2A2A2A] uppercase">
-          Build {APP_VERSION}
-        </span>
       </div>
 
-      {/* Right side: user info + online count + window controls */}
-      <div className="flex items-center space-x-4 no-drag">
-        {/* Live Online Count */}
-        <div className="flex items-center space-x-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-ping" />
-          <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] absolute" />
-          <span className="text-[10px] font-extrabold text-[#A1A1AA] uppercase tracking-wider">{onlineCount} Online</span>
-        </div>
+      {/* Window Controls */}
+      <div className="flex items-center space-x-1 no-drag">
+        {/* Minimize */}
+        <button
+          onClick={handleMinimize}
+          className="w-8 h-7 flex items-center justify-center rounded hover:bg-white/5 text-[#d2d2d2] transition-all duration-150"
+          title="Minimize"
+        >
+          <Minus className="w-3.5 h-3.5" />
+        </button>
 
-        {session && (
-          <div className="flex items-center space-x-2 mr-1 border-r border-[#1E1E1E] pr-3 h-5">
-            <img
-              src={session.avatar}
-              alt={session.name}
-              className="w-4 h-4 rounded-full border border-[#8B5CF6]/30"
-            />
-            <span className="text-[10px] text-[#A1A1AA] font-bold">
-              {session.name}
-            </span>
-          </div>
-        )}
+        {/* Maximize */}
+        <button
+          className="w-8 h-7 flex items-center justify-center rounded text-[#52525B]/20 cursor-not-allowed"
+          title="Maximize (Disabled)"
+          disabled
+        >
+          <Square className="w-3.5 h-3.5" />
+        </button>
 
-        <div className="flex items-center">
-          {/* Minimize */}
-          <button
-            onClick={handleMinimize}
-            className="w-8 h-7 flex items-center justify-center rounded hover:bg-[#1A1A1A] text-[#52525B] hover:text-white transition-all duration-150"
-            title="Minimize"
-          >
-            <Minus className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Maximize (disabled since resizable: false) */}
-          <button
-            onClick={handleMaximize}
-            className="w-8 h-7 flex items-center justify-center rounded text-[#52525B]/20 cursor-not-allowed"
-            title="Maximize (disabled)"
-            disabled
-          >
-            <Square className="w-3 h-3" />
-          </button>
-
-          {/* Close */}
-          <button
-            onClick={handleClose}
-            className="w-8 h-7 flex items-center justify-center rounded hover:bg-[#EF4444] text-[#52525B] hover:text-white transition-all duration-150"
-            title="Close"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        {/* Close */}
+        <button
+          onClick={handleClose}
+          className="w-8 h-7 flex items-center justify-center rounded hover:bg-[#EF4444] text-[#d2d2d2] hover:text-white transition-all duration-150"
+          title="Close"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSettingsStore } from '../stores/settingsStore.ts';
-import { HardDrive, Cpu, ShieldAlert, FolderOpen, Save, RefreshCcw, Check, Terminal } from 'lucide-react';
+import { HardDrive, Cpu, ShieldAlert, FolderOpen, Save, RefreshCcw, Check, Terminal, Languages } from 'lucide-react';
 
 export default function SettingsPage() {
   const settings = useSettingsStore();
@@ -177,6 +177,47 @@ export default function SettingsPage() {
               <span className="text-[10px] text-brand-textMuted block leading-relaxed px-0.5">
                 Mod paketleri, haritalar ve kaynak paketleri bu dizine indirilecektir.
               </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Language Selector */}
+        <div className="mt-6">
+          <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+            <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider">
+              <Languages className="w-4 h-4 text-brand-accent" />
+              <span>Dil / Language</span>
+            </div>
+            <div className="flex gap-3">
+              {[
+                { code: 'tr' as const, label: 'Türkçe', flag: '🇹🇷' },
+                { code: 'en' as const, label: 'English', flag: '🇬🇧' },
+              ].map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    settings.setLanguage(lang.code);
+                  }}
+                  className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+                    settings.language === lang.code
+                      ? 'bg-[#2D7DD2]/10 border-[#2D7DD2]/40 shadow-[0_0_12px_rgba(45,125,210,0.15)]'
+                      : 'bg-[#111111] border-white/[0.06] hover:border-white/10'
+                  }`}
+                >
+                  <span className="text-xl">{lang.flag}</span>
+                  <div className="text-left">
+                    <span className={`text-xs font-bold block ${
+                      settings.language === lang.code ? 'text-white' : 'text-[#A1A1AA]'
+                    }`}>{lang.label}</span>
+                    <span className="text-[9px] text-[#52525B] font-medium">
+                      {lang.code === 'tr' ? 'Arayüz dili' : 'Interface language'}
+                    </span>
+                  </div>
+                  {settings.language === lang.code && (
+                    <Check className="w-4 h-4 text-[#2D7DD2] ml-auto" />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
         </div>

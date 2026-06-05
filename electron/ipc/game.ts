@@ -41,6 +41,7 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
     jvmArgs: string;
     username: string;
     accessToken?: string;
+    uuid?: string;
     version: string;
     serverId: string;
     gameDir: string;
@@ -83,8 +84,16 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         `[MarinMC Launcher] Minecraft sürümü: ${options.version || '1.21'}`);
 
       // Build authorization
-      // For cracked/offline mode, use offline auth
-      const auth = Authenticator.getAuth(options.username);
+      // If access token is provided, construct premium auth, else use offline cracked mode
+      const auth = (options.accessToken && options.accessToken.trim() !== '')
+        ? {
+            access_token: options.accessToken,
+            client_token: 'marinmc-launcher',
+            uuid: options.uuid || options.username,
+            name: options.username,
+            user_properties: '{}'
+          }
+        : Authenticator.getAuth(options.username);
 
       const javaPathResolved = (options.javaPath && options.javaPath !== 'Bundled Java')
         ? options.javaPath

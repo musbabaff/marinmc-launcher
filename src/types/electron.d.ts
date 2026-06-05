@@ -7,6 +7,7 @@ export interface IElectronAPI {
     jvmArgs: string; 
     username: string; 
     accessToken?: string;
+    uuid?: string;
     version: string;
     serverId: string;
     gameDir: string;
@@ -20,6 +21,7 @@ export interface IElectronAPI {
   onGameStatus: (callback: (status: 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'LAUNCHING' | 'RUNNING' | 'ERROR') => void) => () => void;
   onGameCrash: (callback: (data: { exitCode: number; crashLogPath: string }) => void) => () => void;
   getSystemInfo: () => Promise<{ totalRAM: number; javaPath: string; os: string; defaultGameDir?: string }>;
+  validateMojangUsername: (username: string) => Promise<{ success: boolean; uuid?: string; name?: string }>;
   selectDirectory: () => Promise<string | null>;
   validateDirectory: (dirPath: string) => Promise<{ valid: boolean; path?: string; error?: string }>;
   openExternal: (url: string) => Promise<{ success: boolean }>;

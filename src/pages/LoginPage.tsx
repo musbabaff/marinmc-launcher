@@ -1,309 +1,289 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore.ts';
-import { motion } from 'framer-motion';
-import { Lock, Eye, EyeOff, Compass, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, ChevronRight } from 'lucide-react';
 
-// Vite resolves these relative imports to absolute URLs at compile time
-import logoSvg from '../../assets/logo.svg';
-import loginBg from '../../assets/login-bg.jpg';
-
-const translations = {
-  tr: {
-    title: 'Giriş',
-    subtitle: 'MarinMC dünyasına katılın',
-    usernamePlaceholder: 'Kullanıcı adı',
-    passwordPlaceholder: 'Şifre',
-    submitButton: 'DEVAM ET',
-    noAccount: 'Hesabım yok',
-    forgotPassword: 'Şifremi unuttum',
-    footer: '© 2026 MarinMC, Mojang AB ile ilişkili değildir.',
-    playersOnline: 'oyuncu aktif',
-    validationError: 'Kullanıcı adı en az 3, şifre en az 6 karakter olmalıdır.',
-    authError: 'Hatalı kullanıcı adı veya şifre',
-    orText: 'veya',
-    microsoftBtn: 'MICROSOFT HESABI İLE GİRİŞ',
-    loading: 'Giriş yapılıyor...'
-  },
-  en: {
-    title: 'Login',
-    subtitle: 'Join the MarinMC world',
-    usernamePlaceholder: 'Username',
-    passwordPlaceholder: 'Password',
-    submitButton: 'CONTINUE',
-    noAccount: 'No account?',
-    forgotPassword: 'Forgot password?',
-    footer: '© 2026 MarinMC, not affiliated with Mojang AB.',
-    playersOnline: 'players online',
-    validationError: 'Username must be at least 3, password at least 6 characters.',
-    authError: 'Incorrect username or password',
-    orText: 'or',
-    microsoftBtn: 'SIGN IN WITH MICROSOFT',
-    loading: 'Logging in...'
-  }
-};
+import loginBg from '../../assets/login-bg.png';
 
 export default function LoginPage() {
+  const [showOfflineForm, setShowOfflineForm] = useState(false);
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [lang, setLang] = useState<'tr' | 'en'>('tr');
-  const [playerCount, setPlayerCount] = useState('1,248');
   const [localError, setLocalError] = useState<string | null>(null);
-  
+
   const navigate = useNavigate();
   const { session, loginWithCracked, loginWithMicrosoft, isLoading, error, clearError } = useAuthStore();
 
-  const t = translations[lang];
-
-  // Redirect on mount if already authenticated
+  // Redirect if already logged in
   useEffect(() => {
     if (session) {
-      navigate('/servers');
+      navigate('/home');
     }
   }, [session, navigate]);
-
-  // Fetch online players count
-  useEffect(() => {
-    const fetchPlayers = async () => {
-      try {
-        const response = await axios.get('https://api.marinmc.com/status');
-        if (response.data && response.data.onlinePlayers) {
-          setPlayerCount(response.data.onlinePlayers.toLocaleString());
-        }
-      } catch {
-        // Fallback: slight randomizer to look alive
-        const offset = Math.floor(Math.random() * 20) - 10;
-        const base = 1248 + offset;
-        setPlayerCount(base.toLocaleString());
-      }
-    };
-    fetchPlayers();
-    const interval = setInterval(fetchPlayers, 20000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearError();
-    setLocalError(null);
-
-    // Form validations
-    if (username.trim().length < 3 || password.length < 6) {
-      setLocalError(t.validationError);
-      return;
-    }
-
-    await loginWithCracked(username);
-  };
 
   const handleMicrosoftLogin = async () => {
     clearError();
     setLocalError(null);
-    await loginWithMicrosoft();
+    try {
+      await loginWithMicrosoft();
+    } catch (err: any) {
+      setLocalError(err.message || 'Microsoft ile giriş yapılamadı.');
+    }
   };
 
-  // Determine if inputs should have error styling
+  const handleOfflineSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearError();
+    setLocalError(null);
+    if (username.trim().length < 3) {
+      setLocalError('Kullanıcı adı en az 3 karakter olmalıdır.');
+      return;
+    }
+    await loginWithCracked(username.trim());
+  };
+
   const hasError = !!error || !!localError;
 
+  const openExternal = (url: string) => {
+    if (window.electronAPI) {
+      window.electronAPI.openExternal(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
+
   return (
-    <div className="flex-1 h-full w-full flex bg-[#180619] overflow-hidden relative text-white font-sans">
-      {/* Language toggle + Live Players Badge absolute layout */}
-      <div className="absolute top-4 right-4 z-30 flex items-center space-x-3 pointer-events-auto">
-        {/* Language selector */}
-        <div className="bg-[#240321]/80 border border-[#400B3D]/50 rounded-lg px-2.5 py-1 text-[11px] font-semibold flex items-center space-x-1.5 backdrop-blur-md">
-          <button 
-            onClick={() => setLang('tr')} 
-            className={`transition-colors ${lang === 'tr' ? 'text-[#06B6D4]' : 'text-gray-400 hover:text-white'}`}
-          >
-            TR
-          </button>
+    <div className="flex w-full h-[calc(100vh-40px)] overflow-hidden relative text-white font-sans select-none">
+      {/* ===== LEFT PANEL ===== */}
+      <div className="w-1/2 h-full bg-[#0a0809] flex flex-col items-center justify-between py-8 px-12 relative z-10">
+
+        {/* Top-left branding */}
+        <div className="self-start flex items-center gap-2 text-[11px] text-[#52525B] font-medium">
+          <svg className="w-3.5 h-3.5 text-white/60" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2 20V4h3.5l4.5 8 4.5-8H18v16h-3V9l-3.5 6h-3L5 9v11H2z" />
+          </svg>
+          <span className="text-white/60">MarinMC Client</span>
           <span className="text-white/20">|</span>
-          <button 
-            onClick={() => setLang('en')} 
-            className={`transition-colors ${lang === 'en' ? 'text-[#06B6D4]' : 'text-gray-400 hover:text-white'}`}
+          <span>Build 0.9.2</span>
+        </div>
+
+        {/* Center content */}
+        <div className="flex flex-col items-center w-full max-w-[380px]">
+          {/* Large N Logo */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-4"
           >
-            EN
-          </button>
-        </div>
+            <svg className="w-20 h-20 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2 20V4h3.5l4.5 8 4.5-8H18v16h-3V9l-3.5 6h-3L5 9v11H2z" />
+            </svg>
+          </motion.div>
 
-        {/* Players online badge */}
-        <div className="bg-[#240321]/80 border border-[#400B3D]/50 rounded-lg px-3 py-1 text-[11px] font-semibold flex items-center space-x-2 backdrop-blur-md">
-          <span className="w-2 h-2 rounded-full bg-[#06B6D4] animate-pulse"></span>
-          <span>
-            {playerCount} <span className="text-gray-400 font-normal">{t.playersOnline}</span>
-          </span>
-        </div>
-      </div>
+          {/* Brand Name */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-center mb-10"
+          >
+            <h1 className="text-3xl tracking-wide">
+              <span className="font-light">MarinMC</span>{' '}
+              <span className="font-bold italic">Client</span>
+            </h1>
+          </motion.div>
 
-      {/* Left Panel: Form (40%) */}
-      <motion.div
-        initial={{ x: -120, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="w-[40%] h-full bg-[#180619] border-r border-[#400B3D]/30 p-10 flex flex-col justify-between z-20 relative select-none"
-      >
-        {/* Logo and Brand */}
-        <div className="flex items-center space-x-3">
-          <img src={logoSvg} className="w-9 h-9" alt="MarinMC Logo" />
-          <div>
-            <h1 className="text-base font-extrabold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4]">MARINMC</h1>
-            <p className="text-[9px] text-[#A1A1AA] tracking-widest font-bold uppercase">Launcher</p>
-          </div>
-        </div>
+          {/* Microsoft Login Button */}
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={handleMicrosoftLogin}
+            disabled={isLoading}
+            className="w-full py-3.5 bg-white hover:bg-gray-100 text-[#1a1a1a] rounded-xl font-semibold text-sm flex items-center justify-center gap-3 transition-all shadow-lg disabled:opacity-50 mb-3"
+          >
+            {isLoading && !showOfflineForm ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <span>Log in with</span>
+                {/* Microsoft Logo */}
+                <svg width="18" height="18" viewBox="0 0 21 21">
+                  <rect x="0" y="0" width="10" height="10" fill="#f25022" />
+                  <rect x="11" y="0" width="10" height="10" fill="#7fba00" />
+                  <rect x="0" y="11" width="10" height="10" fill="#00a4ef" />
+                  <rect x="11" y="11" width="10" height="10" fill="#ffb900" />
+                </svg>
+                <span className="font-bold">Microsoft</span>
+              </>
+            )}
+          </motion.button>
 
-        {/* Auth Box */}
-        <div className="my-auto py-8">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold tracking-tight text-[#DCDBDC]">{t.title}</h2>
-            <p className="text-[11px] text-[#A1A1AA] mt-1">{t.subtitle}</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Username Field */}
-            <div className="space-y-1">
-              <div 
-                className={`flex items-center bg-[#1B051D] border rounded-xl px-3.5 py-2.5 transition-all duration-300 ${
-                  hasError 
-                    ? 'border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.15)]' 
-                    : 'border-[#3A1F40] focus-within:border-[#06B6D4] focus-within:shadow-[0_0_12px_rgba(6,182,212,0.25)]'
-                }`}
+          {/* Offline Login Toggle */}
+          <AnimatePresence mode="wait">
+            {!showOfflineForm ? (
+              <motion.button
+                key="offline-toggle"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowOfflineForm(true)}
+                className="text-[11px] text-[#52525B] hover:text-[#A1A1AA] font-medium transition-colors flex items-center gap-1 mt-2"
               >
-                {/* Dynamic Player Head / Avatar Icon */}
-                <div className="mr-3 shrink-0 flex items-center justify-center">
+                <span>veya offline oyna</span>
+                <ChevronRight className="w-3 h-3" />
+              </motion.button>
+            ) : (
+              <motion.form
+                key="offline-form"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                onSubmit={handleOfflineSubmit}
+                className="w-full mt-3 space-y-2.5"
+              >
+                <div className="flex items-center bg-[#111111] border border-white/10 rounded-xl px-3.5 py-2.5 focus-within:border-[#2D7DD2]/50 transition-all">
                   <img
-                    src={`https://mc-heads.net/avatar/${/^[a-zA-Z0-9_]{3,16}$/.test(username.trim()) ? encodeURIComponent(username.trim()) : 'Steve'}/22`}
-                    alt="Player avatar"
-                    className="w-5.5 h-5.5 rounded bg-black/20 border border-white/5 transition-all duration-200"
+                    src={`https://mc-heads.net/avatar/${/^[a-zA-Z0-9_]{3,16}$/.test(username.trim()) ? encodeURIComponent(username.trim()) : 'Steve'}/20`}
+                    alt="avatar"
+                    className="w-5 h-5 rounded bg-black/25 mr-2.5"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/22';
+                      (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
                     }}
                   />
+                  <input
+                    type="text"
+                    placeholder="Kullanıcı adı"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={isLoading}
+                    className="bg-transparent border-none outline-none text-xs w-full text-white placeholder-white/25 font-medium"
+                    autoFocus
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder={t.usernamePlaceholder}
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                <button
+                  type="submit"
                   disabled={isLoading}
-                  className="bg-transparent border-none outline-none text-xs w-full text-white placeholder-white/20 font-semibold"
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-1">
-              <div 
-                className={`flex items-center bg-[#1B051D] border rounded-xl px-3.5 py-2.5 transition-all duration-300 ${
-                  hasError 
-                    ? 'border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.15)]' 
-                    : 'border-[#3A1F40] focus-within:border-[#06B6D4] focus-within:shadow-[0_0_12px_rgba(6,182,212,0.25)]'
-                }`}
-              >
-                <Lock className="w-4 h-4 text-[#A1A1AA] mr-3 shrink-0" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder={t.passwordPlaceholder}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  className="bg-transparent border-none outline-none text-xs w-full text-white placeholder-white/20 font-semibold"
-                />
+                  className="w-full py-2.5 bg-[#1a1a1a] hover:bg-[#222222] border border-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    'Giriş Yap'
+                  )}
+                </button>
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-[#A1A1AA] hover:text-white transition-colors"
+                  onClick={() => { setShowOfflineForm(false); setLocalError(null); }}
+                  className="w-full text-[10px] text-[#52525B] hover:text-[#A1A1AA] font-medium transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  ← Microsoft ile giriş yap
                 </button>
-              </div>
-              
-              {/* Validation / Login error display */}
-              {hasError && (
-                <motion.p
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-[10px] text-red-400 font-semibold mt-1.5 flex items-center pl-1"
-                >
-                  {localError || error || t.authError}
-                </motion.p>
-              )}
-            </div>
+              </motion.form>
+            )}
+          </AnimatePresence>
 
-            {/* Devam Et Button */}
-            <motion.button
-              whileHover={{ scale: 1.01, boxShadow: '0 0 15px rgba(255, 255, 255, 0.15)' }}
-              whileTap={{ scale: 0.99 }}
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3.5 bg-[#F9F9F9] hover:bg-[#E9E8E9] text-[#180619] text-xs font-extrabold rounded-xl tracking-wider uppercase transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center space-x-2"
+          {/* Error Display */}
+          <AnimatePresence>
+            {hasError && (
+              <motion.p
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="text-[10px] text-red-400 font-semibold mt-3 flex items-center justify-center bg-red-500/10 border border-red-500/20 py-2 px-3 rounded-xl w-full text-center"
+              >
+                {localError || error}
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          {/* Social Icons */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="flex items-center gap-3 mt-10"
+          >
+            {/* Discord */}
+            <button
+              onClick={() => openExternal('https://discord.gg/marinmc')}
+              className="w-11 h-11 rounded-xl bg-[#111111] border border-white/10 hover:border-white/25 flex items-center justify-center text-white/60 hover:text-white transition-all"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{t.loading}</span>
-                </>
-              ) : (
-                <span>{t.submitButton}</span>
-              )}
-            </motion.button>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026c.462-.62.874-1.275 1.226-1.963.021-.04.001-.088-.041-.104a13.201 13.201 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028zM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38z" />
+              </svg>
+            </button>
 
-            {/* Separator for Microsoft Login */}
-            <div className="flex items-center my-4">
-              <div className="flex-1 h-[1px] bg-[#400B3D]/30"></div>
-              <span className="text-[10px] text-[#A1A1AA] px-3 uppercase tracking-wider font-bold">{t.orText}</span>
-              <div className="flex-1 h-[1px] bg-[#400B3D]/30"></div>
-            </div>
-
-            {/* Microsoft Login Button */}
-            <motion.button
-              whileHover={{ scale: 1.01, backgroundColor: '#E9E8E9' }}
-              whileTap={{ scale: 0.99 }}
-              type="button"
-              onClick={handleMicrosoftLogin}
-              disabled={isLoading}
-              className="w-full py-3 bg-[#DCDBDC] text-[#180619] text-[10px] font-extrabold rounded-xl tracking-wider uppercase transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:pointer-events-none"
+            {/* X / Twitter */}
+            <button
+              onClick={() => openExternal('https://x.com/marinmc')}
+              className="w-11 h-11 rounded-xl bg-[#111111] border border-white/10 hover:border-white/25 flex items-center justify-center text-white/60 hover:text-white transition-all"
             >
-              <Compass className="w-3.5 h-3.5 text-[#180619]" />
-              <span>{t.microsoftBtn}</span>
-            </motion.button>
-          </form>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </button>
 
-          {/* Bottom ghost links */}
-          <div className="flex items-center justify-center space-x-6 mt-6">
-            <button className="text-[11px] text-[#A1A1AA] hover:text-white font-semibold transition-colors duration-200">
-              {t.noAccount}
+            {/* Instagram */}
+            <button
+              onClick={() => openExternal('https://instagram.com/marinmc')}
+              className="w-11 h-11 rounded-xl bg-[#111111] border border-white/10 hover:border-white/25 flex items-center justify-center text-white/60 hover:text-white transition-all"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+              </svg>
             </button>
-            <span className="text-[#400B3D]/40">|</span>
-            <button className="text-[11px] text-[#A1A1AA] hover:text-white font-semibold transition-colors duration-200">
-              {t.forgotPassword}
+
+            {/* YouTube */}
+            <button
+              onClick={() => openExternal('https://youtube.com/@marinmc')}
+              className="w-11 h-11 rounded-xl bg-[#111111] border border-white/10 hover:border-white/25 flex items-center justify-center text-white/60 hover:text-white transition-all"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+              </svg>
             </button>
-          </div>
+          </motion.div>
         </div>
 
-        {/* Footer */}
-        <div className="text-[9px] text-[#52525B] text-center leading-relaxed">
-          {t.footer}
-        </div>
-      </motion.div>
-
-      {/* Right Panel: Hero Image (60%) */}
-      <div className="w-[60%] h-full relative overflow-hidden bg-[#1D0416]">
-        {/* Background Artwork */}
+        {/* Footer Links */}
         <motion.div
-          initial={{ scale: 1.06, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="flex items-center gap-2 text-[10px] text-[#3f3f46]"
+        >
+          <button onClick={() => openExternal('https://marinmc.com/privacy')} className="hover:text-[#A1A1AA] transition-colors">Privacy Policy</button>
+          <span>•</span>
+          <button onClick={() => openExternal('https://marinmc.com/terms')} className="hover:text-[#A1A1AA] transition-colors">Terms of Service</button>
+          <span>•</span>
+          <button onClick={() => openExternal('https://marinmc.com/support')} className="hover:text-[#A1A1AA] transition-colors">Support</button>
+        </motion.div>
+      </div>
+
+      {/* ===== RIGHT PANEL — Background Image ===== */}
+      <div className="w-1/2 h-full relative overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.2 }}
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${loginBg})` }}
         />
-
-        {/* Dark Left Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#180619] via-[#180619]/40 to-transparent z-10 pointer-events-none" />
-
-        {/* Glow and atmospheric effects over hero */}
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-[#8B5CF6]/10 rounded-full blur-[100px] pointer-events-none" />
+        {/* Subtle gradient overlay on left edge for blend */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0809] via-transparent to-transparent w-[80px]" />
+        
+        {/* Subtle N watermark on the image */}
+        <div className="absolute bottom-1/3 right-1/4 opacity-[0.08]">
+          <svg className="w-32 h-32 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2 20V4h3.5l4.5 8 4.5-8H18v16h-3V9l-3.5 6h-3L5 9v11H2z" />
+          </svg>
+        </div>
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import { checkConnectivity } from './lib/api.ts';
 // Lazy-loaded pages for performance
 const LoginPage = lazy(() => import('./pages/LoginPage.tsx'));
 const HomePage = lazy(() => import('./pages/HomePage.tsx'));
+const VersionsPage = lazy(() => import('./pages/VersionsPage.tsx'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage.tsx'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage.tsx'));
 const ChatPage = lazy(() => import('./pages/ChatPage.tsx'));
@@ -21,9 +22,9 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage.tsx'));
 
 // Loading fallback
 const PageLoader = () => (
-  <div className="flex-grow flex items-center justify-center bg-[#0A0A0A]">
+  <div className="flex-grow flex items-center justify-center bg-[#060305]">
     <div className="flex flex-col items-center gap-3">
-      <div className="w-8 h-8 border-2 border-[#8B5CF6]/30 border-t-[#8B5CF6] rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-[#2D7DD2]/30 border-t-[#2D7DD2] rounded-full animate-spin" />
       <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-wider">Yükleniyor...</span>
     </div>
   </div>
@@ -35,12 +36,12 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const isLoginPage = location.pathname === '/login';
 
   return (
-    <div className="flex h-[560px] w-full relative overflow-hidden bg-[#0A0A0A]">
+    <div className="flex flex-1 h-[calc(100vh-40px)] w-full relative overflow-hidden bg-[#060305]">
       {/* Sidebar Navigation */}
       {!isLoginPage && <Sidebar />}
 
       {/* Main View Area */}
-      <div className="flex-1 h-full overflow-hidden flex flex-col relative bg-[#0A0A0A]">
+      <div className="flex-1 h-full overflow-hidden flex flex-col relative bg-[#060305]">
         <OfflineBanner />
         {children}
       </div>
@@ -118,7 +119,7 @@ export default function App() {
 
   return (
     <HashRouter>
-      <div className="flex flex-col w-[960px] h-[600px] overflow-hidden select-none bg-[#0A0A0A] relative text-[#FFFFFF]">
+      <div className="flex flex-col w-full h-screen overflow-hidden select-none bg-[#060305] relative text-[#d2d2d2]">
         <TitleBar />
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -136,7 +137,7 @@ export default function App() {
               path="/versions"
               element={
                 <ProtectedRoute>
-                  <HomePage />
+                  <VersionsPage />
                 </ProtectedRoute>
               }
             />

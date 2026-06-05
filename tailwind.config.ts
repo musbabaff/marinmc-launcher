@@ -40,11 +40,11 @@ const config: Config = {
         }
       },
       fontFamily: {
-        sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['Figtree', 'Outfit', 'Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        'glow-purple': '0 0 15px rgba(139, 92, 246, 0.35)',
-        'glow-purple-lg': '0 0 25px rgba(139, 92, 246, 0.5)',
+        'glow-purple': '0 0 15px rgba(160, 81, 162, 0.35)',
+        'glow-purple-lg': '0 0 25px rgba(160, 81, 162, 0.5)',
         'glow-gold': '0 0 15px rgba(251, 191, 36, 0.35)',
         'glow-success': '0 0 15px rgba(16, 185, 129, 0.35)',
       },

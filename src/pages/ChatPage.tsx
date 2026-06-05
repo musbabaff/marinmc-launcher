@@ -1,306 +1,268 @@
 import { useState, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useChatStore, Conversation } from '../stores/chatStore.ts';
+import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores/authStore.ts';
 import {
-  Search, MessageSquarePlus, Star, Users, MessageSquare, Send, Paperclip, Smile,
-  Maximize2, Download, MoreHorizontal
+  Search, Edit3, Pin, Users, MessageSquare,
+  Image, Smile, FileText, Mic, Send, Heart, Video, Menu,
+  Paperclip
 } from 'lucide-react';
 
+interface Contact {
+  id: string;
+  name: string;
+  avatar: string;
+  status: 'online' | 'idle' | 'offline';
+  lastMessage?: string;
+  time?: string;
+  unread?: number;
+  type: 'pinned' | 'group' | 'dm';
+}
+
+interface ChatMessage {
+  id: string;
+  sender: string;
+  content: string;
+  time: string;
+  isSelf: boolean;
+  reactions?: { emoji: string; count: number }[];
+}
+
 export default function ChatPage() {
-  const { t } = useTranslation();
-  const chat = useChatStore();
-  const session = useAuthStore((state) => state.session);
-
-  const [searchQuery, setSearchQuery] = useState('');
+  useAuthStore((s) => s.session);
+  const [activeContact, setActiveContact] = useState<Contact | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
-
+  const [isTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const activeConv = chat.conversations.find((c) => c.id === chat.activeConversationId) || chat.conversations[0];
+  // Empty contacts — real data will come from server
+  const contacts: Contact[] = [];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeConv.messages]);
+  }, [messages]);
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
-    chat.sendMessage(inputText.trim());
+  const handleSend = () => {
+    if (!inputText.trim() || !activeContact) return;
+    const newMsg: ChatMessage = {
+      id: Date.now().toString(),
+      sender: 'Sen',
+      content: inputText,
+      time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+      isSelf: true,
+    };
+    setMessages([...messages, newMsg]);
     setInputText('');
   };
 
-  const handleAddReaction = (msgId: string, emoji: string) => {
-    chat.addReaction(msgId, emoji);
-  };
-
-  const getFilteredConversations = (type: 'pinned' | 'group' | 'dm') => {
-    return chat.conversations.filter((c) => {
-      const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase());
-      if (!matchesSearch) return false;
-      if (type === 'pinned') return c.isPinned;
-      if (type === 'group') return !c.isPinned && c.type === 'group';
-      return !c.isPinned && c.type === 'dm';
-    });
-  };
-
   return (
-    <div className="flex-grow flex h-full overflow-hidden select-none bg-[#0A0A0A]">
-      {/* Left conversation sidebar (300px) */}
-      <div className="w-[300px] bg-[#0D0D0D] border-r border-[#1E1E1E] flex flex-col">
-        {/* Header search block */}
-        <div className="p-4 border-b border-[#1E1E1E] flex items-center justify-between gap-3">
-          <div className="flex-1 bg-[#111111] border border-[#2A2A2A] rounded-xl px-3 py-1.5 flex items-center gap-2">
+    <div className="flex-1 flex h-full overflow-hidden select-none">
+
+      {/* ===== LEFT PANEL ===== */}
+      <div className="w-[280px] shrink-0 bg-[#0a080a] border-r border-white/[0.04] flex flex-col h-full">
+
+        {/* Header */}
+        <div className="px-4 py-4 border-b border-white/[0.04] flex items-center justify-between">
+          <h2 className="text-[12px] font-extrabold text-white tracking-wider">MarinMC Relay</h2>
+          <button className="p-1.5 rounded-lg hover:bg-white/5 text-[#52525B] hover:text-white transition-colors">
+            <Edit3 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="px-4 py-2 border-b border-white/[0.04]">
+          <div className="flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-xl px-3 py-2">
             <Search className="w-3.5 h-3.5 text-[#52525B]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('chat.searchInbox')}
-              className="bg-transparent border-none text-[10px] text-white focus:outline-none placeholder-white/20 w-full font-semibold"
+              placeholder="Search messages..."
+              className="bg-transparent border-none outline-none text-[10px] text-white placeholder-white/20 w-full font-medium"
             />
           </div>
-          <button className="p-2 rounded-xl bg-white/[0.03] border border-[#2A2A2A] text-[#52525B] hover:text-white hover:bg-white/[0.06] transition-all">
-            <MessageSquarePlus className="w-4 h-4" />
-          </button>
         </div>
 
-        {/* Channels/Inbox listings scroll */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar">
-          
-          {/* Pinned section */}
-          {getFilteredConversations('pinned').length > 0 && (
-            <div className="space-y-1">
-              <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-wider flex items-center gap-1 px-2 mb-1.5">
-                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                <span>{t('chat.pinned')}</span>
-              </span>
-              {getFilteredConversations('pinned').map((c) => (
-                <ConversationItem key={c.id} c={c} activeId={activeConv.id} onClick={chat.setActiveConversationId} />
-              ))}
-            </div>
-          )}
-
-          {/* Group chats */}
-          {getFilteredConversations('group').length > 0 && (
-            <div className="space-y-1">
-              <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-wider flex items-center gap-1 px-2 mb-1.5">
-                <Users className="w-3 h-3 text-[#8B5CF6]" />
-                <span>{t('chat.groups')}</span>
-              </span>
-              {getFilteredConversations('group').map((c) => (
-                <ConversationItem key={c.id} c={c} activeId={activeConv.id} onClick={chat.setActiveConversationId} />
-              ))}
-            </div>
-          )}
-
-          {/* DMs */}
-          {getFilteredConversations('dm').length > 0 && (
-            <div className="space-y-1">
-              <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-wider flex items-center gap-1 px-2 mb-1.5">
-                <MessageSquare className="w-3 h-3 text-[#06B6D4]" />
-                <span>{t('chat.directMessages')}</span>
-              </span>
-              {getFilteredConversations('dm').map((c) => (
-                <ConversationItem key={c.id} c={c} activeId={activeConv.id} onClick={chat.setActiveConversationId} />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Right chat panel view */}
-      <div className="flex-1 flex flex-col bg-[#0A0A0A] relative">
-        {/* Active conversation header */}
-        <div className="px-6 py-3 border-b border-[#1E1E1E] flex justify-between items-center bg-[#0D0D0D]">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <img src={activeConv.avatar} alt="avatar" className="w-9 h-9 rounded-xl border border-white/5" />
-              {activeConv.isOnline && (
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#10B981] rounded-full border-2 border-[#0D0D0D]" />
-              )}
-            </div>
-            <div>
-              <h3 className="text-xs font-bold text-white leading-tight">{activeConv.name}</h3>
-              <p className="text-[9px] text-[#A1A1AA] leading-tight mt-0.5">
-                {activeConv.statusText || (activeConv.isOnline ? 'Aktif' : 'Çevrimdışı')}
+        {/* Empty contacts state */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {contacts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center px-6">
+              <div className="w-12 h-12 rounded-xl bg-[#2D7DD2]/10 border border-[#2D7DD2]/20 flex items-center justify-center mb-3">
+                <MessageSquare className="w-5 h-5 text-[#2D7DD2]" />
+              </div>
+              <p className="text-[10px] font-bold text-white mb-1">Henüz mesaj yok</p>
+              <p className="text-[8px] text-[#52525B] font-medium leading-relaxed">
+                Arkadaşlarınla sohbet etmeye başla! Relay sistemi yakında aktif olacak.
               </p>
             </div>
-          </div>
-          <button className="p-2 rounded-xl text-[#52525B] hover:text-white hover:bg-white/5 transition-all">
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Message bubble stream */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-          <div className="flex flex-col gap-4">
-            {activeConv.messages.map((m, idx) => {
-              const showDateSep = idx === 0 || (idx > 0 && activeConv.messages[idx - 1].timestamp.includes('Dün') !== m.timestamp.includes('Dün'));
-              return (
-                <div key={m.id} className="space-y-3">
-                  {showDateSep && (
-                    <div className="flex items-center gap-4 my-2 select-none">
-                      <div className="h-[1px] flex-1 bg-[#1E1E1E]" />
-                      <span className="text-[9px] text-[#52525B] font-extrabold uppercase tracking-widest">
-                        {m.timestamp.includes('Dün') ? 'DÜN' : 'BUGÜN'}
-                      </span>
-                      <div className="h-[1px] flex-1 bg-[#1E1E1E]" />
-                    </div>
-                  )}
-
-                  <div className={`flex items-start gap-3 group relative ${m.isSelf ? 'flex-row-reverse' : ''}`}>
-                    {/* User head avatar */}
+          ) : (
+            contacts
+              .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map((contact) => (
+                <button
+                  key={contact.id}
+                  onClick={() => setActiveContact(contact)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 transition-all text-left ${
+                    activeContact?.id === contact.id
+                      ? 'bg-[#2D7DD2]/10 border-l-2 border-[#2D7DD2]'
+                      : 'hover:bg-white/[0.02] border-l-2 border-transparent'
+                  }`}
+                >
+                  <div className="relative shrink-0">
                     <img
-                      src={m.isSelf ? (session?.avatar || 'https://minotar.net/avatar/steve/24') : `https://minotar.net/avatar/${m.sender}/24`}
-                      alt="avatar"
-                      className="w-7 h-7 rounded-lg border border-white/5"
+                      src={contact.avatar}
+                      alt={contact.name}
+                      className="w-9 h-9 rounded-lg border border-white/10"
                     />
-
-                    {/* Chat Bubble card */}
-                    <div className={`max-w-[70%] space-y-1.5 ${m.isSelf ? 'items-end' : ''}`}>
-                      <div className={`rounded-xl px-4 py-2.5 text-xs font-semibold leading-relaxed border ${
-                        m.isSelf
-                          ? 'bg-[#8B5CF6] border-[#8B5CF6]/20 text-white'
-                          : 'bg-[#111111] border-[#1E1E1E] text-white/95'
-                      }`}>
-                        {/* Sender tag if group chat */}
-                        {activeConv.type === 'group' && !m.isSelf && (
-                          <span className="text-[9px] text-[#8B5CF6] font-extrabold uppercase block mb-1">
-                            {m.sender}
-                          </span>
-                        )}
-                        <p>{m.content}</p>
-                      </div>
-
-                      {/* Image inline preview attach card */}
-                      {m.image && (
-                        <div className="relative rounded-xl overflow-hidden border border-[#2A2A2A] bg-black/40 group/img max-w-[320px]">
-                          <img src={m.image.url} alt={m.image.name} className="max-h-48 object-cover max-w-full" />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                            <button className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-105">
-                              <Maximize2 className="w-4 h-4" />
-                            </button>
-                            <button className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-105">
-                              <Download className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <div className="p-2 bg-[#111111] border-t border-[#1E1E1E] text-[8px] text-[#A1A1AA] font-bold font-mono flex justify-between">
-                            <span>{m.image.name}</span>
-                            <span>{m.image.size}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Timestamp and reactions row */}
-                      <div className={`flex items-center gap-2 ${m.isSelf ? 'justify-end' : ''}`}>
-                        <span className="text-[8px] text-[#52525B] font-bold font-mono">{m.timestamp}</span>
-
-                        {/* Inline reactions badge */}
-                        {m.reactions && m.reactions.map((r) => (
-                          <button
-                            key={r.emoji}
-                            onClick={() => chat.addReaction(m.id, r.emoji)}
-                            className="bg-[#1A1A1A] border border-[#2A2A2A] rounded px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1 hover:border-[#8B5CF6]"
-                          >
-                            <span>{r.emoji}</span>
-                            <span className="text-[8px] text-[#A1A1AA]">{r.count}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Reaction trigger overlay on bubble hover */}
-                    <div className={`absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-[#141414] border border-[#2A2A2A] p-1 rounded-lg shadow-xl z-20 ${
-                      m.isSelf ? 'right-full mr-2' : 'left-full ml-2'
-                    }`}>
-                      {['⭐', '❤️', '👍'].map((emoji) => (
-                        <button
-                          key={emoji}
-                          onClick={() => handleAddReaction(m.id, emoji)}
-                          className="hover:scale-110 p-0.5 rounded text-xs select-none transition-transform"
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a080a] ${
+                      contact.status === 'online' ? 'bg-[#259457]' :
+                      contact.status === 'idle' ? 'bg-[#F59E0B]' : 'bg-[#52525B]'
+                    }`} />
                   </div>
-                </div>
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-
-        {/* Typing and inputs */}
-        <div className="p-4 bg-[#0D0D0D] border-t border-[#1E1E1E]">
-          {/* Typing info */}
-          <div className="h-4 text-[8px] text-[#52525B] font-extrabold uppercase mb-1.5 px-2">
-            {activeConv.name === 'Towny Ekibi' && (
-              <span className="animate-pulse">Luser_29 yazıyor...</span>
-            )}
-          </div>
-
-          <form onSubmit={handleSend} className="bg-[#111111] border border-[#2A2A2A] rounded-xl px-4 py-2.5 flex items-center gap-3">
-            <button type="button" className="p-1 rounded hover:bg-white/5 text-[#52525B] hover:text-white transition-colors">
-              <Paperclip className="w-4 h-4" />
-            </button>
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={t('chat.typeMessage')}
-              className="bg-transparent border-none text-xs text-white focus:outline-none placeholder-white/20 w-full font-semibold"
-            />
-            <button type="button" className="p-1 rounded hover:bg-white/5 text-[#52525B] hover:text-white transition-colors">
-              <Smile className="w-4 h-4" />
-            </button>
-            <button type="submit" className="p-2 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white hover:scale-105 transition-all shadow-glow-purple">
-              <Send className="w-3.5 h-3.5 fill-white" />
-            </button>
-          </form>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[10px] font-bold text-white truncate">{contact.name}</h4>
+                      {contact.time && <span className="text-[8px] text-[#52525B] font-medium shrink-0">{contact.time}</span>}
+                    </div>
+                    {contact.lastMessage && (
+                      <p className="text-[8px] text-[#52525B] truncate mt-0.5 font-medium">{contact.lastMessage}</p>
+                    )}
+                  </div>
+                  {contact.unread && contact.unread > 0 && (
+                    <span className="w-4 h-4 bg-[#2D7DD2] rounded-full text-[7px] font-black text-white flex items-center justify-center shrink-0">
+                      {contact.unread}
+                    </span>
+                  )}
+                </button>
+              ))
+          )}
         </div>
       </div>
-    </div>
-  );
-}
 
-// Conversation Sidebar Item component helper
-function ConversationItem({ c, activeId, onClick }: { c: Conversation; activeId: string; onClick: (id: string) => void }) {
-  const lastMsg = c.messages[c.messages.length - 1];
-  const active = c.id === activeId;
+      {/* ===== MAIN CHAT AREA ===== */}
+      <div className="flex-1 flex flex-col bg-[#060305] h-full">
+        {!activeContact ? (
+          /* No chat selected — empty state */
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
+            <div className="w-16 h-16 rounded-2xl bg-[#2D7DD2]/10 border border-[#2D7DD2]/20 flex items-center justify-center mb-4">
+              <MessageSquare className="w-7 h-7 text-[#2D7DD2]" />
+            </div>
+            <h2 className="text-sm font-black text-white uppercase tracking-wider mb-2">MarinMC Relay</h2>
+            <p className="text-[10px] text-[#52525B] max-w-[280px] leading-relaxed font-medium">
+              Oyun içi sohbet sistemi yakında aktif olacak. Arkadaşlarınla mesajlaş, gruplar oluştur ve sesli sohbet et!
+            </p>
+            <div className="flex gap-2 mt-5">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.02] border border-white/[0.06] rounded-lg">
+                <Users className="w-3 h-3 text-[#2D7DD2]" />
+                <span className="text-[8px] font-bold text-[#52525B]">Gruplar</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.02] border border-white/[0.06] rounded-lg">
+                <Video className="w-3 h-3 text-[#2D7DD2]" />
+                <span className="text-[8px] font-bold text-[#52525B]">Sesli Sohbet</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.02] border border-white/[0.06] rounded-lg">
+                <Image className="w-3 h-3 text-[#2D7DD2]" />
+                <span className="text-[8px] font-bold text-[#52525B]">Medya Paylaşımı</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Chat Header */}
+            <div className="px-5 py-3 border-b border-white/[0.04] flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <img src={activeContact.avatar} alt="" className="w-8 h-8 rounded-lg border border-white/10" />
+                <div>
+                  <h3 className="text-[11px] font-bold text-white">{activeContact.name}</h3>
+                  <span className="text-[8px] text-[#259457] font-medium flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-[#259457] rounded-full" />
+                    Online
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {[Search, Pin, Heart, Users, Video, Menu].map((Icon, i) => (
+                  <button key={i} className="p-1.5 rounded-lg hover:bg-white/5 text-[#52525B] hover:text-white transition-colors">
+                    <Icon className="w-3.5 h-3.5" />
+                  </button>
+                ))}
+              </div>
+            </div>
 
-  return (
-    <button
-      onClick={() => onClick(c.id)}
-      className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left select-none transition-all duration-200 ${
-        active
-          ? 'bg-[#1A1A1A] border-[#2A2A2A] text-white shadow-lg'
-          : 'bg-transparent border-transparent text-[#A1A1AA] hover:bg-white/[0.02] hover:text-white'
-      }`}
-    >
-      <div className="relative">
-        <img src={c.avatar} alt="avatar" className="w-8 h-8 rounded-lg border border-white/5" />
-        {c.isOnline && (
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#10B981] rounded-full border-2 border-[#0D0D0D]" />
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-3 custom-scrollbar">
+              {messages.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <p className="text-[10px] text-[#52525B] font-bold">Henüz mesaj yok — ilk mesajı sen gönder!</p>
+                </div>
+              )}
+              {messages.map((msg) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex ${msg.isSelf ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[60%] px-3.5 py-2 rounded-2xl ${
+                    msg.isSelf
+                      ? 'bg-[#2D7DD2] text-white rounded-br-md'
+                      : 'bg-[#111111] border border-white/[0.06] text-[#d2d2d2] rounded-bl-md'
+                  }`}>
+                    {!msg.isSelf && (
+                      <span className="text-[8px] font-bold text-[#2D7DD2] block mb-0.5">{msg.sender}</span>
+                    )}
+                    <p className="text-[11px] font-medium leading-relaxed">{msg.content}</p>
+                    <span className={`text-[7px] font-medium mt-1 block text-right ${
+                      msg.isSelf ? 'text-white/50' : 'text-[#52525B]'
+                    }`}>{msg.time}</span>
+                  </div>
+                </motion.div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Typing indicator */}
+            {isTyping && (
+              <div className="px-5 py-1.5 flex items-center gap-2">
+                <div className="flex gap-0.5">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="w-1.5 h-1.5 bg-[#52525B] rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                  ))}
+                </div>
+                <span className="text-[8px] text-[#52525B] font-medium">typing...</span>
+              </div>
+            )}
+
+            {/* Input bar */}
+            <div className="px-4 py-3 border-t border-white/[0.04] flex items-center gap-2 shrink-0">
+              <div className="flex-1 flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-xl px-3.5 py-2.5">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                  placeholder={`Type Message to ${activeContact.name}...`}
+                  className="bg-transparent border-none outline-none text-[11px] text-white placeholder-white/20 w-full font-medium"
+                />
+                <div className="flex items-center gap-1">
+                  {[Image, Smile, FileText, Paperclip, Mic].map((Icon, i) => (
+                    <button key={i} className="p-1 rounded hover:bg-white/5 text-[#52525B] hover:text-white transition-colors">
+                      <Icon className="w-3.5 h-3.5" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={handleSend}
+                className="w-9 h-9 rounded-xl bg-[#2D7DD2] hover:bg-[#4A9AE8] flex items-center justify-center text-white transition-all shrink-0"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </>
         )}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-baseline mb-0.5">
-          <h4 className="text-[11px] font-extrabold text-white truncate leading-none">{c.name}</h4>
-          <span className="text-[8px] text-[#52525B] font-bold font-mono">{c.lastMessageTime}</span>
-        </div>
-        <p className="text-[9px] text-[#52525B] font-semibold truncate leading-none mt-1.5">
-          {lastMsg ? lastMsg.content : 'Dosya gönderildi.'}
-        </p>
-      </div>
-
-      {/* Unread badge */}
-      {c.unreadCount > 0 && (
-        <span className="w-4 h-4 bg-[#8B5CF6] text-white text-[8px] font-black rounded-full flex items-center justify-center shrink-0">
-          {c.unreadCount}
-        </span>
-      )}
-    </button>
+    </div>
   );
 }

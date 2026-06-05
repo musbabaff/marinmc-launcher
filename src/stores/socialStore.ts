@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useAuthStore } from './authStore.ts';
 
 export interface Friend {
   username: string;
@@ -10,72 +11,121 @@ export interface Friend {
 interface SocialState {
   friends: Friend[];
   pendingRequests: number;
-  setFriends: (friends: Friend[]) => void;
+  pendingNames: string[];
+  initializeSocial: () => void;
   addFriend: (username: string) => Promise<boolean>;
   removeFriend: (username: string) => void;
   setPendingRequests: (count: number) => void;
+  acceptRequest: (username: string) => void;
+  rejectRequest: (username: string) => void;
 }
 
-const INITIAL_MOCK_FRIENDS: Friend[] = [
-  // Online / In-game
-  { username: 'Luser_29', status: 'in-game', currentServer: 'MarinMC Towny' },
-  { username: 'HypixelGod', status: 'in-game', currentServer: 'MarinMC Survival' },
-  { username: 'Notch', status: 'in-game', currentServer: 'MarinMC Creative' },
-  { username: 'Steve', status: 'in-game', currentServer: 'MarinMC Towny' },
-  // In Launcher
-  { username: 'alex_mc', status: 'in-launcher' },
-  { username: 'musbabaff', status: 'in-launcher' },
-  // Idle
-  { username: 'LegoBuilder', status: 'idle' },
-  { username: 'Dream', status: 'idle' },
-  { username: 'Technoblade', status: 'idle' },
-  { username: 'Skeppy', status: 'idle' },
-  // Offline (20 offline friends)
-  { username: 'Jeb_', status: 'offline', lastSeen: '2 hours ago' },
-  { username: 'Dinnerbone', status: 'offline', lastSeen: '5 hours ago' },
-  { username: 'Grian', status: 'offline', lastSeen: '1 day ago' },
-  { username: 'MumboJumbo', status: 'offline', lastSeen: '2 days ago' },
-  { username: 'DanTDM', status: 'offline', lastSeen: '3 days ago' },
-  { username: 'PopularMMOs', status: 'offline', lastSeen: '5 days ago' },
-  { username: 'CaptainSparklez', status: 'offline', lastSeen: '1 week ago' },
-  { username: 'AntVenom', status: 'offline', lastSeen: '1 week ago' },
-  { username: 'SethBling', status: 'offline', lastSeen: '2 weeks ago' },
-  { username: 'Stampylongnose', status: 'offline', lastSeen: '2 weeks ago' },
-  { username: 'iBallisticSquid', status: 'offline', lastSeen: '3 weeks ago' },
-  { username: 'Lachy', status: 'offline', lastSeen: '3 weeks ago' },
-  { username: 'PrestonPlayz', status: 'offline', lastSeen: '1 month ago' },
-  { username: 'Ssundee', status: 'offline', lastSeen: '1 month ago' },
-  { username: 'Unspeakable', status: 'offline', lastSeen: '1 month ago' },
-  { username: 'MrBeast', status: 'offline', lastSeen: '2 months ago' },
-  { username: 'BajanCanadian', status: 'offline', lastSeen: '2 months ago' },
-  { username: 'JeromeASF', status: 'offline', lastSeen: '3 months ago' },
-  { username: 'SkyDoesMinecraft', status: 'offline', lastSeen: '1 year ago' },
-  { username: 'Deadlox', status: 'offline', lastSeen: '1 year ago' }
+// Get standard storage key based on current logged in user
+const getStorageKey = () => {
+  const session = useAuthStore.getState().session;
+  const user = session ? session.name : 'default';
+  return `marinmc_friends_${user.toLowerCase()}`;
+};
+
+// Seed friends list to match MarinMC's mockup design
+const SEED_FRIENDS: Friend[] = [
+  { username: '172px', status: 'in-game', currentServer: 'Hypixel' },
+  { username: 'daaaavidds', status: 'idle', currentServer: 'Singleplayer' }, // We'll map status red/orange/purple dynamically in UI
+  { username: 'masaya46', status: 'in-game', currentServer: 'Private Server' },
+  { username: '3wafyy', status: 'in-launcher' },
+  { username: 'cuvsa', status: 'in-game', currentServer: 'Donut SMP' },
+  { username: 'zakhbear', status: 'idle', currentServer: 'In Menus' },
+  { username: 'KingofHalo04', status: 'idle' },
+  { username: 'meegreyone', status: 'idle' },
+  { username: 'XerzerBro', status: 'offline', lastSeen: 'Offline for 3 days' },
+  { username: '2fishbowl', status: 'offline', lastSeen: 'Offline for 21 hours' },
+  { username: 'wtfbroimlagging', status: 'offline', lastSeen: 'Offline for 30 days' },
+  { username: 'Director32', status: 'offline', lastSeen: 'Offline for 251 days' }
 ];
 
-export const useSocialStore = create<SocialState>((set) => ({
-  friends: INITIAL_MOCK_FRIENDS,
-  pendingRequests: 3,
-  setFriends: (friends) => set({ friends }),
-  addFriend: async (username) => {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    set((state) => {
-      if (state.friends.some((f) => f.username.toLowerCase() === username.toLowerCase())) {
-        return state;
+export const useSocialStore = create<SocialState>((set, get) => {
+  // Subscribe to auth session changes to reload correct friends list
+  useAuthStore.subscribe(() => {
+    // Reload social state when user logs in or out
+    get().initializeSocial();
+  });
+
+  return {
+    friends: [],
+    pendingRequests: 2,
+    pendingNames: ['KillaMc', 'GamerQueen'],
+
+    initializeSocial: () => {
+      const key = getStorageKey();
+      localStorage.setItem(key, JSON.stringify(SEED_FRIENDS));
+      set({ friends: SEED_FRIENDS });
+    },
+
+    addFriend: async (username) => {
+      const trimmed = username.trim();
+      if (!trimmed) return false;
+
+      // Don't add duplicate
+      const currentFriends = get().friends;
+      if (currentFriends.some(f => f.username.toLowerCase() === trimmed.toLowerCase())) {
+        return true;
       }
-      return {
-        friends: [
-          { username, status: 'offline', lastSeen: 'Just now' },
-          ...state.friends
-        ]
+
+      let officialName = trimmed;
+
+      if (window.electronAPI) {
+        // Validate with Mojang API via IPC
+        const valRes = await window.electronAPI.validateMojangUsername(trimmed);
+        if (!valRes.success || !valRes.name) {
+          return false; // Friend does not exist in Minecraft
+        }
+        officialName = valRes.name;
+      }
+
+      const newFriend: Friend = {
+        username: officialName,
+        status: 'offline',
+        lastSeen: 'Az önce eklendi'
       };
-    });
-    return true;
-  },
-  removeFriend: (username) =>
-    set((state) => ({
-      friends: state.friends.filter((f) => f.username !== username)
-    })),
-  setPendingRequests: (count) => set({ pendingRequests: count })
-}));
+
+      const updated = [newFriend, ...currentFriends];
+      set({ friends: updated });
+      localStorage.setItem(getStorageKey(), JSON.stringify(updated));
+      return true;
+    },
+
+    removeFriend: (username) => {
+      const filtered = get().friends.filter(f => f.username.toLowerCase() !== username.toLowerCase());
+      set({ friends: filtered });
+      localStorage.setItem(getStorageKey(), JSON.stringify(filtered));
+    },
+
+    setPendingRequests: (count) => set({ pendingRequests: count }),
+
+    acceptRequest: (username) => {
+      const currentFriends = get().friends;
+      const newFriend: Friend = {
+        username,
+        status: 'offline',
+        lastSeen: 'Az önce eklendi'
+      };
+      const updated = [newFriend, ...currentFriends];
+      set({
+        friends: updated,
+        pendingNames: get().pendingNames.filter(n => n !== username),
+        pendingRequests: Math.max(0, get().pendingRequests - 1)
+      });
+      localStorage.setItem(getStorageKey(), JSON.stringify(updated));
+    },
+
+    rejectRequest: (username) => {
+      set({
+        pendingNames: get().pendingNames.filter(n => n !== username),
+        pendingRequests: Math.max(0, get().pendingRequests - 1)
+      });
+    }
+  };
+});
+
+// Run initialization immediately on load
+useSocialStore.getState().initializeSocial();

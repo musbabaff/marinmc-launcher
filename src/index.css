@@ -3,19 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #0A0A0A;
+  --bg-primary: #060305;
   --bg-secondary: #111111;
   --bg-tertiary: #1A1A1A;
-  --bg-card: #141414;
-  --border-subtle: #1E1E1E;
+  --bg-card: rgba(17, 17, 17, 0.7);
+  --border-subtle: #222222;
   --border-default: #2A2A2A;
-  --accent-purple: #8B5CF6;
-  --accent-purple-hover: #7C3AED;
+  --accent-blue: #2D7DD2;
+  --accent-blue-hover: #4A9AE8;
   --accent-teal: #06B6D4;
   --accent-green: #10B981;
   --accent-red: #EF4444;
   --accent-amber: #F59E0B;
-  --text-primary: #FFFFFF;
+  --text-primary: #d2d2d2;
   --text-secondary: #A1A1AA;
   --text-muted: #52525B;
   --sidebar-width: 60px;
@@ -56,7 +56,7 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-purple);
+  background: var(--accent-blue);
 }
 
 /* Glassmorphism styling */
@@ -73,30 +73,64 @@
 }
 
 .glass-input:focus {
-  border-color: var(--accent-purple);
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 10px rgba(45, 125, 210, 0.15);
   outline: none;
 }
 
 /* Custom utilities */
-.shadow-glow-purple {
-  box-shadow: 0 0 15px rgba(139, 92, 246, 0.35);
+.shadow-glow-blue {
+  box-shadow: 0 0 15px rgba(45, 125, 210, 0.35);
 }
 
-.shadow-glow-purple-lg {
-  box-shadow: 0 0 25px rgba(139, 92, 246, 0.5);
+.shadow-glow-blue-lg {
+  box-shadow: 0 0 25px rgba(45, 125, 210, 0.5);
 }
 
 /* Pulsing Glowing Ring Animation for "PLAY" button */
 @keyframes glow-pulse {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 15px rgba(45, 125, 210, 0.4);
   }
   50% {
-    box-shadow: 0 0 25px rgba(139, 92, 246, 0.8);
+    box-shadow: 0 0 25px rgba(45, 125, 210, 0.8);
   }
 }
 
 .animate-glow-pulse {
   animation: glow-pulse 2s infinite ease-in-out;
+}
+
+.shadow-glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.35);
+}
+
+/* Writing mode for vertical text in friends panel toggle */
+.writing-mode-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Custom scrollbar class variant */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
+}
+
+/* Fade in animation */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }

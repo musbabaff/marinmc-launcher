@@ -41,15 +41,18 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 960,
     height: 600,
+    minWidth: 960,
+    minHeight: 600,
     frame: false,
-    resizable: false,
+    resizable: true,
     maximizable: false,
+    icon: path.join(__dirname, '../assets/icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
-    backgroundColor: '#0F111A',
+    backgroundColor: '#060305',
     show: false, // Don't show until ready
   });
 

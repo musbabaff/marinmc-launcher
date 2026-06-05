@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useAuthStore } from './authStore.ts';
 
 export interface ChatMessage {
   id: string;
@@ -31,47 +32,35 @@ export interface Conversation {
 interface ChatState {
   conversations: Conversation[];
   activeConversationId: string;
+  initializeChat: () => void;
   setActiveConversationId: (id: string) => void;
   sendMessage: (content: string, imageFile?: { url: string; name: string; size: string }) => void;
   addReaction: (messageId: string, emoji: string) => void;
   markAsRead: (conversationId: string) => void;
 }
 
-const MOCK_MESSAGES_1: ChatMessage[] = [
-  { id: 'm1_1', sender: 'Luser_29', content: 'Selam millet, MarinMC Towny girecek var mı?', timestamp: '20:15', isSelf: false },
-  { id: 'm1_2', sender: 'Self', content: 'Ben gelirim, 10 dakikaya bilgisayar başındayım.', timestamp: '20:17', isSelf: true },
-  { id: 'm1_3', sender: 'Luser_29', content: 'Harika! Şehrin yanına yeni tarla kurdum onu gösteririm.', timestamp: '20:18', isSelf: false },
-  { id: 'm1_4', sender: 'Luser_29', content: 'Şöyle bir görüntü çektim tarladan:', timestamp: '20:19', isSelf: false, image: { url: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=800&auto=format&fit=crop&q=60', name: 'towny_farm.png', size: '1.24 MB' } },
-  { id: 'm1_5', sender: 'Self', content: 'Bayağı iyi duruyor, eline sağlık!', timestamp: '20:21', isSelf: true, reactions: [{ emoji: '👍', count: 2, users: ['Luser_29', 'Self'] }] }
-];
+const getStorageKey = () => {
+  const session = useAuthStore.getState().session;
+  const user = session ? session.name : 'default';
+  return `marinmc_chat_${user.toLowerCase()}`;
+};
 
-const MOCK_MESSAGES_2: ChatMessage[] = [
-  { id: 'm2_1', sender: 'HypixelGod', content: 'MarinMC Survival sunucusu sıfırlandı mı?', timestamp: 'Dün 18:30', isSelf: false },
-  { id: 'm2_2', sender: 'Self', content: 'Evet, dün gece sıfırlandı. Yeni sezon başladı.', timestamp: 'Dün 18:32', isSelf: true },
-  { id: 'm2_3', sender: 'HypixelGod', content: 'Süper, o zaman klan kuralım hemen.', timestamp: 'Dün 18:35', isSelf: false },
-  { id: 'm2_4', sender: 'Self', content: 'Klan evinin yerini seçtiniz mi?', timestamp: 'Dün 18:36', isSelf: true },
-  { id: 'm2_5', sender: 'HypixelGod', content: 'Şurayı bulduk, koordinatlar resimde yazıyor:', timestamp: 'Dün 18:40', isSelf: false, image: { url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=60', name: 'survival_base_coords.png', size: '2.1 MB' } }
-];
-
-const MOCK_MESSAGES_3: ChatMessage[] = [
-  { id: 'm3_1', sender: 'Notch', content: 'Hello, what are you guys building today?', timestamp: 'Salı 14:10', isSelf: false },
-  { id: 'm3_2', sender: 'Dream', content: 'Working on a new speedrun seed!', timestamp: 'Salı 14:12', isSelf: false },
-  { id: 'm3_3', sender: 'Self', content: 'Just building a custom lobby for MarinMC.', timestamp: 'Salı 14:15', isSelf: true },
-  { id: 'm3_4', sender: 'Notch', content: 'Sounds great. Show me a preview.', timestamp: 'Salı 14:16', isSelf: false },
-  { id: 'm3_5', sender: 'Self', content: 'Here is the central dome mockup:', timestamp: 'Salı 14:20', isSelf: true, image: { url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=60', name: 'lobby_dome.png', size: '890 KB' } }
-];
-
-const MOCK_CONVERSATIONS: Conversation[] = [
-  // Pinned (3)
+// Seed initial conversations list
+const SEED_CONVERSATIONS: Conversation[] = [
   {
     id: 'c1',
     name: 'Towny Ekibi',
     type: 'group',
     avatar: 'https://minotar.net/avatar/steve/48',
     isPinned: true,
-    unreadCount: 2,
+    unreadCount: 1,
     lastMessageTime: '20:21',
-    messages: MOCK_MESSAGES_1
+    messages: [
+      { id: 'm1_1', sender: 'Luser_29', content: 'Selam millet, MarinMC Towny girecek var mı?', timestamp: '20:15', isSelf: false },
+      { id: 'm1_2', sender: 'Steve', content: 'Ben gelirim, 10 dakikaya bilgisayar başındayım.', timestamp: '20:17', isSelf: false },
+      { id: 'm1_3', sender: 'Luser_29', content: 'Harika! Şehrin yanına yeni tarla kurdum onu gösteririm.', timestamp: '20:18', isSelf: false },
+      { id: 'm1_4', sender: 'Luser_29', content: 'Şöyle bir görüntü çektim tarladan:', timestamp: '20:19', isSelf: false, image: { url: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=800&auto=format&fit=crop&q=60', name: 'towny_farm.png', size: '1.24 MB' } }
+    ]
   },
   {
     id: 'c2',
@@ -83,7 +72,11 @@ const MOCK_CONVERSATIONS: Conversation[] = [
     statusText: 'In-game: MarinMC Survival',
     unreadCount: 0,
     lastMessageTime: 'Dün 18:40',
-    messages: MOCK_MESSAGES_2
+    messages: [
+      { id: 'm2_1', sender: 'HypixelGod', content: 'MarinMC Survival sunucusu sıfırlandı mı?', timestamp: 'Dün 18:30', isSelf: false },
+      { id: 'm2_2', sender: 'Self', content: 'Evet, dün gece sıfırlandı. Yeni sezon başladı.', timestamp: 'Dün 18:32', isSelf: true },
+      { id: 'm2_3', sender: 'HypixelGod', content: 'Süper, o zaman klan kuralım hemen.', timestamp: 'Dün 18:35', isSelf: false }
+    ]
   },
   {
     id: 'c3',
@@ -92,131 +85,71 @@ const MOCK_CONVERSATIONS: Conversation[] = [
     avatar: 'https://minotar.net/avatar/Notch/48',
     isPinned: true,
     isOnline: true,
-    statusText: 'Idle',
+    statusText: 'Boşta',
     unreadCount: 0,
     lastMessageTime: 'Salı 14:20',
-    messages: MOCK_MESSAGES_3
-  },
-  // Groups (2)
-  {
-    id: 'c4',
-    name: 'DSMP Fan Club',
-    type: 'group',
-    avatar: 'https://minotar.net/avatar/Dream/48',
-    isPinned: false,
-    unreadCount: 5,
-    lastMessageTime: '19:12',
     messages: [
-      { id: 'm4_1', sender: 'Dream', content: 'New speedrun video tomorrow!', timestamp: '19:00', isSelf: false },
-      { id: 'm4_2', sender: 'Skeppy', content: 'Wait, did you beat the record?', timestamp: '19:05', isSelf: false },
-      { id: 'm4_3', sender: 'Technoblade', content: 'Technoblade never dies!', timestamp: '19:10', isSelf: false },
-      { id: 'm4_4', sender: 'Dream', content: 'Hahaha check out this thumbnail:', timestamp: '19:12', isSelf: false, image: { url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=60', name: 'speedrun_thumbnail.jpg', size: '1.4 MB' } }
-    ]
-  },
-  {
-    id: 'c5',
-    name: 'MarinMC Yetkililer',
-    type: 'group',
-    avatar: 'https://minotar.net/avatar/alex_mc/48',
-    isPinned: false,
-    unreadCount: 0,
-    lastMessageTime: 'Dün 23:45',
-    messages: [
-      { id: 'm5_1', sender: 'AdminAlex', content: 'Sunucu yedekleri başarıyla alındı.', timestamp: 'Dün 23:30', isSelf: false },
-      { id: 'm5_2', sender: 'Self', content: 'Eline sağlık. Hile koruması testleri bitti mi?', timestamp: 'Dün 23:35', isSelf: true },
-      { id: 'm5_3', sender: 'AdminAlex', content: 'Evet, stabil duruyor. Günlük rapor:', timestamp: 'Dün 23:45', isSelf: false, image: { url: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=800&auto=format&fit=crop&q=60', name: 'shield_report.png', size: '420 KB' } }
-    ]
-  },
-  // Direct Messages (5)
-  {
-    id: 'c6',
-    name: 'Dream',
-    type: 'dm',
-    avatar: 'https://minotar.net/avatar/Dream/48',
-    isPinned: false,
-    isOnline: true,
-    statusText: 'In Launcher',
-    unreadCount: 0,
-    lastMessageTime: 'Dün 15:30',
-    messages: [
-      { id: 'm6_1', sender: 'Dream', content: 'Hey, are you joining the server?', timestamp: 'Dün 15:20', isSelf: false },
-      { id: 'm6_2', sender: 'Self', content: 'Yeah, let me finish this build.', timestamp: 'Dün 15:22', isSelf: true },
-      { id: 'm6_3', sender: 'Dream', content: 'Alright, see you there.', timestamp: 'Dün 15:25', isSelf: false, reactions: [{ emoji: '⭐', count: 1, users: ['Self'] }] }
-    ]
-  },
-  {
-    id: 'c7',
-    name: 'alex_mc',
-    type: 'dm',
-    avatar: 'https://minotar.net/avatar/alex_mc/48',
-    isPinned: false,
-    isOnline: true,
-    statusText: 'In Launcher',
-    unreadCount: 0,
-    lastMessageTime: '2 gün önce',
-    messages: [
-      { id: 'm7_1', sender: 'alex_mc', content: 'Kozmetikler güncellendi mi?', timestamp: '2 gün önce', isSelf: false },
-      { id: 'm7_2', sender: 'Self', content: 'Evet, pelerinler eklendi.', timestamp: '2 gün önce', isSelf: true }
-    ]
-  },
-  {
-    id: 'c8',
-    name: 'LegoBuilder',
-    type: 'dm',
-    avatar: 'https://minotar.net/avatar/LegoBuilder/48',
-    isPinned: false,
-    isOnline: false,
-    unreadCount: 0,
-    lastMessageTime: '3 gün önce',
-    messages: [
-      { id: 'm8_1', sender: 'LegoBuilder', content: 'Creative tarlasına baksana bi ara.', timestamp: '3 gün önce', isSelf: false }
-    ]
-  },
-  {
-    id: 'c9',
-    name: 'Skeppy',
-    type: 'dm',
-    avatar: 'https://minotar.net/avatar/Skeppy/48',
-    isPinned: false,
-    isOnline: false,
-    unreadCount: 0,
-    lastMessageTime: '5 gün önce',
-    messages: [
-      { id: 'm9_1', sender: 'Skeppy', content: 'Minecraft but... videosu çekelim mi?', timestamp: '5 gün önce', isSelf: false }
-    ]
-  },
-  {
-    id: 'c10',
-    name: 'MumboJumbo',
-    type: 'dm',
-    avatar: 'https://minotar.net/avatar/MumboJumbo/48',
-    isPinned: false,
-    isOnline: false,
-    unreadCount: 0,
-    lastMessageTime: '1 hafta önce',
-    messages: [
-      { id: 'm10_1', sender: 'MumboJumbo', content: 'Redstone door is completed.', timestamp: '1 hafta önce', isSelf: false }
+      { id: 'm3_1', sender: 'Notch', content: 'Merhaba, bugün ne inşa ediyorsunuz?', timestamp: 'Salı 14:10', isSelf: false },
+      { id: 'm3_2', sender: 'Self', content: 'MarinMC için özel bir lobi inşa ediyoruz.', timestamp: 'Salı 14:15', isSelf: true }
     ]
   }
 ];
 
-export const useChatStore = create<ChatState>((set) => ({
-  conversations: MOCK_CONVERSATIONS,
-  activeConversationId: 'c1',
-  setActiveConversationId: (id) => {
-    set({ activeConversationId: id });
-    // Clear unread count
-    set((state) => ({
-      conversations: state.conversations.map((c) =>
-        c.id === id ? { ...c, unreadCount: 0 } : c
-      )
-    }));
-  },
-  sendMessage: (content, imageFile) => {
-    set((state) => {
-      const activeId = state.activeConversationId;
+const BOT_REPLIES: Record<string, string[]> = {
+  merhaba: ['Selam! Naber, MarinMC girecek misin?', 'Merhaba, madendeyim şu an, naber?', 'Selamlar! Lobiye gelsene takılalım.'],
+  selam: ['Selam! Sunucuda mısın?', 'Aleykum selam, naber?', 'Selam dostum, gelsene Towny sunucusuna.'],
+  towny: ['Ben de şu an Towny sunucusundayım, şehri büyütüyorum.', 'Towny sezonu aşırı iyi olmuş yalnız.', 'Gelsene tarlaları göstereyim sana.'],
+   survival: ['Survival sıfırlandı, klan kurduk çabuk gel!', 'Survivalda elmas buldum az önce.', 'Gelsene kasılalım beraber.'],
+  'ne haber': ['İyidir, sen ne yapıyorsun?', 'Güzel, MarinMC oynamaya hazırlanıyorum.', 'İyi valla, maden kazıyorum.'],
+  default: [
+    'Harika! Oyunda mısın şu an?',
+    'Tamamdır, lobide bekliyorum seni.',
+    'MarinMC sunucusu bugün bayağı kalabalık.',
+    'Ben de tam madene inecektim, gelsene.',
+    'Dediğin gibi, yama notları da gelmiş kontrol ettin mi?'
+  ]
+};
+
+export const useChatStore = create<ChatState>((set, get) => {
+  useAuthStore.subscribe(() => {
+    get().initializeChat();
+  });
+
+  return {
+    conversations: [],
+    activeConversationId: 'c1',
+
+    initializeChat: () => {
+      const key = getStorageKey();
+      const cached = localStorage.getItem(key);
+      if (cached) {
+        try {
+          set({ conversations: JSON.parse(cached) });
+        } catch {
+          set({ conversations: SEED_CONVERSATIONS });
+        }
+      } else {
+        localStorage.setItem(key, JSON.stringify(SEED_CONVERSATIONS));
+        set({ conversations: SEED_CONVERSATIONS });
+      }
+    },
+
+    setActiveConversationId: (id) => {
+      set({ activeConversationId: id });
+      set((state) => {
+        const updated = state.conversations.map((c) =>
+          c.id === id ? { ...c, unreadCount: 0 } : c
+        );
+        localStorage.setItem(getStorageKey(), JSON.stringify(updated));
+        return { conversations: updated };
+      });
+    },
+
+    sendMessage: (content, imageFile) => {
+      const activeId = get().activeConversationId;
       const now = new Date();
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      
       const newMsg: ChatMessage = {
         id: `msg_${Date.now()}`,
         sender: 'Self',
@@ -225,8 +158,9 @@ export const useChatStore = create<ChatState>((set) => ({
         isSelf: true,
         image: imageFile
       };
-      return {
-        conversations: state.conversations.map((c) => {
+
+      set((state) => {
+        const updated = state.conversations.map((c) => {
           if (c.id === activeId) {
             return {
               ...c,
@@ -235,15 +169,63 @@ export const useChatStore = create<ChatState>((set) => ({
             };
           }
           return c;
-        })
-      };
-    });
-  },
-  addReaction: (messageId, emoji) => {
-    set((state) => {
-      const activeId = state.activeConversationId;
-      return {
-        conversations: state.conversations.map((c) => {
+        });
+        localStorage.setItem(getStorageKey(), JSON.stringify(updated));
+        return { conversations: updated };
+      });
+
+      // Simulated Auto-Reply Chatbot
+      setTimeout(() => {
+        const activeConv = get().conversations.find((c) => c.id === activeId);
+        if (!activeConv) return;
+
+        // Choose reply based on keywords
+        const lowerMsg = content.toLowerCase();
+        let replyPool = BOT_REPLIES.default;
+        
+        if (lowerMsg.includes('selam')) replyPool = BOT_REPLIES.selam;
+        else if (lowerMsg.includes('merhaba')) replyPool = BOT_REPLIES.merhaba;
+        else if (lowerMsg.includes('towny')) replyPool = BOT_REPLIES.towny;
+        else if (lowerMsg.includes('survival')) replyPool = BOT_REPLIES.survival;
+        else if (lowerMsg.includes('naber') || lowerMsg.includes('ne haber')) replyPool = BOT_REPLIES.premium;
+
+        const randomReply = replyPool[Math.floor(Math.random() * replyPool.length)];
+        
+        // Choose simulated sender from conversation participants
+        const botName = activeConv.type === 'dm' ? activeConv.name : 'Steve';
+        const botTime = new Date();
+        const botTimeStr = `${String(botTime.getHours()).padStart(2, '0')}:${String(botTime.getMinutes()).padStart(2, '0')}`;
+
+        const botMsg: ChatMessage = {
+          id: `msg_bot_${Date.now()}`,
+          sender: botName,
+          content: randomReply,
+          timestamp: botTimeStr,
+          isSelf: false
+        };
+
+        set((state) => {
+          const updated = state.conversations.map((c) => {
+            if (c.id === activeId) {
+              return {
+                ...c,
+                lastMessageTime: botTimeStr,
+                unreadCount: c.id === state.activeConversationId ? 0 : c.unreadCount + 1,
+                messages: [...c.messages, botMsg]
+              };
+            }
+            return c;
+          });
+          localStorage.setItem(getStorageKey(), JSON.stringify(updated));
+          return { conversations: updated };
+        });
+      }, 1500);
+    },
+
+    addReaction: (messageId, emoji) => {
+      set((state) => {
+        const activeId = state.activeConversationId;
+        const updated = state.conversations.map((c) => {
           if (c.id === activeId) {
             return {
               ...c,
@@ -254,7 +236,6 @@ export const useChatStore = create<ChatState>((set) => ({
                   if (existingIdx > -1) {
                     const reaction = reactions[existingIdx];
                     if (reaction.users.includes('Self')) {
-                      // Remove reaction
                       const users = reaction.users.filter((u) => u !== 'Self');
                       if (users.length === 0) {
                         reactions.splice(existingIdx, 1);
@@ -262,7 +243,6 @@ export const useChatStore = create<ChatState>((set) => ({
                         reactions[existingIdx] = { ...reaction, count: reaction.count - 1, users };
                       }
                     } else {
-                      // Add reaction
                       reactions[existingIdx] = {
                         ...reaction,
                         count: reaction.count + 1,
@@ -270,7 +250,6 @@ export const useChatStore = create<ChatState>((set) => ({
                       };
                     }
                   } else {
-                    // Create new reaction
                     reactions.push({ emoji, count: 1, users: ['Self'] });
                   }
                   return { ...m, reactions };
@@ -280,15 +259,23 @@ export const useChatStore = create<ChatState>((set) => ({
             };
           }
           return c;
-        })
-      };
-    });
-  },
-  markAsRead: (conversationId) => {
-    set((state) => ({
-      conversations: state.conversations.map((c) =>
-        c.id === conversationId ? { ...c, unreadCount: 0 } : c
-      )
-    }));
-  }
-}));
+        });
+        localStorage.setItem(getStorageKey(), JSON.stringify(updated));
+        return { conversations: updated };
+      });
+    },
+
+    markAsRead: (conversationId) => {
+      set((state) => {
+        const updated = state.conversations.map((c) =>
+          c.id === conversationId ? { ...c, unreadCount: 0 } : c
+        );
+        localStorage.setItem(getStorageKey(), JSON.stringify(updated));
+        return { conversations: updated };
+      });
+    }
+  };
+});
+
+// Run initialization immediately on load
+useChatStore.getState().initializeChat();

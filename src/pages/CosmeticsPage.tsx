@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore.ts';
 import { motion } from 'framer-motion';
 import {
@@ -19,10 +20,10 @@ const CAPES = [
 ];
 
 const FAVORITE_SKINS = [
-  { name: 'Shadow Knight', daysAgo: '2 days ago', user: 'ShadowKnight' },
-  { name: 'Arctic Fox', daysAgo: '5 days ago', user: 'ArcticFox' },
-  { name: 'Cyber Ninja', daysAgo: '1 week ago', user: 'CyberNinja' },
-  { name: 'Crystal Mage', daysAgo: '2 weeks ago', user: 'CrystalMage' },
+  { name: 'Shadow Knight', timeKey: 'daysAgo', timeCount: 2, user: 'ShadowKnight' },
+  { name: 'Arctic Fox', timeKey: 'daysAgo', timeCount: 5, user: 'ArcticFox' },
+  { name: 'Cyber Ninja', timeKey: 'weeksAgo', timeCount: 1, user: 'CyberNinja' },
+  { name: 'Crystal Mage', timeKey: 'weeksAgo', timeCount: 2, user: 'CrystalMage' },
 ];
 
 const LATEST_SKINS = [
@@ -31,6 +32,7 @@ const LATEST_SKINS = [
 ];
 
 export default function CosmeticsPage() {
+  const { t } = useTranslation();
   const session = useAuthStore((s) => s.session);
   const username = session?.name || 'Steve';
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,14 +73,14 @@ export default function CosmeticsPage() {
     <div className="flex-1 flex flex-col p-6 overflow-y-auto no-drag custom-scrollbar bg-[#060305] text-[#d2d2d2] select-none h-full w-full space-y-5">
 
       {/* Title */}
-      <h1 className="text-sm font-extrabold tracking-widest text-white uppercase">LOCKER</h1>
+      <h1 className="text-sm font-extrabold tracking-widest text-white uppercase">{t('cosmetics.title')}</h1>
 
       {/* Top Section: Current Skin + Upload + Capes */}
       <div className="flex gap-4 items-stretch">
 
         {/* Current Skin Preview */}
         <div className="w-[220px] shrink-0">
-          <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest mb-2 block">CURRENT SKIN</span>
+          <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest mb-2 block">{t('cosmetics.currentSkin')}</span>
           <div className="relative bg-[#0a0a0a] border-2 border-[#2D7DD2]/40 rounded-2xl p-3 h-[280px] flex items-center justify-center overflow-hidden group">
             {/* Glowing border effect */}
             <div className="absolute inset-0 rounded-2xl shadow-[inset_0_0_30px_rgba(45,125,210,0.15)] pointer-events-none" />
@@ -120,7 +122,7 @@ export default function CosmeticsPage() {
 
         {/* Middle: Upload Skin */}
         <div className="w-[160px] shrink-0 flex flex-col">
-          <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest mb-2 block">UPLOAD SKIN</span>
+          <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest mb-2 block">{t('cosmetics.uploadSkin')}</span>
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
             onDragLeave={() => setIsDragOver(false)}
@@ -136,8 +138,8 @@ export default function CosmeticsPage() {
               <Plus className="w-5 h-5 text-white/40" />
             </div>
             <div className="text-center">
-              <p className="text-[9px] font-bold text-white/60">Drag & drop</p>
-              <p className="text-[8px] text-[#52525B] font-medium">file or browse</p>
+              <p className="text-[9px] font-bold text-white/60">{t('cosmetics.dragAndDrop')}</p>
+              <p className="text-[8px] text-[#52525B] font-medium">{t('cosmetics.fileOrBrowse')}</p>
             </div>
           </div>
           <input ref={fileInputRef} type="file" accept=".png" className="hidden" />
@@ -146,7 +148,7 @@ export default function CosmeticsPage() {
         {/* Right: Capes — Real cape images */}
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest">CAPES</span>
+            <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest">{t('cosmetics.capes')}</span>
             <div className="flex gap-1">
               <button
                 onClick={() => setCapeScroll(Math.max(0, capeScroll - 1))}
@@ -194,7 +196,7 @@ export default function CosmeticsPage() {
           {/* Cloud sync */}
           <div className="flex items-center gap-1.5 mt-3 text-[8px] text-[#52525B] font-medium">
             <Cloud className="w-3 h-3" />
-            <span>All cosmetics synced to MarinMC Cloud</span>
+            <span>{t('cosmetics.synced')}</span>
           </div>
         </div>
       </div>
@@ -203,7 +205,7 @@ export default function CosmeticsPage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest">FAVORITES</span>
+            <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest">{t('cosmetics.favorites')}</span>
             <div className="flex-1 h-px bg-white/[0.04]" />
           </div>
           <div className="flex gap-1">
@@ -244,7 +246,7 @@ export default function CosmeticsPage() {
               {/* Name + time */}
               <div className="text-center mt-1">
                 <p className="text-[10px] font-bold text-white leading-none">{skin.name}</p>
-                <p className="text-[8px] text-[#52525B] font-medium mt-0.5">{skin.daysAgo}</p>
+                <p className="text-[8px] text-[#52525B] font-medium mt-0.5">{t(`cosmetics.${skin.timeKey}`, { count: skin.timeCount })}</p>
               </div>
             </motion.div>
           ))}
@@ -253,7 +255,7 @@ export default function CosmeticsPage() {
 
       {/* Latest Section */}
       <div>
-        <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest mb-3 block">LATEST</span>
+        <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest mb-3 block">{t('cosmetics.latest')}</span>
         <div className="grid grid-cols-6 gap-2.5">
           {LATEST_SKINS.map((skin, idx) => (
             <motion.div

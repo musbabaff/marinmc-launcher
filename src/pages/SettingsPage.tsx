@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSettingsStore } from '../stores/settingsStore.ts';
+import { useTranslation } from 'react-i18next';
 import { HardDrive, Cpu, ShieldAlert, FolderOpen, Save, RefreshCcw, Check, Terminal, Languages } from 'lucide-react';
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const settings = useSettingsStore();
 
   const [ramValue, setRamValue] = useState(settings.ram);
@@ -47,8 +49,8 @@ export default function SettingsPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-bold tracking-tight">Launcher Ayarları</h2>
-            <p className="text-xs text-brand-textMuted mt-0.5">Sistem ve Minecraft çalıştırma ayarlarını yapılandırın</p>
+            <h2 className="text-xl font-bold tracking-tight">{t('settings.titleLauncher')}</h2>
+            <p className="text-xs text-brand-textMuted mt-0.5">{t('settings.subtitleLauncher')}</p>
           </div>
 
           <div className="flex items-center space-x-2 no-drag">
@@ -57,7 +59,7 @@ export default function SettingsPage() {
               className="px-3 py-2 text-xs font-semibold rounded-xl bg-[#131622] hover:bg-brand-cardHover border border-white/5 text-brand-textMuted hover:text-brand-text flex items-center space-x-1.5 transition-colors"
             >
               <RefreshCcw className="w-3.5 h-3.5" />
-              <span>Sıfırla</span>
+              <span>{t('settings.resetBtn')}</span>
             </button>
             
             <button
@@ -67,12 +69,12 @@ export default function SettingsPage() {
               {saveSuccess ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-green-200" />
-                  <span className="text-green-200">Kaydedildi</span>
+                  <span className="text-green-200">{t('settings.saved')}</span>
                 </>
               ) : (
                 <>
                   <Save className="w-3.5 h-3.5" />
-                  <span>Kaydet</span>
+                  <span>{t('settings.save')}</span>
                 </>
               )}
             </button>
@@ -88,7 +90,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider">
                   <Cpu className="w-4 h-4 text-brand-accent" />
-                  <span>Bellek (RAM) Ataması</span>
+                  <span>{t('settings.ramLabel')}</span>
                 </div>
                 <span className="text-xs font-extrabold text-brand-accent bg-brand-accentLight px-2 py-0.5 rounded-lg border border-brand-accent/20">
                   {getRamInGb(ramValue)} GB / {getRamInGb(settings.totalSystemRAM)} GB
@@ -106,9 +108,9 @@ export default function SettingsPage() {
                   className="w-full h-1.5 bg-[#131622] rounded-lg appearance-none cursor-pointer accent-brand-accent border border-white/5"
                 />
                 <div className="flex justify-between text-[9px] text-brand-textMuted font-semibold px-0.5">
-                  <span>En az (1.0 GB)</span>
-                  <span>Önerilen (4.0 GB)</span>
-                  <span>Maksimum ({getRamInGb(settings.totalSystemRAM)} GB)</span>
+                  <span>{t('settings.ramMinLabel')}</span>
+                  <span>{t('settings.ramRecLabel')}</span>
+                  <span>{t('settings.ramMaxLabel')} ({getRamInGb(settings.totalSystemRAM)} GB)</span>
                 </div>
               </div>
 
@@ -116,7 +118,7 @@ export default function SettingsPage() {
                 <div className="p-3 bg-brand-gold/10 border border-brand-gold/20 rounded-xl flex items-start space-x-2 text-brand-gold text-[10px]">
                   <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>
-                    Fiziksel belleğinizin %75'inden fazlasını atadınız. Bu durum işletim sisteminizde yavaşlamalara neden olabilir.
+                    {t('settings.ramWarning')}
                   </span>
                 </div>
               )}
@@ -126,17 +128,17 @@ export default function SettingsPage() {
             <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
               <label className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider">
                 <FolderOpen className="w-4 h-4 text-brand-accent" />
-                <span>Java Çalıştırma Dosyası</span>
+                <span>{t('settings.javaPathLabel')}</span>
               </label>
               <input
                 type="text"
                 value={javaPathVal}
                 onChange={(e) => setJavaPathVal(e.target.value)}
-                placeholder="Örn: C:\Program Files\Java\jdk-17\bin\java.exe"
+                placeholder={t('settings.javaPathPlaceholder')}
                 className="w-full px-4 py-3 rounded-xl glass-input text-xs font-semibold text-white placeholder-white/20"
               />
               <span className="text-[10px] text-brand-textMuted block leading-relaxed px-0.5">
-                Varsayılan ayar, sisteminizde kurulu olan uyumlu sürümü otomatik seçecektir.
+                {t('settings.javaPathDesc')}
               </span>
             </div>
           </div>
@@ -147,17 +149,17 @@ export default function SettingsPage() {
             <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
               <label className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider">
                 <Terminal className="w-4 h-4 text-brand-accent" />
-                <span>JVM Argümanları (Parametreler)</span>
+                <span>{t('settings.jvmArgs')}</span>
               </label>
               <textarea
                 value={jvmArgsVal}
                 onChange={(e) => setJvmArgsVal(e.target.value)}
                 rows={3}
-                placeholder="Java sanal makine parametreleri..."
+                placeholder={t('settings.jvmArgsPlaceholder')}
                 className="w-full px-4 py-3 rounded-xl glass-input text-xs font-semibold text-white placeholder-white/20 resize-none font-mono leading-relaxed"
               />
               <span className="text-[10px] text-brand-textMuted block leading-relaxed px-0.5">
-                İleri düzey Java optimizasyon kodları. Hatalı parametreler oyunun açılmasını engelleyebilir.
+                {t('settings.jvmArgsDescLong')}
               </span>
             </div>
 
@@ -165,17 +167,17 @@ export default function SettingsPage() {
             <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
               <label className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider">
                 <HardDrive className="w-4 h-4 text-brand-accent" />
-                <span>Oyun Dizini (Kurulum Yolu)</span>
+                <span>{t('settings.gameDirLabel')}</span>
               </label>
               <input
                 type="text"
                 value={launcherDirVal}
                 onChange={(e) => setLauncherDirVal(e.target.value)}
-                placeholder="Örn: C:\Users\Kullanıcı\AppData\Roaming\.marinmc"
+                placeholder={t('settings.gameDirPlaceholder')}
                 className="w-full px-4 py-3 rounded-xl glass-input text-xs font-semibold text-white placeholder-white/20"
               />
               <span className="text-[10px] text-brand-textMuted block leading-relaxed px-0.5">
-                Mod paketleri, haritalar ve kaynak paketleri bu dizine indirilecektir.
+                {t('settings.gameDirDesc')}
               </span>
             </div>
           </div>
@@ -186,7 +188,7 @@ export default function SettingsPage() {
           <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
             <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider">
               <Languages className="w-4 h-4 text-brand-accent" />
-              <span>Dil / Language</span>
+              <span>{t('settings.langSelector')}</span>
             </div>
             <div className="flex gap-3">
               {[
@@ -210,7 +212,7 @@ export default function SettingsPage() {
                       settings.language === lang.code ? 'text-white' : 'text-[#A1A1AA]'
                     }`}>{lang.label}</span>
                     <span className="text-[9px] text-[#52525B] font-medium">
-                      {lang.code === 'tr' ? 'Arayüz dili' : 'Interface language'}
+                      {t('settings.langSubtitle')}
                     </span>
                   </div>
                   {settings.language === lang.code && (
@@ -225,7 +227,7 @@ export default function SettingsPage() {
 
       {/* Footer Branding banner */}
       <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[10px] text-brand-textMuted">
-        <span>Sistem İşletim Sistemi: <strong className="text-brand-text">{settings.osName}</strong></span>
+        <span>{t('settings.osLabel')} <strong className="text-brand-text">{settings.osName}</strong></span>
         <span>MarinMC Minecraft Network © 2026</span>
       </div>
     </div>

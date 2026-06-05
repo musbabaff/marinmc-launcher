@@ -5,8 +5,8 @@ let splashWindow: BrowserWindow | null = null;
 
 export function createSplash(): BrowserWindow {
   splashWindow = new BrowserWindow({
-    width: 400,
-    height: 300,
+    width: 440,
+    height: 340,
     frame: false,
     transparent: true,
     resizable: false,

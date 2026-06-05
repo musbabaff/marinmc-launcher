@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import {
   Search, Upload, Save, Cloud, Grid3X3, List, AlignJustify,
@@ -21,6 +22,7 @@ const PLAYERS = ['dbrn', 'cuvsa', '172px', 'masaya46', '3wafyy', 'daaaavidds'];
 const SERVERS = ['Donut SMP', 'MarinMC Towny', 'MarinMC Survival', 'MarinMC Creative', 'Hypixel'];
 
 export default function GalleryPage() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'detailed'>('grid');
   const [sortMode, setSortMode] = useState<'newest' | 'oldest' | 'size'>('newest');
@@ -50,14 +52,14 @@ export default function GalleryPage() {
         {/* Top bar */}
         <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
-            <h1 className="text-sm font-extrabold tracking-widest text-white uppercase">GALLERY</h1>
+            <h1 className="text-sm font-extrabold tracking-widest text-white uppercase">{t('gallery.title')}</h1>
             <div className="flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-xl px-3 py-2 w-[200px]">
               <Search className="w-3.5 h-3.5 text-[#52525B]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search screenshots..."
+                placeholder={t('gallery.searchPlaceholder')}
                 className="bg-transparent border-none outline-none text-[10px] text-white placeholder-white/20 w-full font-medium"
               />
             </div>
@@ -65,7 +67,7 @@ export default function GalleryPage() {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-[8px] text-[#52525B] font-medium">
               <Cloud className="w-3 h-3" />
-              <span>All media synced to MarinMC Cloud</span>
+              <span>{t('gallery.synced')}</span>
             </div>
             <button className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/50 hover:text-white transition-all">
               <Upload className="w-3.5 h-3.5" />
@@ -128,7 +130,7 @@ export default function GalleryPage() {
           {filtered.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Search className="w-8 h-8 text-[#52525B] mb-2" />
-              <p className="text-[11px] text-[#52525B] font-bold">No screenshots found</p>
+              <p className="text-[11px] text-[#52525B] font-bold">{t('gallery.noScreenshots')}</p>
             </div>
           )}
         </div>
@@ -139,7 +141,7 @@ export default function GalleryPage() {
 
         {/* View */}
         <div>
-          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">View</span>
+          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">{t('gallery.view')}</span>
           <div className="flex gap-1.5">
             {[
               { mode: 'grid' as const, icon: Grid3X3 },
@@ -163,7 +165,7 @@ export default function GalleryPage() {
 
         {/* Sorting */}
         <div>
-          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">Sorting</span>
+          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">{t('gallery.sorting')}</span>
           <div className="flex flex-col gap-1">
             {['newest', 'oldest', 'size'].map((mode) => (
               <button
@@ -176,7 +178,7 @@ export default function GalleryPage() {
                 }`}
               >
                 <ArrowUpDown className="w-3 h-3" />
-                {mode}
+                {t(`gallery.${mode}`)}
               </button>
             ))}
           </div>
@@ -186,7 +188,7 @@ export default function GalleryPage() {
         <div>
           <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">
             <User className="w-3 h-3 inline mr-1" />
-            Filter by Player
+            {t('gallery.filterByPlayer')}
           </span>
           <div className="flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-lg px-2.5 py-1.5 mb-2">
             <Search className="w-3 h-3 text-[#52525B]" />
@@ -194,7 +196,7 @@ export default function GalleryPage() {
               type="text"
               value={playerSearch}
               onChange={(e) => setPlayerSearch(e.target.value)}
-              placeholder="Search player..."
+              placeholder={t('gallery.searchPlayerPlaceholder')}
               className="bg-transparent border-none outline-none text-[9px] text-white placeholder-white/20 w-full"
             />
           </div>
@@ -217,7 +219,7 @@ export default function GalleryPage() {
           </div>
           {filterPlayer && (
             <button onClick={() => setFilterPlayer(null)} className="text-[8px] text-[#2D7DD2] font-bold mt-1 hover:underline">
-              Clear filter
+              {t('gallery.clearFilter')}
             </button>
           )}
         </div>
@@ -226,7 +228,7 @@ export default function GalleryPage() {
         <div>
           <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">
             <Server className="w-3 h-3 inline mr-1" />
-            Filter by Server
+            {t('gallery.filterByServer')}
           </span>
           <div className="flex flex-col gap-1">
             {SERVERS.map(s => (
@@ -252,14 +254,14 @@ export default function GalleryPage() {
             className="flex items-center gap-1.5 text-[9px] font-black text-[#52525B] uppercase tracking-widest mb-2"
           >
             <Calendar className="w-3 h-3" />
-            <span>Filter by Date</span>
+            <span>{t('gallery.filterByDate')}</span>
             <ChevronDown className={`w-2.5 h-2.5 transition-transform ${showCalendar ? 'rotate-180' : ''}`} />
           </button>
           {showCalendar && (
             <div className="bg-[#111111] border border-white/[0.06] rounded-xl p-3">
-              <div className="text-center text-[10px] font-bold text-white mb-2">June 2026</div>
+              <div className="text-center text-[10px] font-bold text-white mb-2">{t('gallery.monthYear')}</div>
               <div className="grid grid-cols-7 gap-0.5 text-center">
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                {t('gallery.weekdays').split(',').map((d, i) => (
                   <span key={i} className="text-[8px] text-[#52525B] font-bold py-1">{d}</span>
                 ))}
                 {Array.from({ length: 30 }, (_, i) => (

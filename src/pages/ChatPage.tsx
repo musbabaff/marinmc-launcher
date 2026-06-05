@@ -78,7 +78,7 @@ export default function ChatPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search messages..."
+              placeholder="Mesaj ara..."
               className="bg-transparent border-none outline-none text-[10px] text-white placeholder-white/20 w-full font-medium"
             />
           </div>
@@ -177,7 +177,7 @@ export default function ChatPage() {
                   <h3 className="text-[11px] font-bold text-white">{activeContact.name}</h3>
                   <span className="text-[8px] text-[#259457] font-medium flex items-center gap-1">
                     <span className="w-1.5 h-1.5 bg-[#259457] rounded-full" />
-                    Online
+                    Çevrimiçi
                   </span>
                 </div>
               </div>
@@ -230,7 +230,7 @@ export default function ChatPage() {
                     <div key={i} className="w-1.5 h-1.5 bg-[#52525B] rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                   ))}
                 </div>
-                <span className="text-[8px] text-[#52525B] font-medium">typing...</span>
+                <span className="text-[8px] text-[#52525B] font-medium">yazıyor...</span>
               </div>
             )}
 
@@ -242,7 +242,7 @@ export default function ChatPage() {
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder={`Type Message to ${activeContact.name}...`}
+                  placeholder={`${activeContact.name} kişisine mesaj yaz...`}
                   className="bg-transparent border-none outline-none text-[11px] text-white placeholder-white/20 w-full font-medium"
                 />
                 <div className="flex items-center gap-1">

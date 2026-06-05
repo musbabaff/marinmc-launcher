@@ -2,10 +2,39 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MarinMC Launcher</title>
+  <title>MarinMC</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes spinReverse {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(-360deg); }
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.08); }
+    }
+
+    @keyframes progressGlow {
+      0%, 100% { box-shadow: 0 0 8px rgba(45, 125, 210, 0.4); }
+      50% { box-shadow: 0 0 16px rgba(45, 125, 210, 0.7); }
+    }
+
+    @keyframes titleReveal {
+      from { opacity: 0; letter-spacing: 0.35em; }
+      to { opacity: 1; letter-spacing: 0.22em; }
+    }
 
     body {
       background: transparent;
@@ -19,292 +48,212 @@
       user-select: none;
     }
 
-    .splash-container {
+    .splash {
       width: 420px;
-      height: 300px;
-      background: radial-gradient(ellipse at 30% 20%, #0a1628 0%, #060305 60%, #050207 100%);
-      border-radius: 24px;
-      border: 1px solid rgba(45, 125, 210, 0.15);
+      height: 320px;
+      background: #060a12;
+      border-radius: 22px;
+      border: 1px solid rgba(45, 125, 210, 0.12);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 18px;
-      box-shadow:
-        0 30px 70px rgba(0, 0, 0, 0.95),
-        0 0 80px rgba(45, 125, 210, 0.08),
-        inset 0 1px 1px rgba(255, 255, 255, 0.04);
       position: relative;
       overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255,255,255,0.02) inset;
     }
 
-    /* Subtle ocean wave glow */
-    .glow-wave {
+    /* Ambient background glow */
+    .bg-glow {
       position: absolute;
-      bottom: -60%;
-      left: -20%;
-      width: 140%;
-      height: 200px;
-      background: radial-gradient(ellipse, rgba(45, 125, 210, 0.12) 0%, transparent 65%);
-      filter: blur(40px);
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(45, 125, 210, 0.07) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       pointer-events: none;
-      animation: wave-drift 8s infinite alternate ease-in-out;
+      animation: breathe 5s ease-in-out infinite;
     }
 
-    .glow-top {
-      position: absolute;
-      top: -40%;
-      right: -10%;
-      width: 200px;
-      height: 200px;
-      background: radial-gradient(circle, rgba(45, 125, 210, 0.08) 0%, transparent 70%);
-      filter: blur(50px);
-      pointer-events: none;
-      animation: wave-drift-2 10s infinite alternate ease-in-out;
-    }
-
-    @keyframes wave-drift {
-      0% { transform: translateX(0) scale(1); opacity: 0.6; }
-      100% { transform: translateX(30px) scale(1.1); opacity: 1; }
-    }
-
-    @keyframes wave-drift-2 {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(-20px, 15px) scale(1.15); }
-    }
-
-    /* Logo container with clean ring */
-    .logo-container {
+    /* Logo area */
+    .logo-area {
       position: relative;
       width: 100px;
       height: 100px;
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 5;
+      margin-bottom: 20px;
+      z-index: 2;
     }
 
-    .ring {
+    .ring-1 {
       position: absolute;
       width: 100px;
       height: 100px;
-      border: 1.5px solid rgba(45, 125, 210, 0.15);
+      border-radius: 50%;
+      border: 1.5px solid transparent;
       border-top-color: rgba(45, 125, 210, 0.5);
-      border-radius: 50%;
-      animation: rotate-ring 3s linear infinite;
+      border-right-color: rgba(45, 125, 210, 0.15);
+      animation: spin 2.5s linear infinite;
     }
 
-    .ring-inner {
+    .ring-2 {
       position: absolute;
-      width: 82px;
-      height: 82px;
-      border: 1px solid rgba(45, 125, 210, 0.08);
-      border-bottom-color: rgba(74, 154, 232, 0.35);
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
-      animation: rotate-ring 4s linear infinite reverse;
+      border: 1px solid transparent;
+      border-bottom-color: rgba(74, 154, 232, 0.35);
+      border-left-color: rgba(74, 154, 232, 0.1);
+      animation: spinReverse 3.5s linear infinite;
     }
 
-    @keyframes rotate-ring {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .logo-m {
-      position: relative;
-      z-index: 10;
-      animation: logo-breathe 3s ease-in-out infinite;
-    }
-
-    .logo-m svg {
-      width: 44px;
-      height: 44px;
-    }
-
-    @keyframes logo-breathe {
-      0%, 100% {
-        filter: drop-shadow(0 0 12px rgba(45, 125, 210, 0.4));
-        transform: scale(1);
-      }
-      50% {
-        filter: drop-shadow(0 0 22px rgba(45, 125, 210, 0.6));
-        transform: scale(1.03);
-      }
+    /* M Letter */
+    .m-logo {
+      z-index: 3;
+      font-size: 36px;
+      font-weight: 900;
+      color: #2D7DD2;
+      text-shadow: 0 0 20px rgba(45, 125, 210, 0.4), 0 0 40px rgba(45, 125, 210, 0.15);
+      line-height: 1;
     }
 
     /* Brand text */
-    .brand-section {
+    .brand {
       text-align: center;
-      z-index: 5;
+      z-index: 2;
+      margin-bottom: 24px;
     }
 
     .brand-title {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 900;
-      letter-spacing: 0.2em;
       color: #ffffff;
       text-transform: uppercase;
+      letter-spacing: 0.22em;
       opacity: 0;
-      animation: title-in 0.8s forwards ease-out 0.3s;
+      animation: titleReveal 0.8s ease-out 0.2s forwards;
     }
 
-    .brand-subtitle {
-      font-size: 9px;
-      color: rgba(45, 125, 210, 0.7);
-      font-weight: 700;
-      letter-spacing: 0.3em;
-      text-transform: uppercase;
-      margin-top: 4px;
-      opacity: 0;
-      animation: fade-in-up 0.8s forwards ease-out 0.6s;
-    }
-
-    @keyframes title-in {
-      0% { opacity: 0; letter-spacing: 0.35em; transform: scale(0.96); }
-      100% { opacity: 1; letter-spacing: 0.2em; transform: scale(1); }
-    }
-
-    @keyframes fade-in-up {
-      0% { opacity: 0; transform: translateY(6px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Loading bar */
-    .loading-section {
-      width: 220px;
-      text-align: center;
-      z-index: 5;
-      margin-top: 2px;
-    }
-
-    .status-text {
+    .brand-sub {
       font-size: 8px;
-      color: rgba(255, 255, 255, 0.3);
       font-weight: 700;
-      margin-bottom: 6px;
-      letter-spacing: 0.1em;
+      color: rgba(45, 125, 210, 0.6);
       text-transform: uppercase;
+      letter-spacing: 0.35em;
+      margin-top: 5px;
+      opacity: 0;
+      animation: fadeIn 0.6s ease-out 0.5s forwards;
+    }
+
+    /* Loading section */
+    .loading {
+      width: 200px;
+      z-index: 2;
+      text-align: center;
+    }
+
+    .status {
+      font-size: 8px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.25);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
       min-height: 12px;
       transition: color 0.3s;
     }
 
-    .progress-container {
+    .bar-track {
       width: 100%;
       height: 3px;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 3px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.02);
     }
 
-    .progress-bar {
+    .bar-fill {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, #1a5fa8 0%, #2D7DD2 40%, #4A9AE8 100%);
-      border-radius: 4px;
-      box-shadow: 0 0 10px rgba(45, 125, 210, 0.5);
+      background: linear-gradient(90deg, #1a5fa8, #2D7DD2, #4A9AE8);
+      border-radius: 3px;
       transition: width 0.1s ease-out;
+      animation: progressGlow 2s ease-in-out infinite;
     }
 
-    .version-badge {
+    .version {
       position: absolute;
-      bottom: 12px;
-      right: 16px;
+      bottom: 10px;
+      right: 14px;
       font-size: 8px;
-      color: rgba(45, 125, 210, 0.3);
-      font-weight: 800;
-      z-index: 5;
-      letter-spacing: 0.05em;
+      font-weight: 700;
+      color: rgba(45, 125, 210, 0.25);
+      z-index: 2;
     }
   </style>
 </head>
 <body>
-  <div class="splash-container">
-    <div class="glow-wave"></div>
-    <div class="glow-top"></div>
+  <div class="splash">
+    <div class="bg-glow"></div>
 
-    <div class="logo-container">
-      <div class="ring"></div>
-      <div class="ring-inner"></div>
-      <div class="logo-m">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="mGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#4A9AE8" />
-              <stop offset="100%" stop-color="#2D7DD2" />
-            </linearGradient>
-          </defs>
-          <path d="M2 20V4h3.5l4.5 8 4.5-8H18v16h-3V9l-3.5 6h-3L5 9v11H2z" fill="url(#mGrad)" />
-        </svg>
-      </div>
+    <div class="logo-area">
+      <div class="ring-1"></div>
+      <div class="ring-2"></div>
+      <div class="m-logo">M</div>
     </div>
 
-    <div class="brand-section">
+    <div class="brand">
       <div class="brand-title">MarinMC</div>
-      <div class="brand-subtitle">Minecraft Launcher</div>
+      <div class="brand-sub">Minecraft Launcher</div>
     </div>
 
-    <div class="loading-section">
-      <div class="status-text" id="statusText">Başlatılıyor...</div>
-      <div class="progress-container">
-        <div class="progress-bar" id="progressBar"></div>
+    <div class="loading">
+      <div class="status" id="st">Başlatılıyor...</div>
+      <div class="bar-track">
+        <div class="bar-fill" id="bar"></div>
       </div>
     </div>
 
-    <div class="version-badge">v0.9.2</div>
+    <div class="version">v0.9.2</div>
   </div>
 
   <script>
-    const bar = document.getElementById('progressBar');
-    const statusText = document.getElementById('statusText');
-    
-    let progress = 0;
+    const bar = document.getElementById('bar');
+    const st = document.getElementById('st');
+    let p = 0;
     const stages = [
-      { at: 0, text: 'Başlatıcı yapılandırılıyor...' },
-      { at: 15, text: 'Dosya kontrol sistemleri...' },
-      { at: 35, text: 'Modüller yükleniyor...' },
-      { at: 55, text: 'Arayüz hazırlanıyor...' },
-      { at: 75, text: 'MarinMC sunucusuna bağlanılıyor...' },
-      { at: 92, text: 'Neredeyse hazır...' },
+      { at: 0, t: 'Başlatıcı yapılandırılıyor...' },
+      { at: 15, t: 'Dosyalar kontrol ediliyor...' },
+      { at: 35, t: 'Modüller yükleniyor...' },
+      { at: 55, t: 'Arayüz hazırlanıyor...' },
+      { at: 75, t: 'Sunucuya bağlanılıyor...' },
+      { at: 92, t: 'Neredeyse hazır...' },
     ];
-
-    function updateProgress() {
-      let delta = 0;
-      if (progress < 25) {
-        delta = Math.random() * 2.5 + 1.2;
-      } else if (progress >= 25 && progress < 45) {
-        delta = Math.random() * 1.5 + 0.6;
-      } else if (progress >= 45 && progress < 75) {
-        delta = Math.random() * 3.5 + 1.5;
-      } else if (progress >= 75 && progress < 92) {
-        delta = Math.random() * 0.8 + 0.3;
-      } else {
-        delta = Math.random() * 2.0 + 0.8;
-      }
-
-      progress += delta;
-      
-      if (progress >= 100) {
-        progress = 100;
+    function tick() {
+      let d;
+      if (p < 25) d = Math.random() * 2.5 + 1.2;
+      else if (p < 45) d = Math.random() * 1.5 + 0.6;
+      else if (p < 75) d = Math.random() * 3.5 + 1.5;
+      else if (p < 92) d = Math.random() * 0.8 + 0.3;
+      else d = Math.random() * 2 + 0.8;
+      p += d;
+      if (p >= 100) {
+        p = 100;
         bar.style.width = '100%';
-        statusText.textContent = 'Hazır!';
-        statusText.style.color = '#2D7DD2';
+        st.textContent = 'Hazır!';
+        st.style.color = '#2D7DD2';
         return;
       }
-
-      bar.style.width = progress + '%';
-
-      let currentText = stages[0].text;
-      for (const stage of stages) {
-        if (progress >= stage.at) {
-          currentText = stage.text;
-        }
-      }
-      statusText.textContent = currentText;
-
-      setTimeout(updateProgress, Math.random() * 40 + 20);
+      bar.style.width = p + '%';
+      let txt = stages[0].t;
+      for (const s of stages) { if (p >= s.at) txt = s.t; }
+      st.textContent = txt;
+      setTimeout(tick, Math.random() * 40 + 20);
     }
-
-    setTimeout(updateProgress, 100);
+    setTimeout(tick, 100);
   </script>
 </body>
 </html>

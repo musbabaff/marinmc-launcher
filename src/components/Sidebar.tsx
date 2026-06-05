@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore.ts';
+import MarinLogo from './MarinLogo.tsx';
 import {
   Home, User, Bell, MessageSquare, Layers,
   Globe, Image, ShoppingCart, Settings, X, ShoppingBag, Package
@@ -53,10 +54,7 @@ export default function Sidebar() {
         {/* Brand Logo "M" */}
         <div className="flex flex-col space-y-4 w-full items-center">
           <div className="w-9 h-9 flex items-center justify-center text-white mb-1 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/home')}>
-            {/* Custom Stylized MarinMC M Logo */}
-            <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current">
-              <path d="M2 20V4h3.5l4.5 8 4.5-8H18v16h-3V9l-3.5 6h-3L5 9v11H2z" />
-            </svg>
+            <MarinLogo glyphOnly size={24} />
           </div>
 
           {/* Divider 1 */}

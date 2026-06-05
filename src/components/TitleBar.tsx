@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAppStore } from '../stores/appStore.ts';
 import { Minus, Square, X } from 'lucide-react';
 import { api } from '../lib/api.ts';
+import MarinLogo from './MarinLogo.tsx';
 
 export default function TitleBar() {
   const isOnline = useAppStore((state) => state.isOnline);
@@ -19,13 +20,14 @@ export default function TitleBar() {
           setOnlineCount(res.total);
         }
       });
-    }, 45000);
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const handleMinimize = () => {
     if (window.electronAPI) window.electronAPI.minimize();
   };
+
 
   const handleClose = () => {
     if (window.electronAPI) window.electronAPI.close();
@@ -35,9 +37,7 @@ export default function TitleBar() {
     <div className="h-[40px] w-full drag-region bg-[#060305] flex items-center justify-between px-6 select-none text-[11px] text-[#A1A1AA] font-semibold z-50 shrink-0">
       {/* Brand */}
       <div className="flex items-center space-x-3 text-[10px] tracking-wide font-normal">
-        <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M2 20V4h3.5l4.5 8 4.5-8H18v16h-3V9l-3.5 6h-3L5 9v11H2z" />
-        </svg>
+        <MarinLogo glyphOnly size={14} className="text-white" />
         <span className="text-white hover:text-white/80 transition-colors">MarinMC Client</span>
         <span className="text-[#333]">Build 0.9.2</span>
         <div className="flex items-center space-x-1.5">

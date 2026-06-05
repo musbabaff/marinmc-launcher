@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore.ts';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import MarinLogo from '../components/MarinLogo.tsx';
 
 import loginBg from '../../assets/login-bg.png';
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const [showOfflineForm, setShowOfflineForm] = useState(false);
   const [username, setUsername] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -27,7 +30,7 @@ export default function LoginPage() {
     try {
       await loginWithMicrosoft();
     } catch (err: any) {
-      setLocalError(err.message || 'Microsoft ile giriş yapılamadı.');
+      setLocalError(err.message || t('login.microsoftError'));
     }
   };
 
@@ -36,7 +39,7 @@ export default function LoginPage() {
     clearError();
     setLocalError(null);
     if (username.trim().length < 3) {
-      setLocalError('Kullanıcı adı en az 3 karakter olmalıdır.');
+      setLocalError(t('login.validationError'));
       return;
     }
     await loginWithCracked(username.trim());
@@ -59,9 +62,7 @@ export default function LoginPage() {
 
         {/* Top-left branding */}
         <div className="self-start flex items-center gap-2 text-[11px] text-[#52525B] font-medium">
-          <svg className="w-3.5 h-3.5 text-white/60" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2 20V4h3.5l4.5 8 4.5-8H18v16h-3V9l-3.5 6h-3L5 9v11H2z" />
-          </svg>
+          <MarinLogo glyphOnly size={14} className="text-white/60" />
           <span className="text-white/60">MarinMC Client</span>
           <span className="text-white/20">|</span>
           <span>Build 0.9.2</span>
@@ -69,16 +70,14 @@ export default function LoginPage() {
 
         {/* Center content */}
         <div className="flex flex-col items-center w-full max-w-[380px]">
-          {/* Large N Logo */}
+          {/* M Logo */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="mb-4"
           >
-            <svg className="w-20 h-20 text-white" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M2 20V4h3.5l4.5 8 4.5-8H18v16h-3V9l-3.5 6h-3L5 9v11H2z" />
-            </svg>
+            <MarinLogo size={80} />
           </motion.div>
 
           {/* Brand Name */}
@@ -109,7 +108,7 @@ export default function LoginPage() {
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
-                <span>Log in with</span>
+                <span>{t('login.logInWith')}</span>
                 {/* Microsoft Logo */}
                 <svg width="18" height="18" viewBox="0 0 21 21">
                   <rect x="0" y="0" width="10" height="10" fill="#f25022" />
@@ -133,7 +132,7 @@ export default function LoginPage() {
                 onClick={() => setShowOfflineForm(true)}
                 className="text-[11px] text-[#52525B] hover:text-[#A1A1AA] font-medium transition-colors flex items-center gap-1 mt-2"
               >
-                <span>veya offline oyna</span>
+                <span>{t('login.orPlayOffline')}</span>
                 <ChevronRight className="w-3 h-3" />
               </motion.button>
             ) : (
@@ -156,7 +155,7 @@ export default function LoginPage() {
                   />
                   <input
                     type="text"
-                    placeholder="Kullanıcı adı"
+                    placeholder={t('login.usernamePlaceholder')}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     disabled={isLoading}
@@ -172,7 +171,7 @@ export default function LoginPage() {
                   {isLoading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    'Giriş Yap'
+                    t('login.submitButton')
                   )}
                 </button>
                 <button
@@ -180,7 +179,7 @@ export default function LoginPage() {
                   onClick={() => { setShowOfflineForm(false); setLocalError(null); }}
                   className="w-full text-[10px] text-[#52525B] hover:text-[#A1A1AA] font-medium transition-colors"
                 >
-                  ← Microsoft ile giriş yap
+                  {t('login.backToMicrosoft')}
                 </button>
               </motion.form>
             )}
@@ -258,11 +257,11 @@ export default function LoginPage() {
           transition={{ delay: 0.5 }}
           className="flex items-center gap-2 text-[10px] text-[#3f3f46]"
         >
-          <button onClick={() => openExternal('https://marinmc.com/privacy')} className="hover:text-[#A1A1AA] transition-colors">Privacy Policy</button>
+          <button onClick={() => openExternal('https://marinmc.com/privacy')} className="hover:text-[#A1A1AA] transition-colors">{t('login.privacyPolicy')}</button>
           <span>•</span>
-          <button onClick={() => openExternal('https://marinmc.com/terms')} className="hover:text-[#A1A1AA] transition-colors">Terms of Service</button>
+          <button onClick={() => openExternal('https://marinmc.com/terms')} className="hover:text-[#A1A1AA] transition-colors">{t('login.termsOfService')}</button>
           <span>•</span>
-          <button onClick={() => openExternal('https://marinmc.com/support')} className="hover:text-[#A1A1AA] transition-colors">Support</button>
+          <button onClick={() => openExternal('https://marinmc.com/support')} className="hover:text-[#A1A1AA] transition-colors">{t('login.support')}</button>
         </motion.div>
       </div>
 

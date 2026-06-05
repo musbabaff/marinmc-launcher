@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useServersStore } from '../stores/serversStore.ts';
 import { useAuthStore } from '../stores/authStore.ts';
+import { useSettingsStore } from '../stores/settingsStore.ts';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Settings, 
@@ -94,7 +95,9 @@ export default function ServersPage() {
   const { session, logout } = useAuthStore();
   const navigate = useNavigate();
 
-  const [lang, setLang] = useState<'tr' | 'en'>('tr');
+  const settings = useSettingsStore();
+  const lang = settings.language;
+  const setLang = settings.setLanguage;
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isUserOpen, setIsUserOpen] = useState(false);
 

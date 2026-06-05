@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../stores/settingsStore.ts';
 import {
   X, Settings, FolderOpen, Save, RefreshCw, Filter, ShieldAlert,
@@ -34,6 +35,7 @@ const INITIAL_MODS: ModItem[] = [
 ];
 
 export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: VersionModalProps) {
+  const { t } = useTranslation();
   const settings = useSettingsStore();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('advanced');
@@ -101,7 +103,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
               {/* Top controls: Version display + Menu items */}
               <div className="space-y-4">
                 <div>
-                  <span className="text-[8px] font-bold text-[#52525B] tracking-widest uppercase block mb-1">VERSION</span>
+                  <span className="text-[8px] font-bold text-[#52525B] tracking-widest uppercase block mb-1">{t('servers.versionText')}</span>
                   <button className="bg-black/40 border border-white/10 px-3 py-1.8 rounded-xl text-[10px] font-extrabold text-white flex items-center justify-between w-full">
                     <span>{settings.selectedSubVersion || '1.21.7'}</span>
                     <ChevronDown className="w-3.5 h-3.5 text-white/50" />
@@ -119,7 +121,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                     }`}
                   >
                     <LoaderIcon className="w-3.5 h-3.5" />
-                    <span>Loader</span>
+                    <span>{t('versionModal.loader')}</span>
                   </button>
 
                   <button
@@ -131,7 +133,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                     }`}
                   >
                     <HardDrive className="w-3.5 h-3.5" />
-                    <span>Mods</span>
+                    <span>{t('versionModal.mods')}</span>
                   </button>
 
                   <button
@@ -143,7 +145,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                     }`}
                   >
                     <Sun className="w-3.5 h-3.5" />
-                    <span>Shaders</span>
+                    <span>{t('versionModal.shaders')}</span>
                   </button>
 
                   <button
@@ -155,7 +157,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                     }`}
                   >
                     <Globe className="w-3.5 h-3.5" />
-                    <span>Worlds</span>
+                    <span>{t('versionModal.worlds')}</span>
                   </button>
 
                   <button
@@ -167,7 +169,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                     }`}
                   >
                     <Layout className="w-3.5 h-3.5" />
-                    <span>Resources</span>
+                    <span>{t('versionModal.resources')}</span>
                   </button>
                 </div>
               </div>
@@ -182,7 +184,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                 }`}
               >
                 <Settings className="w-3.5 h-3.5" />
-                <span>Advanced</span>
+                <span>{t('versionModal.advanced')}</span>
               </button>
 
             </div>
@@ -241,15 +243,15 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                     {/* Header Alert */}
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="text-[11px] font-bold text-white uppercase">Advanced Settings</h3>
+                        <h3 className="text-[11px] font-bold text-white uppercase">{t('versionModal.advancedTitle')}</h3>
                         <p className="text-[9px] text-[#EF4444] mt-0.5 flex items-center gap-1">
                           <ShieldAlert className="w-3 h-3 text-[#EF4444]" />
-                          <span>Proceed with caution. Modifying these settings may cause game instability.</span>
+                          <span>{t('versionModal.advancedWarning')}</span>
                         </p>
                       </div>
                       <div className="flex items-center gap-1 text-[#52525B]">
                         <Cloud className="w-3 h-3" />
-                        <span className="text-[7.5px] font-bold uppercase tracking-wider">Synced · Last synced: 2h ago</span>
+                        <span className="text-[7.5px] font-bold uppercase tracking-wider">{t('versionModal.synced')} · {t('versionModal.lastSyncedHours', { count: 2 })}</span>
                       </div>
                     </div>
 
@@ -257,8 +259,8 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                     <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-4 space-y-3.5 relative">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="text-[10px] font-bold text-white uppercase">Game Resolution</h4>
-                          <p className="text-[8px] text-[#52525B] mt-0.5">Define custom launch resolution and fullscreen preferences.</p>
+                          <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.gameResolution')}</h4>
+                          <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.gameResolutionDesc')}</p>
                         </div>
                         <button
                           onClick={() => setResolutionEnabled(!resolutionEnabled)}
@@ -269,7 +271,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                           }`}
                         >
                           {resolutionEnabled && <CheckCircle2 className="w-2.5 h-2.5" />}
-                          <span>Enabled</span>
+                          <span>{t('versionModal.enabled')}</span>
                         </button>
                       </div>
 
@@ -307,15 +309,15 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                           <div className="flex flex-wrap gap-4 text-[8px] font-bold text-[#A1A1AA] uppercase tracking-wider select-none">
                             <label className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors">
                               <input type="checkbox" checked={fullscreen} onChange={(e) => setFullscreen(e.target.checked)} className="rounded border-white/10 bg-black/40 text-[#2D7DD2] focus:ring-0 w-3 h-3" />
-                              <span>Fullscreen mode</span>
+                              <span>{t('versionModal.fullscreenMode')}</span>
                             </label>
                             <label className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors">
                               <input type="checkbox" checked={borderless} onChange={(e) => setBorderless(e.target.checked)} className="rounded border-white/10 bg-black/40 text-[#2D7DD2] focus:ring-0 w-3 h-3" />
-                              <span>Borderless Window</span>
+                              <span>{t('versionModal.borderlessWindow')}</span>
                             </label>
                             <label className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors">
                               <input type="checkbox" checked={lockAspect} onChange={(e) => setLockAspect(e.target.checked)} className="rounded border-white/10 bg-black/40 text-[#2D7DD2] focus:ring-0 w-3 h-3" />
-                              <span>Lock Aspect Ratio</span>
+                              <span>{t('versionModal.lockAspect')}</span>
                             </label>
                           </div>
                         </div>
@@ -326,8 +328,8 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                     <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-4 space-y-3.5">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="text-[10px] font-bold text-white uppercase">Allocated Memory</h4>
-                          <p className="text-[8px] text-[#52525B] mt-0.5">Overrides global RAM settings for this specific profile.</p>
+                          <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.allocatedMemory')}</h4>
+                          <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.allocatedMemoryDesc')}</p>
                         </div>
                         <button
                           onClick={() => setRamEnabled(!ramEnabled)}
@@ -338,7 +340,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                           }`}
                         >
                           {ramEnabled && <CheckCircle2 className="w-2.5 h-2.5" />}
-                          <span>Enabled</span>
+                          <span>{t('versionModal.enabled')}</span>
                         </button>
                       </div>
 
@@ -376,8 +378,8 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                     <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-4 space-y-2">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="text-[10px] font-bold text-white uppercase">JVM Arguments</h4>
-                          <p className="text-[8px] text-[#52525B] mt-0.5">Custom Java execution flags for advanced performance tweaking.</p>
+                          <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.jvmArgs')}</h4>
+                          <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.jvmArgsDesc')}</p>
                         </div>
                         <button
                           onClick={() => setJvmEnabled(!jvmEnabled)}
@@ -388,7 +390,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                           }`}
                         >
                           {jvmEnabled && <CheckCircle2 className="w-2.5 h-2.5" />}
-                          <span>Enabled</span>
+                          <span>{t('versionModal.enabled')}</span>
                         </button>
                       </div>
 
@@ -412,10 +414,10 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                   <div className="space-y-4">
                     {/* Header sub-bar */}
                     <div className="flex justify-between items-center text-[9px] text-[#52525B] font-extrabold uppercase tracking-wider">
-                      <span>{mods.length} mods loaded</span>
+                      <span>{mods.length} {t('versionModal.modsLoaded')}</span>
                       <div className="flex items-center gap-1 text-[#52525B] font-normal">
                         <Cloud className="w-3 h-3 text-[#52525B]" />
-                        <span className="text-[7.5px] font-bold uppercase tracking-wider">Synced · Last synced: 18m ago</span>
+                        <span className="text-[7.5px] font-bold uppercase tracking-wider">{t('versionModal.synced')} · {t('versionModal.lastSyncedMins', { count: 18 })}</span>
                       </div>
                     </div>
 
@@ -425,8 +427,8 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                         <span className="text-lg font-bold">+</span>
                       </div>
                       <div>
-                        <h4 className="text-[10px] font-bold text-white uppercase">3rd Party Mods</h4>
-                        <p className="text-[8px] text-[#52525B] mt-0.5">Drag & drop files here, or browse to add mods.</p>
+                        <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.thirdPartyMods')}</h4>
+                        <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.thirdPartyModsDesc')}</p>
                       </div>
                     </div>
 
@@ -464,7 +466,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                                 }`}
                               >
                                 {mod.enabled && <CheckCircle2 className="w-2.5 h-2.5" />}
-                                <span>Enabled</span>
+                                <span>{t('versionModal.enabled')}</span>
                               </button>
 
                               <button className="p-1 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-white transition-colors">
@@ -489,10 +491,10 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                   <div className="space-y-4">
                     {/* Header info */}
                     <div className="flex justify-between items-center text-[9px] text-[#52525B] font-extrabold uppercase tracking-wider">
-                      <span>Fetching worlds...</span>
+                      <span>{t('versionModal.fetchingWorlds')}</span>
                       <div className="flex items-center gap-1 text-[#52525B] font-normal">
                         <Cloud className="w-3 h-3 text-[#52525B]" />
-                        <span className="text-[7.5px] font-bold uppercase tracking-wider">Syncing with MarinMC Cloud...</span>
+                        <span className="text-[7.5px] font-bold uppercase tracking-wider">{t('versionModal.syncingCloud')}</span>
                       </div>
                     </div>
 
@@ -502,8 +504,8 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                         <span className="text-lg font-bold">+</span>
                       </div>
                       <div>
-                        <h4 className="text-[10px] font-bold text-white uppercase">Worlds</h4>
-                        <p className="text-[8px] text-[#52525B] mt-0.5">Drag & drop files here, or browse to add worlds.</p>
+                        <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.worldsTitle')}</h4>
+                        <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.worldsDesc')}</p>
                       </div>
                     </div>
 
@@ -537,8 +539,8 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                 {activeTab !== 'advanced' && activeTab !== 'mods' && activeTab !== 'worlds' && (
                   <div className="flex flex-col items-center justify-center h-48 text-[#52525B]">
                     <LoaderIcon className="w-8 h-8 mb-2.5 text-[#52525B] animate-spin" />
-                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#52525B]">Loader & Shaders Settings</p>
-                    <p className="text-[8px] text-[#52525B] mt-0.5 font-semibold">Configuring environment and syncing assets...</p>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#52525B]">{t('versionModal.loaderShadersTitle')}</p>
+                    <p className="text-[8px] text-[#52525B] mt-0.5 font-semibold">{t('versionModal.loaderShadersDesc')}</p>
                   </div>
                 )}
               </div>
@@ -550,7 +552,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                   className="px-4.5 py-2 bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white font-extrabold text-[9.5px] uppercase tracking-widest rounded-xl transition-all shadow-[0_5px_15px_rgba(45,125,210,0.25)] hover:scale-[1.02] flex items-center gap-2"
                 >
                   <Save className="w-3.5 h-3.5" />
-                  <span>Save Profile Settings</span>
+                  <span>{t('versionModal.saveProfileSettings')}</span>
                 </button>
               </div>
 

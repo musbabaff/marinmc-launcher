@@ -9,6 +9,8 @@ import OfflineBanner from './components/OfflineBanner.tsx';
 import CrashModal from './components/CrashModal.tsx';
 import { checkConnectivity } from './lib/api.ts';
 
+import { useTranslation } from 'react-i18next';
+
 // Lazy-loaded pages for performance
 const LoginPage = lazy(() => import('./pages/LoginPage.tsx'));
 const HomePage = lazy(() => import('./pages/HomePage.tsx'));
@@ -22,14 +24,17 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage.tsx'));
 const ModManagerPage = lazy(() => import('./pages/ModManagerPage.tsx'));
 
 // Loading fallback
-const PageLoader = () => (
-  <div className="flex-grow flex items-center justify-center bg-[#060305]">
-    <div className="flex flex-col items-center gap-3">
-      <div className="w-8 h-8 border-2 border-[#2D7DD2]/30 border-t-[#2D7DD2] rounded-full animate-spin" />
-      <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-wider">Yükleniyor...</span>
+const PageLoader = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex-grow flex items-center justify-center bg-[#060305]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-[#2D7DD2]/30 border-t-[#2D7DD2] rounded-full animate-spin" />
+        <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-wider">{t('login.loading')}</span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Layout wrapper structure
 const MainLayout = ({ children }: { children: React.ReactNode }) => {

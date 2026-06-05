@@ -42,7 +42,12 @@ const translations = {
     behaviorMin: 'Launcher\'ı Küçült',
     behaviorClose: 'Launcher\'ı Kapat',
     behaviorNothing: 'Hiçbir şey yapma',
-    onlineText: 'Aktif'
+    onlineText: 'Aktif',
+    copyright: '© 2026 MarinMC. Tüm hakları saklıdır. Mojang AB ile ilişkili değildir.',
+    consoleTitle: 'Geliştirici Konsolu',
+    clearBtn: 'Temizle',
+    emptyConsole: 'Konsol çıktısı boş. Oyunu başlattığınızda çıktılar burada görünecektir.',
+    loadingDetails: 'Sunucu detayları yükleniyor...'
   },
   en: {
     backBtn: 'Server List',
@@ -67,7 +72,12 @@ const translations = {
     behaviorMin: 'Minimize Launcher',
     behaviorClose: 'Close Launcher',
     behaviorNothing: 'Do nothing',
-    onlineText: 'Online'
+    onlineText: 'Online',
+    copyright: '© 2026 MarinMC. All rights reserved. Not affiliated with Mojang AB.',
+    consoleTitle: 'Developer Console',
+    clearBtn: 'Clear',
+    emptyConsole: 'Console output is empty. Logs will appear here once the game starts.',
+    loadingDetails: 'Loading server details...'
   }
 };
 
@@ -90,6 +100,8 @@ export default function ServerDetailPage() {
     launcherBehavior, 
     totalSystemRAM, 
     osName, 
+    language: lang,
+    setLanguage: setLang,
     loadSettings, 
     saveSettings 
   } = useSettingsStore();
@@ -100,8 +112,6 @@ export default function ServerDetailPage() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [news, setNews] = useState<any[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
-  const [lang, setLang] = useState<'tr' | 'en'>('tr');
-
   // Interactive panels
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
@@ -204,10 +214,10 @@ export default function ServerDetailPage() {
   if (!selectedServer) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-gray-500 text-xs">
-        <p>Sunucu detayları yükleniyor...</p>
+        <p>{t.loadingDetails}</p>
         <button onClick={() => navigate('/servers')} className="mt-4 text-blue-400 hover:underline flex items-center space-x-1">
           <ChevronLeft className="w-4 h-4" />
-          <span>Geri Dön</span>
+          <span>{t.backBtn}</span>
         </button>
       </div>
     );
@@ -587,7 +597,7 @@ export default function ServerDetailPage() {
 
       {/* BOTTOM CONSOLE TRIGGER & DISCLAIMER */}
       <div className="z-20 border-t border-white/[0.04] pt-4 flex items-center justify-between text-[10px] text-gray-600 select-none shrink-0 relative">
-        <span>© 2026 MarinMC. Mojang AB ile ilişkili değildir.</span>
+        <span>{t.copyright}</span>
         
         {/* Toggle Console Button */}
         <button
@@ -766,14 +776,14 @@ export default function ServerDetailPage() {
             <div className="h-10 bg-[#0E101A] border-b border-white/5 px-4 flex items-center justify-between text-[10px] text-gray-400 select-none shrink-0 font-medium">
               <div className="flex items-center space-x-2">
                 <Terminal className="w-3.5 h-3.5 text-blue-400" />
-                <span>Geliştirici Konsolu ({selectedServer.name})</span>
+                <span>{t.consoleTitle} ({selectedServer.name})</span>
               </div>
               <div className="flex items-center space-x-2">
                 <button 
                   onClick={() => setLogs([])}
                   className="px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[9px] hover:bg-white/10 transition-colors uppercase font-semibold text-gray-300"
                 >
-                  Temizle
+                  {t.clearBtn}
                 </button>
                 <button 
                   onClick={() => setIsConsoleOpen(false)}
@@ -803,7 +813,7 @@ export default function ServerDetailPage() {
               {logs.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-white/10 select-none py-10">
                   <Terminal className="w-6 h-6 mb-1 opacity-40" />
-                  <p>Konsol çıktısı boş. Oyunu başlattığınızda çıktılar burada görünecektir.</p>
+                  <p>{t.emptyConsole}</p>
                 </div>
               )}
               <div ref={consoleEndRef} />

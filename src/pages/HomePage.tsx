@@ -7,6 +7,7 @@ import { useSocialStore } from '../stores/socialStore.ts';
 import { useAppStore } from '../stores/appStore.ts';
 import { sanitizeUrl, sanitizeParam } from '../lib/security.ts';
 import VersionModal from '../components/VersionModal.tsx';
+import MarinLogo from '../components/MarinLogo.tsx';
 import {
   ChevronDown, User, LogOut, Search,
   MessageSquare, UserPlus, X, AlertTriangle,
@@ -116,7 +117,7 @@ export default function HomePage() {
         const javaCheck = await window.electronAPI.detectJava();
         if (!javaCheck.found) {
           setLaunchStatus('ERROR');
-          setErrorMessage('Java bulunamadı! Lütfen Java 21 veya üzerini yükleyin: https://adoptium.net');
+          setErrorMessage(t('home.javaNotFoundError'));
           return;
         }
 
@@ -152,7 +153,7 @@ export default function HomePage() {
         const result = await window.electronAPI.launchGame(launchOptions);
         if (!result.success) {
           setLaunchStatus('ERROR');
-          setErrorMessage(result.error || 'Başlatma hatası oluştu.');
+          setErrorMessage(result.error || t('home.launchError'));
         } else {
           // Add to recent played
           settings.addRecentProfile({
@@ -180,7 +181,7 @@ export default function HomePage() {
       }
     } catch (err: any) {
       setLaunchStatus('ERROR');
-      setErrorMessage(err.message || 'Hata oluştu.');
+      setErrorMessage(err.message || t('home.errorOccurred'));
     }
   };
 
@@ -193,9 +194,9 @@ export default function HomePage() {
     setNewFriendUsername('');
     setAddFriendOpen(false);
     if (success) {
-      alert('Arkadaşlık isteği gönderildi!');
+      alert(t('home.requestSent'));
     } else {
-      alert('Hata: Oyuncu bulunamadı. Lütfen geçerli bir Minecraft kullanıcı adı girin.');
+      alert(t('home.playerNotFound'));
     }
   };
 
@@ -219,7 +220,7 @@ export default function HomePage() {
     if (friend.username === 'cuvsa') return 'In-game: Donut SMP';
     if (friend.username === 'zakhbear') return 'In Menus';
     if (friend.status === 'idle') return 'Idle';
-    return friend.status === 'in-game' ? `Oynuyor: ${friend.currentServer}` : 'Başlatıcıda';
+    return friend.status === 'in-game' ? t('social.inGame', { server: friend.currentServer }) : t('social.inLauncher');
   };
 
   return (
@@ -280,7 +281,7 @@ export default function HomePage() {
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className="flex items-center gap-2 hover:text-white text-white text-base font-extrabold tracking-wide uppercase transition-all"
                 >
-                  <span>Good to see you, {session?.name || 'dbrn'}</span>
+                  <span>{t('home.greeting')}, {session?.name || 'dbrn'}</span>
                   <ChevronDown className={`w-4 h-4 text-white/50 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -297,7 +298,7 @@ export default function HomePage() {
                         className="w-full flex items-center gap-2 px-3.5 py-2 text-[#A1A1AA] hover:bg-white/5 hover:text-white text-left"
                       >
                         <User className="w-3.5 h-3.5" />
-                        <span>PROFİLİ GÖRÜNTÜLE</span>
+                        <span>{t('home.viewProfile')}</span>
                       </button>
                       <button
                         onClick={async () => {
@@ -314,7 +315,7 @@ export default function HomePage() {
                 </AnimatePresence>
               </div>
               <p className="text-[10px] text-[#52525B] font-semibold mt-1">
-                Last played: <span className="text-[#2D7DD2]">{isOnline ? 'Donut SMP' : 'Hypixel'}</span> - {isOnline ? '7 hours ago' : '16 hours ago'} · Total playtime: <span className="text-white/80">{isOnline ? '1,662h' : '1,364h'}</span>
+                {t('home.lastPlayed')}: <span className="text-[#2D7DD2]">{isOnline ? 'Donut SMP' : 'Hypixel'}</span> - {isOnline ? t('home.hoursAgo', { count: 7 }) : t('home.hoursAgo', { count: 16 })} · {t('home.totalPlaytime')}: <span className="text-white/80">{isOnline ? `1,662${t('profile.hour')}` : `1,364${t('profile.hour')}`}</span>
               </p>
             </div>
           </div>
@@ -337,7 +338,7 @@ export default function HomePage() {
                   onClick={handleLaunch}
                   className="w-[230px] h-[52px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] text-white font-extrabold text-xs tracking-widest rounded-xl transition-all duration-300 shadow-[0_8px_25px_rgba(37,148,87,0.25)] flex flex-col items-center justify-center gap-0.5"
                 >
-                  <span className="font-black text-[13px]">DOWNLOADING</span>
+                  <span className="font-black text-[13px]">{t('home.downloading')}</span>
                   <div className="flex items-center gap-1.5 text-[9px] text-white/80 font-bold">
                     <span>Fabric {settings.selectedSubVersion || '1.21.0'}</span>
                     <span className="text-white/40">|</span>
@@ -351,7 +352,7 @@ export default function HomePage() {
                   disabled={launchStatus === 'CHECKING' || launchStatus === 'LAUNCHING'}
                   className="w-[230px] h-[52px] bg-[#208390] hover:bg-[#2aa4b5] active:scale-[0.98] disabled:opacity-50 text-white font-extrabold text-xs tracking-widest rounded-xl transition-all duration-300 shadow-[0_8px_25px_rgba(32,131,144,0.25)] flex flex-col items-center justify-center gap-0.5"
                 >
-                  <span className="font-black text-[13px]">LAUNCH</span>
+                  <span className="font-black text-[13px]">{t('home.launch')}</span>
                   <span className="text-[9px] text-white/80 font-bold">Fabric {settings.selectedSubVersion || '1.21.3'}</span>
                 </button>
               )}
@@ -361,7 +362,7 @@ export default function HomePage() {
                 onClick={() => navigate('/versions')}
                 className="mt-3.5 text-[9px] font-bold text-[#A1A1AA] hover:text-white uppercase tracking-wider transition-colors flex items-center gap-1"
               >
-                <span>CHANGE VERSION</span>
+                <span>{t('home.changeVersion')}</span>
                 <ChevronDown className="w-3 h-3 text-[#A1A1AA]" />
               </button>
 
@@ -375,7 +376,7 @@ export default function HomePage() {
                     />
                   </div>
                   <div className="flex justify-between text-[8px] text-[#52525B] font-bold uppercase tracking-wide">
-                    <span className="truncate max-w-[140px]">{currentFileDownloading || 'Fetching assets...'}</span>
+                    <span className="truncate max-w-[140px]">{currentFileDownloading || t('details.checking')}</span>
                     <span>{(progress * 1.125).toFixed(1)} MB / 112.5 MB</span>
                   </div>
                 </div>
@@ -387,21 +388,21 @@ export default function HomePage() {
 
           {/* News Section */}
           <div className="space-y-2">
-            <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest block">NEWS FEED</span>
+            <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest block">{t('home.newsFeed')}</span>
             
             {/* If Offline */}
             {!isOnline ? (
               <div className="grid grid-cols-2 gap-4">
                 <div className="h-28 bg-[#060305] border border-white/[0.04] rounded-xl flex items-center justify-center flex-col text-center p-4 relative group">
                   <WifiOff className="w-6 h-6 text-[#52525B] mb-1.5" />
-                  <span className="text-[10px] font-bold text-[#52525B]">Unable to connect to MarinMC News Service</span>
+                  <span className="text-[10px] font-bold text-[#52525B]">{t('home.newsServiceError')}</span>
                   <button className="absolute bottom-2.5 right-2.5 p-1 rounded bg-white/5 text-white/40 hover:text-white transition-colors">
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 <div className="h-28 bg-[#060305] border border-white/[0.04] rounded-xl flex items-center justify-center flex-col text-center p-4 relative group">
                   <WifiOff className="w-6 h-6 text-[#52525B] mb-1.5" />
-                  <span className="text-[10px] font-bold text-[#52525B]">Unable to connect to MarinMC News Service</span>
+                  <span className="text-[10px] font-bold text-[#52525B]">{t('home.newsServiceError')}</span>
                   <button className="absolute bottom-2.5 right-2.5 p-1 rounded bg-white/5 text-white/40 hover:text-white transition-colors">
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
@@ -415,17 +416,15 @@ export default function HomePage() {
                   <div className="flex flex-col justify-between h-full z-10 max-w-[140px]">
                     <div>
                       <span className="text-[8px] text-[#2D7DD2] font-black uppercase tracking-widest">MARINMC CLIENT</span>
-                      <h3 className="text-[11px] font-black text-white leading-tight uppercase mt-1 tracking-wide">CHANGELOG</h3>
-                      <p className="text-[8.5px] text-[#A1A1AA] mt-1 leading-normal font-semibold">Performance optimizations & general fixes.</p>
+                      <h3 className="text-[11px] font-black text-white leading-tight uppercase mt-1 tracking-wide">{t('home.changelog')}</h3>
+                      <p className="text-[8.5px] text-[#A1A1AA] mt-1 leading-normal font-semibold">{t('home.changelogDesc')}</p>
                     </div>
                     <button className="bg-white text-black font-extrabold text-[8px] uppercase tracking-wider py-1 px-3.5 rounded-lg w-max mt-2">
-                      READ MORE
+                      {t('home.readMore')}
                     </button>
                   </div>
                   <div className="w-16 h-16 flex items-center justify-center text-white/10 group-hover:scale-105 transition-transform duration-300">
-                    <svg viewBox="0 0 24 24" className="w-14 h-14 fill-current">
-                      <path d="M2 20V4h3.5l4.5 8 4.5-8H18v16h-3V9l-3.5 6h-3L5 9v11H2z" />
-                    </svg>
+                    <MarinLogo glyphOnly size={56} className="text-white/10" />
                   </div>
                 </div>
 
@@ -433,9 +432,9 @@ export default function HomePage() {
                 <div className="relative rounded-xl overflow-hidden h-28 border border-white/[0.04] bg-gradient-to-br from-[#1b2b1a]/85 to-[#0b0c0a]/95 flex p-3.5 justify-between items-center group cursor-pointer">
                   <div className="flex flex-col justify-between h-full z-10">
                     <div>
-                      <span className="text-[8px] text-[#259457] font-black uppercase tracking-widest">New Minecraft version!</span>
+                      <span className="text-[8px] text-[#259457] font-black uppercase tracking-widest">{t('home.newVersionAlert')}</span>
                       <h3 className="text-xl font-black text-[#259457] leading-none mt-1">26.1</h3>
-                      <p className="text-[9px] text-[#A1A1AA] mt-1 font-semibold">Ready in <span className="text-white">MarinMC</span></p>
+                      <p className="text-[9px] text-[#A1A1AA] mt-1 font-semibold">{t('home.readyIn', { client: 'MarinMC' })}</p>
                     </div>
                   </div>
                   <div className="text-[34px] font-black text-[#259457]/15 select-none absolute right-4 group-hover:scale-105 transition-transform duration-300">
@@ -451,9 +450,9 @@ export default function HomePage() {
             {/* Community Event */}
             <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-gradient-to-br from-[#1a1535]/80 to-[#0b0a0d]/95 flex p-3 items-center group cursor-pointer">
               <div className="flex flex-col z-10">
-                <span className="text-[7px] text-[#8B5CF6] font-black uppercase tracking-widest">Community</span>
-                <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5">SURVIVAL EVENT</h3>
-                <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">Bu hafta sonu büyük etkinlik!</p>
+                <span className="text-[7px] text-[#8B5CF6] font-black uppercase tracking-widest">{t('home.community')}</span>
+                <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5">{t('home.survivalEvent')}</h3>
+                <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.eventDesc')}</p>
               </div>
               <div className="text-[22px] font-black text-[#8B5CF6]/10 select-none absolute right-3">🎮</div>
             </div>
@@ -461,9 +460,9 @@ export default function HomePage() {
             {/* Server Status */}
             <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-gradient-to-br from-[#0a1f15]/80 to-[#0b0c0a]/95 flex p-3 items-center group cursor-pointer">
               <div className="flex flex-col z-10">
-                <span className="text-[7px] text-[#259457] font-black uppercase tracking-widest">Server Status</span>
-                <h3 className="text-[10px] font-black text-[#259457] leading-tight uppercase mt-0.5">ALL ONLINE</h3>
-                <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">247 oyuncu aktif</p>
+                <span className="text-[7px] text-[#259457] font-black uppercase tracking-widest">{t('home.serverStatus')}</span>
+                <h3 className="text-[10px] font-black text-[#259457] leading-tight uppercase mt-0.5">{t('home.allOnline')}</h3>
+                <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.activePlayers', { count: 247 })}</p>
               </div>
               <div className="text-[22px] font-black text-[#259457]/10 select-none absolute right-3">●</div>
             </div>
@@ -471,9 +470,9 @@ export default function HomePage() {
             {/* Tips */}
             <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-[#111111]/45 flex p-3 items-center group cursor-pointer">
               <div className="flex flex-col z-10">
-                <span className="text-[7px] text-[#F59E0B] font-black uppercase tracking-widest">İpucu</span>
-                <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5">PERFORMANS</h3>
-                <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">Sodium + Iris ile FPS artırın</p>
+                <span className="text-[7px] text-[#F59E0B] font-black uppercase tracking-widest">{t('home.tip')}</span>
+                <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5">{t('home.performance')}</h3>
+                <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.fpsTip')}</p>
               </div>
               <div className="text-[22px] font-black text-[#F59E0B]/10 select-none absolute right-3">⚡</div>
             </div>
@@ -500,7 +499,7 @@ export default function HomePage() {
                     friendsTab === 'friends' ? 'text-white' : 'text-[#52525B] hover:text-[#A1A1AA]'
                   }`}
                 >
-                  Friends
+                  {t('home.friendsTab')}
                 </button>
                 <button
                   onClick={() => setFriendsTab('requests')}
@@ -508,7 +507,7 @@ export default function HomePage() {
                     friendsTab === 'requests' ? 'text-white' : 'text-[#52525B] hover:text-[#A1A1AA]'
                   }`}
                 >
-                  <span>Requests</span>
+                  <span>{t('home.requestsTab')}</span>
                   {social.pendingRequests > 0 && (
                     <span className="absolute top-0 -right-2.5 w-1.5 h-1.5 bg-[#F59E0B] rounded-full" />
                   )}
@@ -519,7 +518,7 @@ export default function HomePage() {
               <button
                 onClick={() => setAddFriendOpen(true)}
                 className="p-1 rounded hover:bg-white/5 text-[#52525B] hover:text-white transition-colors"
-                title="Arkadaş Ekle"
+                title={t('home.addFriend')}
               >
                 <UserPlus className="w-4 h-4" />
               </button>
@@ -535,7 +534,7 @@ export default function HomePage() {
                     type="text"
                     value={friendsSearch}
                     onChange={(e) => setFriendsSearch(e.target.value)}
-                    placeholder="Find a player..."
+                    placeholder={t('home.findPlayerPlaceholder')}
                     className="bg-transparent border-none focus:outline-none text-[10px] text-white placeholder-white/20 w-full font-bold uppercase tracking-wider"
                   />
                 </div>
@@ -547,14 +546,14 @@ export default function HomePage() {
                     <div className="flex-grow flex flex-col items-center justify-center text-center p-6 bg-black/10">
                       <WifiOff className="w-9 h-9 text-[#52525B] mb-2.5" />
                       <span className="text-[10px] text-[#52525B] uppercase tracking-widest max-w-[200px] leading-relaxed">
-                        Unable to connect to MarinMC Friends Service
+                        {t('home.friendsServiceError')}
                       </span>
                     </div>
 
                     {/* Offline friends list underneath (mockup requirement) */}
                     <div className="border-t border-white/[0.04] h-[220px] overflow-y-auto p-4 space-y-2.5 custom-scrollbar bg-black/25">
                       <span className="text-[9px] font-black text-[#52525B] uppercase tracking-wider block">
-                        42 Offline
+                        {t('home.offlineCount', { count: 42 })}
                       </span>
                       {offlineFriends.map((f) => (
                         <div key={f.username} className="flex items-center gap-3 p-1 rounded-lg opacity-40">
@@ -565,7 +564,7 @@ export default function HomePage() {
                           />
                           <div className="flex-1 min-w-0">
                             <h4 className="text-[11px] font-bold text-white leading-none mb-1">{f.username}</h4>
-                            <p className="text-[8px] text-[#A1A1AA] leading-none font-semibold uppercase">{f.lastSeen || 'Offline for 3 days'}</p>
+                            <p className="text-[8px] text-[#A1A1AA] leading-none font-semibold uppercase">{f.lastSeen || t('social.offlineDays', { count: 3 })}</p>
                           </div>
                         </div>
                       ))}
@@ -577,7 +576,7 @@ export default function HomePage() {
                     {/* Online section */}
                     <div className="space-y-2">
                       <span className="text-[9px] font-black text-[#52525B] uppercase tracking-wider block">
-                        {onlineFriends.length} Online
+                        {t('home.onlineCount', { count: onlineFriends.length })}
                       </span>
                       {onlineFriends.map((f) => (
                         <div key={f.username} className="flex items-center gap-3 p-1 rounded-lg hover:bg-white/[0.01] group transition-all">
@@ -617,7 +616,7 @@ export default function HomePage() {
                     {/* Offline section */}
                     <div className="space-y-2 pt-2 border-t border-white/[0.04]">
                       <span className="text-[9px] font-black text-[#52525B] uppercase tracking-wider block">
-                        34 Offline
+                        {t('home.offlineCount', { count: 34 })}
                       </span>
                       {offlineFriends.map((f) => (
                         <div key={f.username} className="flex items-center gap-3 p-1 rounded-lg opacity-40 hover:opacity-100 group transition-all">
@@ -659,19 +658,19 @@ export default function HomePage() {
                             onClick={() => social.acceptRequest(name)}
                             className="bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white px-2 py-0.5 rounded text-[8px] font-black uppercase transition-colors"
                           >
-                            Kabul
+                            {t('home.accept')}
                           </button>
                           <button
                             onClick={() => social.rejectRequest(name)}
                             className="bg-white/5 hover:bg-white/10 text-[#A1A1AA] px-2 py-0.5 rounded text-[8px] font-black uppercase transition-colors"
                           >
-                            Red
+                            {t('home.reject')}
                           </button>
                         </div>
                       </div>
                   ))
                 ) : (
-                  <div className="text-center text-[10px] text-gray-500 font-bold py-6 uppercase tracking-wider">YENİ ARKADAŞLIK İSTEĞİ YOK</div>
+                  <div className="text-center text-[10px] text-gray-500 font-bold py-6 uppercase tracking-wider">{t('home.noPendingRequests')}</div>
                 )}
               </div>
             )}
@@ -701,7 +700,7 @@ export default function HomePage() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-3">
-                <h4 className="text-xs font-black text-white uppercase tracking-wider">Arkadaşlık İsteği</h4>
+                <h4 className="text-xs font-black text-white uppercase tracking-wider">{t('home.friendRequest')}</h4>
                 <button onClick={() => setAddFriendOpen(false)} className="p-1 rounded hover:bg-white/5 text-[#52525B] hover:text-white">
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -710,7 +709,7 @@ export default function HomePage() {
                 <input
                   type="text"
                   required
-                  placeholder="Minecraft Kullanıcı adı..."
+                  placeholder={t('home.minecraftUsername')}
                   value={newFriendUsername}
                   onChange={(e) => setNewFriendUsername(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/[0.08] text-xs font-semibold text-white focus:outline-none focus:border-[#2D7DD2]"
@@ -721,7 +720,7 @@ export default function HomePage() {
                   className="w-full py-2.5 rounded-xl bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white font-black text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 shadow-lg transition-colors"
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span>{addFriendLoading ? 'Kontrol ediliyor...' : 'İstek Gönder'}</span>
+                  <span>{addFriendLoading ? t('home.checkingFriend') : t('home.sendRequest')}</span>
                 </button>
               </form>
             </motion.div>

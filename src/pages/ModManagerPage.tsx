@@ -1,308 +1,413 @@
-import { useState, useRef, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, Package, Plus, AlertTriangle, Lock,
-  ToggleLeft, ToggleRight, Trash2, Upload, FileArchive,
-  Shield, Search, X
+  Search, Download, Trash2, Package, Layers, Image, Sparkles,
+  ArrowDownAZ, Clock, TrendingUp, Star, Loader2, AlertTriangle, RefreshCw
 } from 'lucide-react';
+import { searchProjects, formatDownloads, formatFileSize, getProjectVersions } from '../lib/modrinth';
+import type { ModrinthSearchHit, InstalledMod } from '../types/modrinth';
 
-interface ModItem {
-  id: string;
-  name: string;
-  version: string;
-  size: string;
-  type: 'server' | 'custom';
-  enabled: boolean;
-  hasConflict?: boolean;
-  conflictWith?: string;
-  description?: string;
-}
+type ProjectType = 'mod' | 'modpack' | 'resourcepack' | 'shader';
+type SortIndex = 'relevance' | 'downloads' | 'updated' | 'newest';
+type Tab = 'search' | 'installed';
 
-const SERVER_MODS: ModItem[] = [
-  { id: 'sm1', name: 'MarinMC-Core', version: '2.4.1', size: '1.2 MB', type: 'server', enabled: true, description: 'Ana sunucu modu — kimlik doğrulama, senkronizasyon' },
-  { id: 'sm2', name: 'MarinMC-Chat', version: '1.8.0', size: '450 KB', type: 'server', enabled: true, description: 'Sunucu sohbet sistemi ve filtre' },
-  { id: 'sm3', name: 'MarinMC-AntiCheat', version: '3.1.2', size: '2.1 MB', type: 'server', enabled: true, description: 'Hile önleme ve güvenlik sistemi' },
-  { id: 'sm4', name: 'WorldGuard-Client', version: '7.0.9', size: '890 KB', type: 'server', enabled: true, description: 'Bölge koruma ve izin yönetimi' },
-  { id: 'sm5', name: 'VoxelMap-Addon', version: '1.2.0', size: '1.5 MB', type: 'server', enabled: true, description: 'Sunucu destekli harita entegrasyonu' },
+const FILTERS: { type: ProjectType; label: string; icon: typeof Package }[] = [
+  { type: 'mod', label: 'Mod', icon: Package },
+  { type: 'modpack', label: 'Modpack', icon: Layers },
+  { type: 'resourcepack', label: 'Texture Pack', icon: Image },
+  { type: 'shader', label: 'Shader', icon: Sparkles },
 ];
 
+const SORTS: { value: SortIndex; label: string; icon: typeof ArrowDownAZ }[] = [
+  { value: 'relevance', label: 'İlgi', icon: ArrowDownAZ },
+  { value: 'downloads', label: 'İndirme', icon: TrendingUp },
+  { value: 'updated', label: 'Güncellenen', icon: Clock },
+  { value: 'newest', label: 'Yeni', icon: Star },
+];
+
+const INSTALLED_KEY = 'marinmc_installed_mods';
+
+function loadInstalled(): InstalledMod[] {
+  try {
+    return JSON.parse(localStorage.getItem(INSTALLED_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveInstalled(mods: InstalledMod[]) {
+  localStorage.setItem(INSTALLED_KEY, JSON.stringify(mods));
+}
+
 export default function ModManagerPage() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { serverId } = useParams();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [tab, setTab] = useState<Tab>('search');
+  const [query, setQuery] = useState('');
+  const [projectType, setProjectType] = useState<ProjectType>('mod');
+  const [sortBy, setSortBy] = useState<SortIndex>('relevance');
+  const [results, setResults] = useState<ModrinthSearchHit[]>([]);
+  const [totalHits, setTotalHits] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [installedMods, setInstalledMods] = useState<InstalledMod[]>(loadInstalled);
+  const [installingIds, setInstallingIds] = useState<Set<string>>(new Set());
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const [customMods, setCustomMods] = useState<ModItem[]>([
-    { id: 'cm1', name: 'OptiFine', version: 'HD U I7', size: '6.4 MB', type: 'custom', enabled: true, description: 'Performans ve grafik iyileştirmeleri' },
-    { id: 'cm2', name: 'JourneyMap', version: '5.9.18', size: '3.2 MB', type: 'custom', enabled: true, description: 'Gerçek zamanlı minimap modu', hasConflict: true, conflictWith: 'VoxelMap-Addon' },
-    { id: 'cm3', name: 'Sodium', version: '0.5.8', size: '1.1 MB', type: 'custom', enabled: false, description: 'Performans optimizasyon modu' },
-  ]);
+  const LIMIT = 20;
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isDragOver, setIsDragOver] = useState(false);
-
-  const toggleMod = (modId: string) => {
-    setCustomMods(prev => prev.map(m => 
-      m.id === modId ? { ...m, enabled: !m.enabled } : m
-    ));
-  };
-
-  const removeMod = (modId: string) => {
-    setCustomMods(prev => prev.filter(m => m.id !== modId));
-  };
-
-  const addMod = useCallback((fileName: string) => {
-    const newMod: ModItem = {
-      id: `cm_${Date.now()}`,
-      name: fileName.replace('.jar', ''),
-      version: '???',
-      size: '??? KB',
-      type: 'custom',
-      enabled: true,
-      description: 'Yeni eklenen mod'
-    };
-    setCustomMods(prev => [...prev, newMod]);
+  const doSearch = useCallback(async (q: string, type: ProjectType, sort: SortIndex, newOffset = 0) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await searchProjects({
+        query: q,
+        projectType: type,
+        index: sort,
+        offset: newOffset,
+        limit: LIMIT,
+      });
+      if (newOffset === 0) {
+        setResults(res.hits);
+      } else {
+        setResults(prev => [...prev, ...res.hits]);
+      }
+      setTotalHits(res.total_hits);
+      setOffset(newOffset + res.hits.length);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Arama başarısız');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleFileDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const files = Array.from(e.dataTransfer.files);
-    files.forEach(f => {
-      if (f.name.endsWith('.jar')) {
-        addMod(f.name);
-      }
-    });
-  };
+  // Auto-search with debounce
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      doSearch(query, projectType, sortBy, 0);
+    }, 500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, projectType, sortBy, doSearch]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      Array.from(files).forEach(f => {
-        if (f.name.endsWith('.jar')) {
-          addMod(f.name);
-        }
+  const handleInstall = async (hit: ModrinthSearchHit) => {
+    if (installedMods.some(m => m.projectId === hit.project_id)) return;
+
+    setInstallingIds(prev => new Set(prev).add(hit.project_id));
+
+    try {
+      const versions = await getProjectVersions(hit.project_id);
+      const latest = versions[0];
+      if (!latest || !latest.files[0]) throw new Error('Sürüm bulunamadı');
+
+      const file = latest.files.find(f => f.primary) || latest.files[0];
+
+      // If Electron API available, download to mods folder
+      if (window.electronAPI) {
+        await window.electronAPI.downloadFile(file.url, file.filename);
+      }
+
+      const installed: InstalledMod = {
+        projectId: hit.project_id,
+        versionId: latest.id,
+        slug: hit.slug,
+        title: hit.title,
+        iconUrl: hit.icon_url,
+        author: hit.author,
+        fileName: file.filename,
+        fileSize: file.size,
+        installedAt: new Date().toISOString(),
+        gameVersions: latest.game_versions,
+        loaders: latest.loaders,
+      };
+
+      const updated = [...installedMods, installed];
+      setInstalledMods(updated);
+      saveInstalled(updated);
+    } catch (err) {
+      console.error('Install failed:', err);
+    } finally {
+      setInstallingIds(prev => {
+        const next = new Set(prev);
+        next.delete(hit.project_id);
+        return next;
       });
     }
   };
 
-  const filteredCustomMods = customMods.filter(m =>
-    m.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleUninstall = (projectId: string) => {
+    const updated = installedMods.filter(m => m.projectId !== projectId);
+    setInstalledMods(updated);
+    saveInstalled(updated);
+  };
 
-  const conflictCount = customMods.filter(m => m.hasConflict && m.enabled).length;
+  const isInstalled = (projectId: string) => installedMods.some(m => m.projectId === projectId);
+  const isInstalling = (projectId: string) => installingIds.has(projectId);
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-[#0D0F14] to-[#0B0D15]">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-4">
-        <button
-          onClick={() => navigate(serverId ? `/server/${serverId}` : '/servers')}
-          className="p-2 rounded-xl hover:bg-white/5 text-brand-textMuted hover:text-white transition-all"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-            <Package className="w-5 h-5 text-brand-accent" />
-            {t('mods.title')}
-          </h1>
-          <p className="text-[10px] text-brand-textMuted mt-0.5">{t('mods.subtitle')}</p>
-        </div>
-        <span className="text-[10px] font-semibold text-brand-textMuted bg-white/[0.03] border border-white/5 px-2.5 py-1 rounded-lg">
-          {t('mods.customModCount', { count: customMods.length })}
-        </span>
-      </div>
+    <div className="flex-1 flex flex-col p-6 overflow-hidden bg-[#060305] text-[#d2d2d2] select-none h-full">
 
-      {/* Warning Banner */}
-      {conflictCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mx-6 mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2"
-        >
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-          <span className="text-[10px] text-amber-300 font-medium">{t('mods.warningBanner')}</span>
-        </motion.div>
-      )}
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-        {/* ========= SERVER MODS ========= */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-emerald-400" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-white/80">{t('mods.serverModsTitle')}</h2>
-            <span className="text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-              {SERVER_MODS.length}
-            </span>
-          </div>
-          <p className="text-[10px] text-brand-textMuted">{t('mods.serverModsDesc')}</p>
-
-          <div className="grid gap-2">
-            {SERVER_MODS.map((mod, i) => (
-              <motion.div
-                key={mod.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="glass-panel p-3 rounded-xl border border-white/5 flex items-center gap-3 group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                  <FileArchive className="w-4 h-4 text-emerald-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-white truncate">{mod.name}</span>
-                    <span className="text-[9px] text-brand-textMuted font-mono">{mod.version}</span>
-                  </div>
-                  <p className="text-[9px] text-brand-textMuted truncate">{mod.description}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[9px] text-brand-textMuted">{mod.size}</span>
-                  <div className="flex items-center gap-1 text-[9px] text-emerald-400/60 font-semibold">
-                    <Lock className="w-3 h-3" />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
-        {/* ========= CUSTOM MODS ========= */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Package className="w-4 h-4 text-purple-400" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-white/80">{t('mods.customModsTitle')}</h2>
-              <span className="text-[9px] font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-md">
-                {customMods.length}
-              </span>
-            </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-accent/15 border border-brand-accent/25 text-brand-accent text-[10px] font-bold hover:bg-brand-accent/25 transition-all"
-            >
-              <Plus className="w-3 h-3" />
-              {t('mods.addModBtn')}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".jar"
-              multiple
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-          </div>
-          <p className="text-[10px] text-brand-textMuted">{t('mods.customModsDesc')}</p>
-
-          {/* Search */}
-          {customMods.length > 0 && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-textMuted" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Mod ara..."
-                className="w-full pl-9 pr-4 py-2 rounded-xl glass-input text-xs text-white placeholder-white/20"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <X className="w-3 h-3 text-brand-textMuted hover:text-white" />
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Custom mods list */}
-          <div className="grid gap-2">
-            <AnimatePresence>
-              {filteredCustomMods.map((mod, i) => (
-                <motion.div
-                  key={mod.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20, height: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className={`glass-panel p-3 rounded-xl border flex items-center gap-3 group transition-all ${
-                    mod.hasConflict && mod.enabled
-                      ? 'border-red-500/30 bg-red-500/[0.03]'
-                      : 'border-white/5'
-                  } ${!mod.enabled ? 'opacity-50' : ''}`}
-                >
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border ${
-                    mod.hasConflict && mod.enabled
-                      ? 'bg-red-500/10 border-red-500/20'
-                      : 'bg-purple-500/10 border-purple-500/20'
-                  }`}>
-                    <FileArchive className={`w-4 h-4 ${mod.hasConflict && mod.enabled ? 'text-red-400' : 'text-purple-400'}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-white truncate">{mod.name}</span>
-                      <span className="text-[9px] text-brand-textMuted font-mono">{mod.version}</span>
-                      {mod.hasConflict && mod.enabled && (
-                        <span className="text-[8px] font-bold text-red-400 bg-red-500/15 px-1.5 py-0.5 rounded border border-red-500/20 uppercase">
-                          {t('mods.conflictBadge')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[9px] text-brand-textMuted truncate">
-                      {mod.hasConflict && mod.enabled
-                        ? `⚠ ${t('mods.conflictWarning')} (${mod.conflictWith})`
-                        : mod.description
-                      }
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => toggleMod(mod.id)}
-                      className={`p-1.5 rounded-lg transition-all ${
-                        mod.enabled ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-brand-textMuted hover:bg-white/5'
-                      }`}
-                      title={mod.enabled ? 'Devre dışı bırak' : 'Etkinleştir'}
-                    >
-                      {mod.enabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                    </button>
-                    <button
-                      onClick={() => removeMod(mod.id)}
-                      className="p-1.5 rounded-lg text-brand-textMuted hover:text-red-400 hover:bg-red-500/10 transition-all"
-                      title="Sil"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  {/* Always-visible size */}
-                  <span className="text-[9px] text-brand-textMuted shrink-0">{mod.size}</span>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-
-          {/* Drop Zone */}
-          <div
-            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-            onDragLeave={() => setIsDragOver(false)}
-            onDrop={handleFileDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`mt-2 p-6 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
-              isDragOver
-                ? 'border-brand-accent bg-brand-accent/10'
-                : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
+      {/* Header + Tabs */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-sm font-extrabold tracking-widest text-white uppercase">MOD YÖNETİCİSİ</h1>
+        <div className="flex gap-1 bg-[#0a0a0a] border border-white/[0.06] rounded-xl p-0.5">
+          <button
+            onClick={() => setTab('search')}
+            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all ${
+              tab === 'search' ? 'bg-[#2D7DD2] text-white' : 'text-[#52525B] hover:text-white'
             }`}
           >
-            <Upload className={`w-6 h-6 ${isDragOver ? 'text-brand-accent' : 'text-brand-textMuted'}`} />
-            <span className="text-[10px] text-brand-textMuted font-medium">{t('mods.dropzoneText')}</span>
-          </div>
+            Modrinth Ara
+          </button>
+          <button
+            onClick={() => setTab('installed')}
+            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+              tab === 'installed' ? 'bg-[#2D7DD2] text-white' : 'text-[#52525B] hover:text-white'
+            }`}
+          >
+            Yüklü
+            {installedMods.length > 0 && (
+              <span className="w-4 h-4 bg-white/10 rounded-full text-[7px] flex items-center justify-center font-black">
+                {installedMods.length}
+              </span>
+            )}
+          </button>
         </div>
       </div>
+
+      {tab === 'search' ? (
+        <>
+          {/* Search Bar */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex-1 flex items-center gap-2 bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3.5 py-2.5">
+              <Search className="w-4 h-4 text-[#52525B]" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Mod, shader, texture pack ara..."
+                className="bg-transparent border-none outline-none text-[11px] text-white placeholder-white/20 w-full font-medium"
+              />
+              {loading && <Loader2 className="w-3.5 h-3.5 text-[#2D7DD2] animate-spin" />}
+            </div>
+          </div>
+
+          {/* Filter + Sort Row */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex gap-1.5">
+              {FILTERS.map(f => {
+                const Icon = f.icon;
+                return (
+                  <button
+                    key={f.type}
+                    onClick={() => setProjectType(f.type)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[8px] font-bold uppercase tracking-wider transition-all border ${
+                      projectType === f.type
+                        ? 'bg-[#2D7DD2]/15 border-[#2D7DD2]/30 text-[#2D7DD2]'
+                        : 'bg-transparent border-white/[0.04] text-[#52525B] hover:text-white hover:border-white/10'
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {f.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-1">
+              {SORTS.map(s => (
+                <button
+                  key={s.value}
+                  onClick={() => setSortBy(s.value)}
+                  className={`px-2 py-1 rounded text-[7px] font-bold uppercase tracking-wider transition-all ${
+                    sortBy === s.value ? 'bg-white/10 text-white' : 'text-[#52525B] hover:text-white'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Results */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+            {error && (
+              <div className="flex items-center gap-3 p-4 bg-red-500/5 border border-red-500/20 rounded-xl">
+                <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
+                <div>
+                  <p className="text-[10px] font-bold text-red-400">{error}</p>
+                  <button onClick={() => doSearch(query, projectType, sortBy, 0)} className="text-[8px] text-[#52525B] hover:text-white flex items-center gap-1 mt-1">
+                    <RefreshCw className="w-2.5 h-2.5" /> Tekrar dene
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!loading && results.length === 0 && !error && (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Package className="w-10 h-10 text-[#52525B] mb-3" />
+                <p className="text-[10px] font-bold text-[#52525B]">
+                  {query ? 'Sonuç bulunamadı' : 'Mod aramak için yukarıdaki alanı kullanın'}
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <AnimatePresence mode="popLayout">
+                {results.map((hit, idx) => (
+                  <motion.div
+                    key={hit.project_id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: idx * 0.03 }}
+                    className="bg-[#0a0a0a] border border-white/[0.04] rounded-xl p-3 flex gap-3 group hover:border-white/10 transition-all"
+                  >
+                    {/* Icon */}
+                    <div className="w-11 h-11 rounded-lg bg-[#111111] border border-white/[0.06] overflow-hidden shrink-0">
+                      {hit.icon_url ? (
+                        <img src={hit.icon_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[#52525B]">
+                          <Package className="w-5 h-5" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h3 className="text-[10px] font-bold text-white truncate leading-tight">{hit.title}</h3>
+                          <span className="text-[8px] text-[#52525B] font-medium">by {hit.author}</span>
+                        </div>
+                        {/* Install button */}
+                        {isInstalled(hit.project_id) ? (
+                          <span className="text-[7px] bg-[#259457]/15 text-[#259457] border border-[#259457]/20 px-2 py-0.5 rounded font-bold uppercase shrink-0">
+                            Yüklü
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleInstall(hit)}
+                            disabled={isInstalling(hit.project_id)}
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white text-[7px] font-bold uppercase tracking-wider transition-all shrink-0 disabled:opacity-50"
+                          >
+                            {isInstalling(hit.project_id) ? (
+                              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                            ) : (
+                              <Download className="w-2.5 h-2.5" />
+                            )}
+                            {isInstalling(hit.project_id) ? 'Yükleniyor' : 'Yükle'}
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[8px] text-[#A1A1AA] mt-1 leading-relaxed line-clamp-2 font-medium">
+                        {hit.description}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[7px] text-[#52525B] font-bold flex items-center gap-0.5">
+                          <Download className="w-2.5 h-2.5" />
+                          {formatDownloads(hit.downloads)}
+                        </span>
+                        {hit.display_categories?.slice(0, 3).map(cat => (
+                          <span key={cat} className="text-[6px] bg-white/[0.04] text-[#52525B] px-1.5 py-0.5 rounded font-bold uppercase">
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {/* Load More */}
+            {results.length > 0 && results.length < totalHits && (
+              <div className="flex justify-center py-4">
+                <button
+                  onClick={() => doSearch(query, projectType, sortBy, offset)}
+                  disabled={loading}
+                  className="px-6 py-2 bg-[#2D7DD2]/10 border border-[#2D7DD2]/20 rounded-xl text-[9px] font-bold text-[#2D7DD2] hover:bg-[#2D7DD2]/20 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                  Daha Fazla Yükle ({results.length}/{totalHits})
+                </button>
+              </div>
+            )}
+
+            {/* Loading skeleton */}
+            {loading && results.length === 0 && (
+              <div className="grid grid-cols-2 gap-2.5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-[#0a0a0a] border border-white/[0.04] rounded-xl p-3 flex gap-3 animate-pulse">
+                    <div className="w-11 h-11 rounded-lg bg-white/[0.04]" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-2.5 bg-white/[0.04] rounded w-3/4" />
+                      <div className="h-2 bg-white/[0.04] rounded w-1/2" />
+                      <div className="h-2 bg-white/[0.04] rounded w-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        /* Installed Mods Tab */
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {installedMods.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <Package className="w-10 h-10 text-[#52525B] mb-3" />
+              <p className="text-[10px] font-bold text-white mb-1">Yüklü mod yok</p>
+              <p className="text-[8px] text-[#52525B] font-medium">Modrinth'ten mod arayıp yükleyebilirsin!</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {installedMods.map((mod, idx) => (
+                <motion.div
+                  key={mod.projectId}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="bg-[#0a0a0a] border border-white/[0.04] rounded-xl p-3 flex items-center gap-3 hover:border-white/10 transition-all"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[#111111] border border-white/[0.06] overflow-hidden shrink-0">
+                    {mod.iconUrl ? (
+                      <img src={mod.iconUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[#52525B]">
+                        <Package className="w-4 h-4" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[10px] font-bold text-white truncate">{mod.title}</h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[8px] text-[#52525B] font-medium">by {mod.author}</span>
+                      <span className="text-[7px] text-[#52525B]">{mod.fileName}</span>
+                      <span className="text-[7px] text-[#52525B]">{formatFileSize(mod.fileSize)}</span>
+                    </div>
+                    <div className="flex gap-1 mt-1">
+                      {mod.loaders?.slice(0, 2).map(l => (
+                        <span key={l} className="text-[6px] bg-[#2D7DD2]/10 text-[#2D7DD2] px-1.5 py-0.5 rounded font-bold uppercase">{l}</span>
+                      ))}
+                      {mod.gameVersions?.slice(0, 2).map(v => (
+                        <span key={v} className="text-[6px] bg-white/[0.04] text-[#52525B] px-1.5 py-0.5 rounded font-bold">{v}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleUninstall(mod.projectId)}
+                    className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

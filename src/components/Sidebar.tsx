@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore.ts';
 import {
   Home, User, Bell, MessageSquare, Layers,
-  Globe, Image, ShoppingCart, Settings, X, ShoppingBag
+  Globe, Image, ShoppingCart, Settings, X, ShoppingBag, Package
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -29,6 +29,7 @@ export default function Sidebar() {
   const group2: SidebarItem[] = [
     { icon: MessageSquare, label: 'Relay Sohbet', path: '/chat' },
     { icon: Layers, label: 'Sürümler', path: '/versions' },
+    { icon: Package, label: 'Mod Yöneticisi', path: '/mods' },
     { icon: Globe, label: 'Gardırop', path: '/cosmetics' },
     { icon: Image, label: 'Galeri', path: '/gallery' },
   ];

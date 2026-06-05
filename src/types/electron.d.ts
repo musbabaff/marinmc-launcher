@@ -34,6 +34,7 @@ export interface IElectronAPI {
   logout: () => Promise<{ success: boolean }>;
   onUpdateStatus: (callback: (status: string, details?: any) => void) => () => void;
   onUpdateProgress: (callback: (percent: number) => void) => () => void;
+  downloadFile: (url: string, filename: string) => Promise<{ success: boolean; path?: string; error?: string }>;
 }
 
 declare global {

@@ -436,7 +436,11 @@
     "confirm": "Onayla",
     "javaPathPlaceholder": "Örn: C:\\Program Files\\Java\\jdk-17\\bin\\java.exe",
     "jvmArgsPlaceholder": "Java sanal makine parametreleri...",
-    "gameDirPlaceholder": "Örn: C:\\Users\\Kullanıcı\\AppData\\Roaming\\.marinmc"
+    "gameDirPlaceholder": "Örn: C:\\Users\\Kullanıcı\\AppData\\Roaming\\.marinmc",
+    "smartJvmOptLabel": "Akıllı JVM Optimizasyonu",
+    "smartJvmOptDesc": "Donanımınıza en uygun Garbage Collector ayarlarını ve işlemci çekirdek sınırlarını otomatik atayarak FPS artışı sağlar.",
+    "discordRpcLabel": "Discord Zengin Durum (RPC)",
+    "discordRpcDesc": "Oynadığınız sunucuyu, aktif oyuncu sayılarını ve oyun içi durumunuzu Discord profilinizde gösterir."
   },
   "chat": {
     "title": "MarinMC Relay",

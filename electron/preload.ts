@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // System Information
   getSystemInfo: () => ipcRenderer.invoke('system:info'),
+  updateSettings: (settings: any) => ipcRenderer.invoke('system:update-settings', settings),
   validateMojangUsername: (username: string) => ipcRenderer.invoke('system:validate-mojang', username),
   selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
   validateDirectory: (dirPath: string) => ipcRenderer.invoke('validate-directory', dirPath),

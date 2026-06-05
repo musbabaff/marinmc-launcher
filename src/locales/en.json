@@ -436,7 +436,11 @@
     "confirm": "Confirm",
     "javaPathPlaceholder": "e.g., C:\\Program Files\\Java\\jdk-17\\bin\\java.exe",
     "jvmArgsPlaceholder": "Java virtual machine parameters...",
-    "gameDirPlaceholder": "e.g., C:\\Users\\User\\AppData\\Roaming\\.marinmc"
+    "gameDirPlaceholder": "e.g., C:\\Users\\User\\AppData\\Roaming\\.marinmc",
+    "smartJvmOptLabel": "Smart JVM Optimization",
+    "smartJvmOptDesc": "Automatically tune Garbage Collector flags and thread bounds based on your system hardware for maximum FPS.",
+    "discordRpcLabel": "Discord Rich Presence",
+    "discordRpcDesc": "Show your server game status, player counts, and activity dynamically on your Discord profile."
   },
   "chat": {
     "title": "MarinMC Relay",

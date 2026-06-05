@@ -131,7 +131,9 @@ export default function HomePage() {
           version: settings.selectedVersion || '1.21',
           serverId: 'towny',
           gameDir: settings.launcherDir,
-          javaPath: settings.javaPath
+          javaPath: settings.javaPath,
+          smartJvmOpt: settings.smartJvmOpt,
+          discordRpcEnabled: settings.discordRpcEnabled
         };
 
         // Simulating progress if launching offline or locally for design test

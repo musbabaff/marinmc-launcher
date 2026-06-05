@@ -26,6 +26,8 @@ interface SettingsState {
   selectedVersion: string;
   selectedSubVersion: string;
   recentProfiles: RecentProfile[];
+  smartJvmOpt: boolean;
+  discordRpcEnabled: boolean;
   loadSettings: () => Promise<void>;
   saveSettings: (settings: { 
     ram: number; 
@@ -33,6 +35,8 @@ interface SettingsState {
     launcherDir: string; 
     javaPath: string;
     launcherBehavior?: 'minimize' | 'close' | 'nothing';
+    smartJvmOpt?: boolean;
+    discordRpcEnabled?: boolean;
   }) => void;
   setLanguage: (lang: 'tr' | 'en') => void;
   setTheme: (theme: 'dark' | 'light') => void;
@@ -88,6 +92,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       return INITIAL_MOCK_RECENT_PROFILES;
     }
   })(),
+  smartJvmOpt: (() => {
+    const val = localStorage.getItem('marinmc_setting_smartJvmOpt');
+    return val !== 'false'; // default true
+  })(),
+  discordRpcEnabled: (() => {
+    const val = localStorage.getItem('marinmc_setting_discordRpc');
+    return val !== 'false'; // default true
+  })(),
 
   loadSettings: async () => {
     let defaultDir = '';
@@ -105,6 +117,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         if (sysInfo.defaultGameDir) {
           defaultGameDirResolved = sysInfo.defaultGameDir;
         }
+
+        // Notify backend of loaded settings
+        const state = useSettingsStore.getState();
+        await window.electronAPI.updateSettings({
+          smartJvmOpt: state.smartJvmOpt,
+          discordRpcEnabled: state.discordRpcEnabled,
+          language: state.language
+        });
       } catch (err) {
         console.error('Error fetching system specs:', err);
       }
@@ -134,23 +154,49 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
 
   saveSettings: (newSettings) => {
+    const currentSmart = useSettingsStore.getState().smartJvmOpt;
+    const currentDiscord = useSettingsStore.getState().discordRpcEnabled;
+    const smartJvmOpt = newSettings.smartJvmOpt !== undefined ? newSettings.smartJvmOpt : currentSmart;
+    const discordRpcEnabled = newSettings.discordRpcEnabled !== undefined ? newSettings.discordRpcEnabled : currentDiscord;
+
     localStorage.setItem('marinmc_setting_ram', newSettings.ram.toString());
     localStorage.setItem('marinmc_setting_jvmArgs', newSettings.jvmArgs);
     localStorage.setItem('marinmc_setting_launcherDir', newSettings.launcherDir);
     localStorage.setItem('marinmc_setting_javaPath', newSettings.javaPath);
+    localStorage.setItem('marinmc_setting_smartJvmOpt', smartJvmOpt.toString());
+    localStorage.setItem('marinmc_setting_discordRpc', discordRpcEnabled.toString());
     if (newSettings.launcherBehavior) {
       localStorage.setItem('marinmc_setting_behavior', newSettings.launcherBehavior);
     }
     set((state) => ({ 
       ...newSettings,
+      smartJvmOpt,
+      discordRpcEnabled,
       launcherBehavior: newSettings.launcherBehavior || state.launcherBehavior
     }));
+
+    if (window.electronAPI) {
+      window.electronAPI.updateSettings({
+        smartJvmOpt,
+        discordRpcEnabled,
+        language: useSettingsStore.getState().language
+      });
+    }
   },
 
   setLanguage: (lang) => {
     localStorage.setItem('marinmc_setting_language', lang);
     import('../lib/i18n.ts').then(mod => mod.default.changeLanguage(lang));
     set({ language: lang });
+
+    if (window.electronAPI) {
+      const state = useSettingsStore.getState();
+      window.electronAPI.updateSettings({
+        smartJvmOpt: state.smartJvmOpt,
+        discordRpcEnabled: state.discordRpcEnabled,
+        language: lang
+      });
+    }
   },
 
   setTheme: (theme) => {
@@ -194,7 +240,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       'marinmc_setting_javaPath', 'marinmc_setting_behavior', 'marinmc_setting_language',
       'marinmc_setting_theme', 'marinmc_setting_autoUpdate',
       'marinmc_setting_selectedVersion', 'marinmc_setting_selectedSubVersion',
-      'marinmc_setting_recentProfiles'
+      'marinmc_setting_recentProfiles', 'marinmc_setting_smartJvmOpt', 'marinmc_setting_discordRpc'
     ];
     keys.forEach(k => localStorage.removeItem(k));
     import('../lib/i18n.ts').then(mod => mod.default.changeLanguage('tr'));
@@ -209,7 +255,17 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       autoUpdate: true,
       selectedVersion: '1.21',
       selectedSubVersion: '1.21.11',
-      recentProfiles: INITIAL_MOCK_RECENT_PROFILES
+      recentProfiles: INITIAL_MOCK_RECENT_PROFILES,
+      smartJvmOpt: true,
+      discordRpcEnabled: true
     });
+
+    if (window.electronAPI) {
+      window.electronAPI.updateSettings({
+        smartJvmOpt: true,
+        discordRpcEnabled: true,
+        language: 'tr'
+      });
+    }
   }
 }));

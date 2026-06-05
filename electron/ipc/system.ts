@@ -5,6 +5,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { resolveGameDir } from './game.js';
+import { backendSettings } from '../settings.js';
+import { discordRPC } from '../discord.js';
 
 ipcMain.handle('system:info', async () => {
   const totalRAM = Math.round(os.totalmem() / (1024 * 1024)); // Total memory in MB
@@ -162,4 +164,29 @@ ipcMain.handle('system:validate-mojang', async (_event, username: string) => {
   } catch (err) {
     return { success: false };
   }
+});
+
+ipcMain.handle('system:update-settings', async (_event, settings: {
+  smartJvmOpt: boolean;
+  discordRpcEnabled: boolean;
+  language: 'tr' | 'en';
+}) => {
+  const oldRpcEnabled = backendSettings.discordRpcEnabled;
+  backendSettings.smartJvmOpt = settings.smartJvmOpt;
+  backendSettings.discordRpcEnabled = settings.discordRpcEnabled;
+  backendSettings.language = settings.language;
+
+  console.log('[ipc/system] Settings updated:', backendSettings);
+
+  // Manage Discord RPC connection based on updated settings
+  if (backendSettings.discordRpcEnabled) {
+    await discordRPC.connect();
+    const details = backendSettings.language === 'tr' ? 'Başlatıcıda' : 'In Launcher';
+    const state = backendSettings.language === 'tr' ? 'Ana Menü' : 'Main Menu';
+    discordRPC.setActivity(details, state);
+  } else {
+    discordRPC.disconnect();
+  }
+
+  return { success: true };
 });

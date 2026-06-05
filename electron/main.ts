@@ -4,6 +4,8 @@ import * as os from 'os';
 import { autoUpdater } from 'electron-updater';
 import { createSplash, closeSplash } from './splash.js';
 import { setupTray, destroyTray, setGameRunning } from './tray.js';
+import { discordRPC } from './discord.js';
+import { backendSettings } from './settings.js';
 
 // Force correct userData path on Windows
 if (process.platform === 'win32') {
@@ -96,6 +98,17 @@ app.whenReady().then(() => {
   createWindow();
   setupTray();
 
+  // Connect to Discord RPC on startup if enabled
+  if (backendSettings.discordRpcEnabled) {
+    discordRPC.connect().then(() => {
+      const details = backendSettings.language === 'tr' ? 'Başlatıcıda' : 'In Launcher';
+      const state = backendSettings.language === 'tr' ? 'Ana Menü' : 'Main Menu';
+      discordRPC.setActivity(details, state);
+    }).catch((err) => {
+      console.error('[Discord RPC] Startup connection failed:', err.message);
+    });
+  }
+
   // Initialize auto updater (only in packaged builds)
   if (app.isPackaged) {
     autoUpdater.checkForUpdatesAndNotify().catch((err) => {
@@ -105,6 +118,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  discordRPC.disconnect();
   if (process.platform !== 'darwin') {
     destroyTray();
     app.quit();

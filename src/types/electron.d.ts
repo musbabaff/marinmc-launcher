@@ -12,6 +12,8 @@ export interface IElectronAPI {
     serverId: string;
     gameDir: string;
     javaPath?: string;
+    smartJvmOpt?: boolean;
+    discordRpcEnabled?: boolean;
   }) => Promise<{ success: boolean; error?: string }>;
   stopGame: () => Promise<{ success: boolean }>;
   isGameRunning: () => Promise<{ running: boolean }>;
@@ -21,6 +23,7 @@ export interface IElectronAPI {
   onGameStatus: (callback: (status: 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'LAUNCHING' | 'RUNNING' | 'ERROR') => void) => () => void;
   onGameCrash: (callback: (data: { exitCode: number; crashLogPath: string }) => void) => () => void;
   getSystemInfo: () => Promise<{ totalRAM: number; javaPath: string; os: string; defaultGameDir?: string }>;
+  updateSettings: (settings: { smartJvmOpt: boolean; discordRpcEnabled: boolean; language: 'tr' | 'en' }) => Promise<{ success: boolean }>;
   validateMojangUsername: (username: string) => Promise<{ success: boolean; uuid?: string; name?: string }>;
   selectDirectory: () => Promise<string | null>;
   validateDirectory: (dirPath: string) => Promise<{ valid: boolean; path?: string; error?: string }>;

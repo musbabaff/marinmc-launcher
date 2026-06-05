@@ -264,7 +264,9 @@ export default function ServerDetailPage() {
           version: selectedServer.version || '1.21',
           serverId: selectedServer.id,
           gameDir: launcherDir,
-          javaPath: useSettingsStore.getState().javaPath
+          javaPath: useSettingsStore.getState().javaPath,
+          smartJvmOpt: useSettingsStore.getState().smartJvmOpt,
+          discordRpcEnabled: useSettingsStore.getState().discordRpcEnabled
         };
 
         const result = await window.electronAPI.launchGame(launchOptions);

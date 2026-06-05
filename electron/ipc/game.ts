@@ -3,6 +3,54 @@ import { Client, Authenticator } from 'minecraft-launcher-core';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { discordRPC } from '../discord.js';
+import { backendSettings } from '../settings.js';
+
+export function getSmartJvmArgs(allocatedRamMb: number): string[] {
+  const args: string[] = [];
+
+  // 1. Choose optimal Garbage Collector
+  if (allocatedRamMb >= 4096) {
+    args.push('-XX:+UseG1GC');
+    args.push('-XX:MaxGCPauseMillis=50');
+    args.push('-XX:G1HeapRegionSize=32m');
+    args.push('-XX:G1ReservePercent=20');
+    args.push('-XX:G1NewSizePercent=30');
+    args.push('-XX:G1MaxNewSizePercent=40');
+    args.push('-XX:G1MixedGCCountTarget=8');
+    args.push('-XX:InitiatingHeapOccupancyPercent=15');
+    args.push('-XX:G1MixedGCLiveThresholdPercent=90');
+    args.push('-XX:G1RSetUpdatingPauseTimePercent=5');
+    args.push('-XX:SurvivorRatio=32');
+  } else {
+    args.push('-XX:+UseParallelGC');
+    args.push('-XX:MaxGCPauseMillis=100');
+  }
+
+  // 2. Thread allocations based on CPU Core Count
+  const cpuCores = os.cpus() ? os.cpus().length : 1;
+  if (cpuCores > 1) {
+    const gcThreads = Math.max(2, Math.min(cpuCores, 8));
+    args.push(`-XX:ParallelGCThreads=${gcThreads}`);
+    
+    if (allocatedRamMb >= 4096) {
+      const concThreads = Math.max(1, Math.floor(gcThreads / 4));
+      args.push(`-XX:ConcGCThreads=${concThreads}`);
+    }
+  }
+
+  // 3. Experimental & general JVM flags for performance
+  args.push('-XX:+UnlockExperimentalVMOptions');
+  args.push('-XX:+ParallelRefProcEnabled');
+  args.push('-XX:+DisableExplicitGC');
+  args.push('-XX:+AlwaysPreTouch');
+  args.push('-XX:+UseNUMA');
+  args.push('-XX:+UseStringDeduplication');
+  args.push('-Dsun.rmi.dgc.server.gcInterval=3600000');
+  args.push('-Dsun.rmi.dgc.client.gcInterval=3600000');
+
+  return args;
+}
 
 export function resolveGameDir(customDir?: string): string {
   if (customDir && customDir.trim() !== '') {
@@ -121,9 +169,29 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         }
       };
 
-      // Add custom JVM arguments if provided
+      // Resolve JVM arguments (Smart Optimization vs Custom Only)
+      let customArgsList: string[] = [];
       if (options.jvmArgs) {
-        launchOptions.customArgs = options.jvmArgs.split(' ').filter(Boolean);
+        customArgsList = options.jvmArgs.split(' ').filter(Boolean);
+      }
+
+      if (backendSettings.smartJvmOpt) {
+        const smartArgs = getSmartJvmArgs(options.ram);
+        const customKeys = new Set(customArgsList.map(arg => arg.split('=')[0]));
+        const uniqueSmartArgs = smartArgs.filter(arg => !customKeys.has(arg.split('=')[0]));
+        launchOptions.customArgs = [...uniqueSmartArgs, ...customArgsList];
+        
+        mainWindow.webContents.send('game:log',
+          `[MarinMC Launcher] Akıllı JVM optimizasyonu uygulandı.`);
+      } else {
+        launchOptions.customArgs = customArgsList;
+      }
+
+      // Set Discord activity: Launching game...
+      if (backendSettings.discordRpcEnabled) {
+        const details = backendSettings.language === 'tr' ? 'Oyuna Bağlanıyor...' : 'Connecting to game...';
+        const state = backendSettings.language === 'tr' ? `Minecraft ${options.version || '1.21'} Başlatılıyor` : `Launching Minecraft ${options.version || '1.21'}`;
+        discordRPC.setActivity(details, state, options.serverId);
       }
 
       // Status: CHECKING
@@ -173,6 +241,12 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
           `[MarinMC Launcher] Minecraft kapandı (çıkış kodu: ${code}).`);
         mainWindow.webContents.send('game:progress', 0);
 
+        if (backendSettings.discordRpcEnabled) {
+          const details = backendSettings.language === 'tr' ? 'Başlatıcıda' : 'In Launcher';
+          const state = backendSettings.language === 'tr' ? 'Ana Menü' : 'Main Menu';
+          discordRPC.setActivity(details, state);
+        }
+
         if (code !== 0 && code !== null) {
           mainWindow.webContents.send('game-crash', {
             exitCode: code,
@@ -186,6 +260,14 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         `[MarinMC Launcher] minecraft-launcher-core ile başlatılıyor...`);
 
       gameProcess = await launcher.launch(launchOptions);
+
+      // Update Discord status to: Playing on MarinMC [ServerName]
+      if (backendSettings.discordRpcEnabled) {
+        const details = backendSettings.language === 'tr' ? 'Oyunda' : 'Playing';
+        const serverName = options.serverId ? options.serverId.toUpperCase() : 'SURVIVAL';
+        const state = `MarinMC: ${serverName}`;
+        discordRPC.setActivity(details, state, options.serverId, Date.now());
+      }
 
       // The launch() resolves when the Java process is spawned
       mainWindow.webContents.send('game:status', 'RUNNING');
@@ -212,6 +294,12 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         console.error('[game.ts] Error killing game process:', err);
       }
       gameProcess = null;
+    }
+
+    if (backendSettings.discordRpcEnabled) {
+      const details = backendSettings.language === 'tr' ? 'Başlatıcıda' : 'In Launcher';
+      const state = backendSettings.language === 'tr' ? 'Ana Menü' : 'Main Menu';
+      discordRPC.setActivity(details, state);
     }
 
     mainWindow.webContents.send('game:status', 'IDLE');

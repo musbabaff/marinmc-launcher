@@ -137,11 +137,48 @@ function calculateMD5(filePath: string): Promise<string> {
   });
 }
 
+function cleanDuplicateMods(modsDir: string, logCallback: (msg: string) => void) {
+  if (!fs.existsSync(modsDir)) return;
+  try {
+    const files = fs.readdirSync(modsDir);
+    const prefixes = [
+      { key: 'fabric-api', target: 'fabric-api-0.100.0+1.21.8.jar' },
+      { key: 'sodium-fabric', target: 'sodium-fabric-0.6.0+1.21.8.jar' },
+      { key: 'iris', target: 'iris-1.8.0+1.21.8.jar' },
+      { key: 'lithium', target: 'lithium-fabric-0.12.0+1.21.8.jar' },
+      { key: 'reeses-sodium-options', target: 'reeses-sodium-options-1.7.2+1.21.8.jar' },
+      { key: 'sodium-extra', target: 'sodium-extra-0.5.4+1.21.8.jar' },
+      { key: 'marinmc-client-mod', target: 'marinmc-client-mod-1.0.0.jar' }
+    ];
+
+    for (const file of files) {
+      if (!file.endsWith('.jar')) continue;
+      
+      for (const prefix of prefixes) {
+        if (file.toLowerCase().startsWith(prefix.key) && file !== prefix.target) {
+          const dupPath = path.join(modsDir, file);
+          try {
+            fs.unlinkSync(dupPath);
+            logCallback(`[MarinMC Launcher] Çakışan eski mod silindi: ${file}`);
+          } catch (err: any) {
+            console.error(`Failed to delete duplicate mod ${file}:`, err.message);
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.error('Error during mod cleanup:', err.message);
+  }
+}
+
 async function verifyPerformanceMods(gameDir: string, logCallback: (msg: string) => void): Promise<void> {
   const modsDir = path.join(gameDir, 'mods');
   if (!fs.existsSync(modsDir)) {
     fs.mkdirSync(modsDir, { recursive: true });
   }
+
+  // Clean duplicate essential mods first to prevent Fabric loading failures
+  cleanDuplicateMods(modsDir, logCallback);
 
   logCallback(`[MarinMC Launcher] Optimizasyon modları kontrol ediliyor...`);
 

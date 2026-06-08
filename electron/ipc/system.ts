@@ -110,19 +110,32 @@ ipcMain.handle('upload-skin', async () => {
 
 ipcMain.handle('open-crash-log', async (_event, crashPath: string) => {
   try {
+    let targetFile = '';
     if (fs.existsSync(crashPath)) {
       const stats = fs.statSync(crashPath);
       if (stats.isDirectory()) {
         const files = fs.readdirSync(crashPath);
         if (files.length > 0) {
           const latest = files.sort().reverse()[0];
-          await shell.openPath(path.join(crashPath, latest));
-          return { success: true };
+          targetFile = path.join(crashPath, latest);
         }
       } else {
-        await shell.openPath(crashPath);
-        return { success: true };
+        targetFile = crashPath;
       }
+    }
+
+    // Fallback to logs/latest.log if no crash report exists
+    if (!targetFile || !fs.existsSync(targetFile)) {
+      const gameDir = path.dirname(crashPath);
+      const latestLog = path.join(gameDir, 'logs', 'latest.log');
+      if (fs.existsSync(latestLog)) {
+        targetFile = latestLog;
+      }
+    }
+
+    if (targetFile && fs.existsSync(targetFile)) {
+      await shell.openPath(targetFile);
+      return { success: true };
     }
     return { success: false, error: 'Hata günlüğü dosyası bulunamadı.' };
   } catch (err: any) {
@@ -132,23 +145,35 @@ ipcMain.handle('open-crash-log', async (_event, crashPath: string) => {
 
 ipcMain.handle('copy-crash-log', async (_event, crashPath: string) => {
   try {
+    let targetFile = '';
     if (fs.existsSync(crashPath)) {
       const stats = fs.statSync(crashPath);
-      let targetFile = crashPath;
       if (stats.isDirectory()) {
         const files = fs.readdirSync(crashPath);
         if (files.length > 0) {
           const latest = files.sort().reverse()[0];
           targetFile = path.join(crashPath, latest);
-        } else {
-          return { success: false, error: 'Dosya bulunamadı.' };
         }
+      } else {
+        targetFile = crashPath;
       }
+    }
+
+    // Fallback to logs/latest.log if no crash report exists
+    if (!targetFile || !fs.existsSync(targetFile)) {
+      const gameDir = path.dirname(crashPath);
+      const latestLog = path.join(gameDir, 'logs', 'latest.log');
+      if (fs.existsSync(latestLog)) {
+        targetFile = latestLog;
+      }
+    }
+
+    if (targetFile && fs.existsSync(targetFile)) {
       const content = fs.readFileSync(targetFile, 'utf-8');
       clipboard.writeText(content);
       return { success: true };
     }
-    return { success: false, error: 'Dosya bulunamadı.' };
+    return { success: false, error: 'Hata günlüğü dosyası bulunamadı.' };
   } catch (err: any) {
     return { success: false, error: err.message };
   }

@@ -104,9 +104,9 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
               <div className="space-y-4">
                 <div>
                   <span className="text-[8px] font-bold text-[#52525B] tracking-widest uppercase block mb-1">{t('servers.versionText')}</span>
-                  <button className="bg-black/40 border border-white/10 px-3 py-1.8 rounded-xl text-[10px] font-extrabold text-white flex items-center justify-between w-full">
-                    <span>{settings.selectedSubVersion || '1.21.7'}</span>
-                    <ChevronDown className="w-3.5 h-3.5 text-white/50" />
+                  <button className="bg-black/40 border border-white/10 px-3 py-1.8 rounded-xl text-[10px] font-extrabold text-white flex items-center justify-between w-full pointer-events-none select-none">
+                    <span>1.21.8</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-white/20" />
                   </button>
                 </div>
 

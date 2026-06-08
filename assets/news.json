@@ -1,0 +1,25 @@
+{
+  "news": [
+    {
+      "id": "1",
+      "title": "MarinMC Sezon 1: Yeni Dünyanın Kapıları Açıldı!",
+      "date": "8 Haziran 2026",
+      "description": "Büyük açılış gerçekleşti! Tamamen optimize edilmiş özel altyapımız, adil oyun korumamız ve oyna.marinmc.com doğrudan bağlantı sistemiyle kesintisiz macera başladı. Hemen yerini al!",
+      "imageUrl": "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      "id": "2",
+      "title": "Gelişmiş Performans ve FPS Optimizasyon Güncellemesi",
+      "date": "7 Haziran 2026",
+      "description": "Sodium, Iris Shaders ve özel Fabric çekirdeği ile donatılmış MarinMC Client sayesinde donma ve kasma sorunlarına son. Eski bilgisayarlarda bile maksimum FPS deneyimini yaşayın!",
+      "imageUrl": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      "id": "3",
+      "title": "İlk Özel Pelerinler ve Kozmetik Mağazası Yayında",
+      "date": "6 Haziran 2026",
+      "description": "Sunucumuza özel pelerin ve kanat tasarımları websitemizde yerini aldı! Web mağazasından aldığın kozmetikleri oyun içinde RSHIFT menüsünden anlık olarak görebilir ve yönetebilirsin.",
+      "imageUrl": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80"
+    }
+  ]
+}

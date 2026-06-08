@@ -118,12 +118,12 @@ export async function checkConnectivity(): Promise<boolean> {
     await axios.get('https://api.marinmc.com/ping', { timeout: 4000 });
     return true;
   } catch {
-    // Fallback to a public API to verify internet access
+    // Fallback to a public CORS-enabled API to verify internet access
     try {
-      await axios.get('https://api.mojang.com', { timeout: 4000 });
+      await axios.get('https://api.github.com', { timeout: 4000 });
       return true;
     } catch {
-      return false;
+      return typeof navigator !== 'undefined' ? navigator.onLine : false;
     }
   }
 }

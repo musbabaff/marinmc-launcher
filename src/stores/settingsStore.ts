@@ -83,7 +83,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     return val !== 'false'; // default true
   })(),
   selectedVersion: localStorage.getItem('marinmc_setting_selectedVersion') || '1.21',
-  selectedSubVersion: localStorage.getItem('marinmc_setting_selectedSubVersion') || '1.21.11',
+  selectedSubVersion: localStorage.getItem('marinmc_setting_selectedSubVersion') || '1.21.8',
   recentProfiles: (() => {
     try {
       const saved = localStorage.getItem('marinmc_setting_recentProfiles');
@@ -254,7 +254,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       theme: 'dark',
       autoUpdate: true,
       selectedVersion: '1.21',
-      selectedSubVersion: '1.21.11',
+      selectedSubVersion: '1.21.8',
       recentProfiles: INITIAL_MOCK_RECENT_PROFILES,
       smartJvmOpt: true,
       discordRpcEnabled: true

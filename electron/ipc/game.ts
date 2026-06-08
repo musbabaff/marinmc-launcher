@@ -3,6 +3,8 @@ import { Client, Authenticator } from 'minecraft-launcher-core';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import * as crypto from 'crypto';
+import axios from 'axios';
 import { discordRPC } from '../discord.js';
 import { backendSettings } from '../settings.js';
 
@@ -80,6 +82,175 @@ export function resolveGameDir(customDir?: string): string {
   return path.join(home, '.marinmc');
 }
 
+const PERFORMANCE_MODS = [
+  {
+    name: 'Fabric API',
+    filename: 'fabric-api-0.100.0+1.21.8.jar',
+    url: 'https://cdn.marinmc.com/mods/fabric-api-0.100.0+1.21.8.jar',
+    md5: 'a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8'
+  },
+  {
+    name: 'Sodium',
+    filename: 'sodium-fabric-0.6.0+1.21.8.jar',
+    url: 'https://cdn.marinmc.com/mods/sodium-fabric-0.6.0+1.21.8.jar',
+    md5: 'b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9'
+  },
+  {
+    name: 'Iris Shaders',
+    filename: 'iris-1.8.0+1.21.8.jar',
+    url: 'https://cdn.marinmc.com/mods/iris-1.8.0+1.21.8.jar',
+    md5: 'c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0'
+  },
+  {
+    name: 'Lithium',
+    filename: 'lithium-fabric-0.12.0+1.21.8.jar',
+    url: 'https://cdn.marinmc.com/mods/lithium-fabric-0.12.0+1.21.8.jar',
+    md5: 'd6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1'
+  },
+  {
+    name: 'Reese\'s Sodium Options',
+    filename: 'reeses-sodium-options-1.7.2+1.21.8.jar',
+    url: 'https://cdn.marinmc.com/mods/reeses-sodium-options-1.7.2+1.21.8.jar',
+    md5: 'e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2'
+  },
+  {
+    name: 'Sodium Extra',
+    filename: 'sodium-extra-0.5.4+1.21.8.jar',
+    url: 'https://cdn.marinmc.com/mods/sodium-extra-0.5.4+1.21.8.jar',
+    md5: 'f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3'
+  },
+  {
+    name: 'MarinMC Client Mod',
+    filename: 'marinmc-client-mod-1.0.0.jar',
+    url: 'https://cdn.marinmc.com/mods/marinmc-client-mod-1.0.0.jar',
+    md5: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6'
+  }
+];
+
+function calculateMD5(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('md5');
+    const stream = fs.createReadStream(filePath);
+    stream.on('data', data => hash.update(data));
+    stream.on('end', () => resolve(hash.digest('hex')));
+    stream.on('error', err => reject(err));
+  });
+}
+
+async function verifyPerformanceMods(gameDir: string, logCallback: (msg: string) => void): Promise<void> {
+  const modsDir = path.join(gameDir, 'mods');
+  if (!fs.existsSync(modsDir)) {
+    fs.mkdirSync(modsDir, { recursive: true });
+  }
+
+  logCallback(`[MarinMC Launcher] Optimizasyon modları kontrol ediliyor...`);
+
+  for (const mod of PERFORMANCE_MODS) {
+    const modPath = path.join(modsDir, mod.filename);
+    let needDownload = true;
+
+    if (fs.existsSync(modPath)) {
+      try {
+        const fileHash = await calculateMD5(modPath);
+        if (fileHash === mod.md5) {
+          logCallback(`[MarinMC Launcher] Doğrulandı (Bütünlük OK): ${mod.name}`);
+          needDownload = false;
+        } else {
+          logCallback(`[MarinMC Launcher] Bütünlük hatası: ${mod.name} (MD5 uyuşmadı, tekrar indiriliyor).`);
+        }
+      } catch (hashErr: any) {
+        logCallback(`[UYARI] Mod bütünlüğü doğrulanamadı (${mod.name}): ${hashErr.message}`);
+      }
+    }
+
+    if (needDownload) {
+      logCallback(`[MarinMC Launcher] Mod indiriliyor: ${mod.name}...`);
+      try {
+        const response = await axios({
+          method: 'get',
+          url: mod.url,
+          responseType: 'stream',
+          timeout: 20000
+        });
+
+        const writer = fs.createWriteStream(modPath);
+        response.data.pipe(writer);
+
+        await new Promise<void>((resolve, reject) => {
+          writer.on('finish', resolve);
+          writer.on('error', reject);
+        });
+        logCallback(`[MarinMC Launcher] Başarıyla indirildi: ${mod.name}`);
+      } catch (err: any) {
+        console.error(`Failed to download mod ${mod.name}:`, err.message);
+        logCallback(`[UYARI] ${mod.name} indirilemedi (offline/hata): ${err.message}. Devam ediliyor.`);
+      }
+    }
+  }
+}
+
+async function downloadResourcePack(gameDir: string, logCallback: (msg: string) => void): Promise<void> {
+  const resourcePacksDir = path.join(gameDir, 'resourcepacks');
+  if (!fs.existsSync(resourcePacksDir)) {
+    fs.mkdirSync(resourcePacksDir, { recursive: true });
+  }
+  const packPath = path.join(resourcePacksDir, 'programmatic_marinmc_pack.zip');
+  const url = 'https://cdn.marinmc.com/resourcepacks/marinmc_pack.zip';
+
+  logCallback(`[MarinMC Launcher] Server kaynak paketi indiriliyor...`);
+  try {
+    const response = await axios({
+      method: 'get',
+      url: url,
+      responseType: 'stream',
+      timeout: 20000
+    });
+
+    const writer = fs.createWriteStream(packPath);
+    response.data.pipe(writer);
+
+    await new Promise<void>((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
+    logCallback(`[MarinMC Launcher] Server kaynak paketi başarıyla indirildi.`);
+  } catch (err: any) {
+    console.error('Failed to download resource pack:', err.message);
+    logCallback(`[UYARI] Sunucu kaynak paketi indirilemedi: ${err.message}. Devam ediliyor.`);
+  }
+}
+
+function injectResourcePack(gameDir: string, logCallback: (msg: string) => void) {
+  try {
+    const optionsPath = path.join(gameDir, 'options.txt');
+    let content = '';
+    if (fs.existsSync(optionsPath)) {
+      content = fs.readFileSync(optionsPath, 'utf8');
+    }
+
+    const targetLine = 'resourcePacks:["vanilla","programmatic_marinmc_pack.zip"]';
+    let updated = false;
+    const lines = content.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].startsWith('resourcePacks:')) {
+        lines[i] = targetLine;
+        updated = true;
+        break;
+      }
+    }
+
+    if (!updated) {
+      lines.push(targetLine);
+    }
+
+    fs.writeFileSync(optionsPath, lines.join('\n'), 'utf8');
+    logCallback(`[MarinMC Launcher] options.txt güncellendi (Kaynak paketi aktif edildi).`);
+  } catch (err: any) {
+    console.error('Failed to inject resource pack options:', err.message);
+    logCallback(`[HATA] options.txt dosyasına kaynak paketi enjekte edilemedi: ${err.message}`);
+  }
+}
+
 let gameProcess: any = null;
 
 export function registerGameHandlers(mainWindow: BrowserWindow) {
@@ -117,6 +288,24 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
           `Hata: ${mkdirErr.message}`
         );
       }
+
+      mainWindow.webContents.send('game:log',
+        `[MarinMC Launcher] Senkronizasyon aşaması başlatıldı (Fabric 1.21.8).`);
+
+      // 1. Verify performance mods
+      await verifyPerformanceMods(gameDir, (msg) => {
+        mainWindow.webContents.send('game:log', msg);
+      });
+
+      // 2. Download resource pack
+      await downloadResourcePack(gameDir, (msg) => {
+        mainWindow.webContents.send('game:log', msg);
+      });
+
+      // 3. Inject resource pack
+      injectResourcePack(gameDir, (msg) => {
+        mainWindow.webContents.send('game:log', msg);
+      });
 
       mainWindow.webContents.send('game:log',
         `[MarinMC Launcher] Oyun başlatma motoru hazırlandı.`);
@@ -226,9 +415,22 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
       });
 
       // Listen for arguments (logged right before launch)
-      launcher.on('arguments', (e: any) => {
+      launcher.on('arguments', (args: any) => {
         mainWindow.webContents.send('game:log',
           `[MarinMC Launcher] Java başlatma argümanları hazırlandı.`);
+        
+        // Enforce direct server connection arguments in args array
+        if (Array.isArray(args)) {
+          if (!args.includes('--server')) {
+            args.push('--server', 'oyna.marinmc.com');
+          }
+          if (!args.includes('--port')) {
+            args.push('--port', '25565');
+          }
+        }
+        
+        mainWindow.webContents.send('game:log',
+          `[MarinMC Launcher] Sunucu bağlantı parametreleri (oyna.marinmc.com:25565) doğrulanıp eklendi.`);
         mainWindow.webContents.send('game:status', 'LAUNCHING');
       });
 

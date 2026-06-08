@@ -29,8 +29,8 @@ const VERSION_LIST: VersionItem[] = [
   },
   {
     num: '1.21',
-    label: 'Fabric 🔷 1.21.x',
-    subs: ['1.21.7', '1.21.11', '1.21.10', '1.21.9', '1.21.8', '1.21.1'],
+    label: 'Fabric 🔷 1.21.8',
+    subs: ['1.21.8'],
     bgUrl: vBg2,
     iconType: 'tag'
   },
@@ -59,28 +59,28 @@ const VERSION_LIST: VersionItem[] = [
     num: '1.13',
     label: 'Vanilla ☕ 1.13.x',
     subs: ['1.13.1', '1.13.2'],
-    bgUrl: vBg4, // reuse deep dark
+    bgUrl: vBg4,
     iconType: 'tag'
   },
   {
     num: '1.12',
     label: 'Forge 🛠️ 1.12.x',
     subs: ['1.12.2', '1.12.1'],
-    bgUrl: vBg1, // reuse village
+    bgUrl: vBg1,
     iconType: 'tag'
   },
   {
     num: '1.8',
     label: 'Vanilla ☕ 1.8.x',
     subs: ['1.8.9', '1.8.8'],
-    bgUrl: vBg2, // reuse lush cave
+    bgUrl: vBg2,
     iconType: 'anvil'
   },
   {
     num: '1.7',
     label: 'Forge 🛠️ 1.7.x',
     subs: ['1.7.10', '1.7.2'],
-    bgUrl: vBg3, // reuse cherry blossom
+    bgUrl: vBg3,
     iconType: 'anvil'
   }
 ];
@@ -134,20 +134,27 @@ export default function VersionsPage() {
       {/* Grid of Version Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pb-6">
         {VERSION_LIST.map((ver) => {
-          const isSelected = settings.selectedVersion === ver.num;
-          const currentSub = isSelected ? settings.selectedSubVersion : ver.subs[0];
-          const isOpen = activeDropdown === ver.num;
+          const isActive = ver.num === '1.21';
+          const isSelected = settings.selectedVersion === ver.num && isActive;
+          const currentSub = isActive ? '1.21.8' : ver.subs[0];
+          const isOpen = activeDropdown === ver.num && isActive;
 
           return (
             <div
               key={ver.num}
-              onClick={() => handleSelectVersion(ver.num, ver.subs[0])}
-              className={`h-[145px] rounded-2xl border p-4 flex flex-col justify-between relative overflow-hidden group cursor-pointer transition-all duration-300 ${
+              onClick={() => isActive && handleSelectVersion(ver.num, '1.21.8')}
+              className={`h-[145px] rounded-2xl border p-4 flex flex-col justify-between relative overflow-hidden group transition-all duration-300 ${
                 isSelected
                   ? 'border-[#208390] bg-[#060305] shadow-[0_0_20px_rgba(32,131,144,0.25)]'
                   : 'border-white/[0.04] bg-[#060305]'
-              }`}
+              } ${!isActive ? 'opacity-50 pointer-events-none select-none' : 'cursor-pointer'}`}
             >
+              {/* Coming soon badge */}
+              {!isActive && (
+                <div className="absolute top-3 right-3 bg-red-500/20 border border-red-500/40 text-red-400 text-[8.5px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider z-20">
+                  {settings.language === 'tr' ? 'YAKINDA' : 'COMING SOON'}
+                </div>
+              )}
               {/* Background Artwork */}
               <div
                 className={`absolute inset-0 bg-cover bg-center transition-all duration-500 pointer-events-none ${
@@ -163,7 +170,7 @@ export default function VersionsPage() {
               <div className="flex justify-between items-start z-10">
                 <div className="relative">
                   <button
-                    onClick={(e) => toggleDropdown(e, ver.num)}
+                    onClick={(e) => isActive && toggleDropdown(e, ver.num)}
                     className="bg-black/60 hover:bg-black/80 px-2 py-0.8 rounded-lg text-[9px] font-bold text-white border border-white/10 flex items-center gap-1.5 transition-all"
                   >
                     <span>{currentSub}</span>

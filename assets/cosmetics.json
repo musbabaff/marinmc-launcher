@@ -1,0 +1,12 @@
+{
+  "players": {
+    "dbrn": {
+      "cape": "assets/textures/cosmetics/capes/marin_premium.png",
+      "wings": "assets/textures/cosmetics/wings/dragon_blue.png"
+    },
+    "steve": {
+      "cape": "assets/textures/cosmetics/capes/standard.png",
+      "hat": "assets/textures/cosmetics/hats/santa_red.png"
+    }
+  }
+}

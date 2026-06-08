@@ -50,6 +50,34 @@ export default function HomePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [currentFileDownloading, setCurrentFileDownloading] = useState('');
 
+  interface GitHubNewsItem {
+    title: string;
+    date: string;
+    imageUrl: string;
+  }
+  const [newsData, setNewsData] = useState<GitHubNewsItem[]>([]);
+  const [newsError, setNewsError] = useState(false);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const response = await fetch('https://raw.githubusercontent.com/musbabaff/marinmc-launcher/main/assets/news.json');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        const newsArray = Array.isArray(data) ? data : (data && Array.isArray(data.news) ? data.news : null);
+        if (newsArray && newsArray.length >= 3) {
+          setNewsData(newsArray.slice(0, 3));
+        } else {
+          throw new Error('Invalid data format');
+        }
+      } catch (err) {
+        console.warn('GitHub news feed unreachable, showing offline states:', err);
+        setNewsError(true);
+      }
+    };
+    fetchNews();
+  }, []);
+
   // Friends Panel states
   const [friendsTab, setFriendsTab] = useState<'friends' | 'requests'>('friends');
   const [friendsSearch, setFriendsSearch] = useState('');
@@ -448,36 +476,67 @@ export default function HomePage() {
           </div>
 
           {/* Additional News Cards */}
+          {/* Additional News Cards */}
           <div className="grid grid-cols-3 gap-3">
-            {/* Community Event */}
-            <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-gradient-to-br from-[#1a1535]/80 to-[#0b0a0d]/95 flex p-3 items-center group cursor-pointer">
-              <div className="flex flex-col z-10">
-                <span className="text-[7px] text-[#8B5CF6] font-black uppercase tracking-widest">{t('home.community')}</span>
-                <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5">{t('home.survivalEvent')}</h3>
-                <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.eventDesc')}</p>
-              </div>
-              <div className="text-[22px] font-black text-[#8B5CF6]/10 select-none absolute right-3">🎮</div>
-            </div>
+            {newsData.length === 3 && !newsError ? (
+              newsData.map((item, idx) => {
+                const colors = [
+                  { from: 'from-[#1a1535]/80', to: 'to-[#0b0a0d]/95', tagColor: 'text-[#8B5CF6]', tag: t('home.community') },
+                  { from: 'from-[#0a1f15]/80', to: 'to-[#0b0c0a]/95', tagColor: 'text-[#259457]', tag: t('home.serverStatus') },
+                  { from: 'from-[#111111]/80', to: 'to-[#0b0c0a]/95', tagColor: 'text-[#F59E0B]', tag: t('home.tip') }
+                ];
+                const c = colors[idx];
+                return (
+                  <div
+                    key={idx}
+                    className={`relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-[#111111]/45 flex p-3 items-center group cursor-pointer`}
+                  >
+                    <div
+                      className="absolute inset-0 bg-cover bg-center opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none"
+                      style={{ backgroundImage: `url(${item.imageUrl})` }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-br from-black/60 to-black/90 pointer-events-none" />
+                    <div className="flex flex-col z-10 pr-2">
+                      <span className={`text-[7px] ${c.tagColor} font-black uppercase tracking-widest`}>{c.tag}</span>
+                      <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5 line-clamp-1">{item.title}</h3>
+                      <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{item.date}</p>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <>
+                {/* Community Event */}
+                <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-gradient-to-br from-[#1a1535]/80 to-[#0b0a0d]/95 flex p-3 items-center group cursor-pointer">
+                  <div className="flex flex-col z-10">
+                    <span className="text-[7px] text-[#8B5CF6] font-black uppercase tracking-widest">{t('home.community')} (Offline)</span>
+                    <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5">{t('home.survivalEvent')}</h3>
+                    <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.eventDesc')}</p>
+                  </div>
+                  <div className="text-[22px] font-black text-[#8B5CF6]/10 select-none absolute right-3">🎮</div>
+                </div>
 
-            {/* Server Status */}
-            <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-gradient-to-br from-[#0a1f15]/80 to-[#0b0c0a]/95 flex p-3 items-center group cursor-pointer">
-              <div className="flex flex-col z-10">
-                <span className="text-[7px] text-[#259457] font-black uppercase tracking-widest">{t('home.serverStatus')}</span>
-                <h3 className="text-[10px] font-black text-[#259457] leading-tight uppercase mt-0.5">{t('home.allOnline')}</h3>
-                <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.activePlayers', { count: 247 })}</p>
-              </div>
-              <div className="text-[22px] font-black text-[#259457]/10 select-none absolute right-3">●</div>
-            </div>
+                {/* Server Status */}
+                <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-gradient-to-br from-[#0a1f15]/80 to-[#0b0c0a]/95 flex p-3 items-center group cursor-pointer">
+                  <div className="flex flex-col z-10">
+                    <span className="text-[7px] text-[#259457] font-black uppercase tracking-widest">{t('home.serverStatus')} (Offline)</span>
+                    <h3 className="text-[10px] font-black text-[#259457] leading-tight uppercase mt-0.5">{t('home.allOnline')}</h3>
+                    <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.activePlayers', { count: 247 })}</p>
+                  </div>
+                  <div className="text-[22px] font-black text-[#259457]/10 select-none absolute right-3">●</div>
+                </div>
 
-            {/* Tips */}
-            <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-[#111111]/45 flex p-3 items-center group cursor-pointer">
-              <div className="flex flex-col z-10">
-                <span className="text-[7px] text-[#F59E0B] font-black uppercase tracking-widest">{t('home.tip')}</span>
-                <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5">{t('home.performance')}</h3>
-                <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.fpsTip')}</p>
-              </div>
-              <div className="text-[22px] font-black text-[#F59E0B]/10 select-none absolute right-3">⚡</div>
-            </div>
+                {/* Tips */}
+                <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-[#111111]/45 flex p-3 items-center group cursor-pointer">
+                  <div className="flex flex-col z-10">
+                    <span className="text-[7px] text-[#F59E0B] font-black uppercase tracking-widest">{t('home.tip')} (Offline)</span>
+                    <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5">{t('home.performance')}</h3>
+                    <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.fpsTip')}</p>
+                  </div>
+                  <div className="text-[22px] font-black text-[#F59E0B]/10 select-none absolute right-3">⚡</div>
+                </div>
+              </>
+            )}
           </div>
 
         </div>

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "marinmc-client",
+  "version": "${version}",
+  "name": "MarinMC Client Mod",
+  "description": "Official client enhancements, cosmetics and Lunar-style HUD overlay for MarinMC.",
+  "authors": [
+    "MarinMC"
+  ],
+  "contact": {
+    "homepage": "https://marinmc.com",
+    "sources": "https://github.com/musbabaff/marinmc-launcher"
+  },
+  "license": "MIT",
+  "icon": "assets/marinmc-client/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.marinmc.client.MarinClient"
+    ]
+  },
+  "mixins": [
+    "marinmc-client.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "minecraft": "1.21.8",
+    "fabric": "*"
+  }
+}

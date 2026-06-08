@@ -588,11 +588,21 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         ? options.javaPath
         : 'java';
 
+      let customVersionName: string | undefined = undefined;
+      let vanillaVersionNumber = versionToLaunch;
+
+      if (versionToLaunch.startsWith('fabric-loader-')) {
+        customVersionName = versionToLaunch;
+        const parts = versionToLaunch.split('-');
+        vanillaVersionNumber = parts[parts.length - 1]; // e.g., '1.21.8'
+      }
+
       const launchOptions: any = {
         authorization: auth,
         root: gameDir,
         version: {
-          number: versionToLaunch,
+          number: vanillaVersionNumber,
+          custom: customVersionName,
           type: 'release'
         },
         memory: {

@@ -1,6 +1,6 @@
 {
   "name": "marinmc-launcher",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Official Minecraft Launcher for MarinMC",
   "main": "dist-electron/main.js",
   "author": "MarinMC",

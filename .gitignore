@@ -77,3 +77,7 @@ Desktop.ini
 .env.test.local
 .env.production.local
 .env*.local
+
+# Client Mod (Gradle build artifacts)
+marinmc-client-mod/.gradle/
+marinmc-client-mod/build/

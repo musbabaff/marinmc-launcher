@@ -44,7 +44,6 @@ bower_components
 .lock-wscript
 
 # Dependency directories
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 

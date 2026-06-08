@@ -22,12 +22,6 @@ jobs:
           - os: windows-latest
             artifact_name: MarinMC-Launcher-Windows
             artifact_ext: exe
-          - os: macos-latest
-            artifact_name: MarinMC-Launcher-macOS
-            artifact_ext: dmg
-          - os: ubuntu-latest
-            artifact_name: MarinMC-Launcher-Linux
-            artifact_ext: AppImage
 
     steps:
       - name: Checkout Source Code

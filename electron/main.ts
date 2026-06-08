@@ -109,11 +109,14 @@ app.whenReady().then(() => {
     });
   }
 
-  // Initialize auto updater (only in packaged builds)
+  // Initialize auto updater (only in packaged builds, with a 5s delay)
   if (app.isPackaged) {
-    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-      console.error('Error starting auto-updater:', err);
-    });
+    autoUpdater.logger = console;
+    setTimeout(() => {
+      autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+        console.error('Error starting auto-updater:', err);
+      });
+    }, 5000);
   }
 });
 

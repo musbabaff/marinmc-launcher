@@ -28,6 +28,7 @@ win:
         - x64
   icon: assets/icon.ico
   requestedExecutionLevel: asInvoker
+  verifyUpdateCodeSignature: false
   publish:
     provider: github
     owner: musbabaff

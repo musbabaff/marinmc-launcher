@@ -7,6 +7,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
+import com.marinmc.client.gui.hud.HudEditorScreen;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -101,9 +102,15 @@ public class OverlayScreen extends Screen {
             this.addDrawableChild(toggleButton);
         }
 
-        // Add a back/close button
+        // Add HUD Editor and Close Overlay buttons
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Edit HUD"), button -> {
+            if (this.client != null) {
+                this.client.setScreen(new HudEditorScreen());
+            }
+        }).dimensions(this.width / 2 - 125, this.height - 45, 120, 20).build());
+
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Close Overlay"), button -> this.close())
-            .dimensions(this.width / 2 - 60, this.height - 40, 120, 20).build());
+            .dimensions(this.width / 2 + 5, this.height - 45, 120, 20).build());
     }
 
     @Override

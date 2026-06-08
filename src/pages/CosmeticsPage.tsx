@@ -4,8 +4,9 @@ import { useAuthStore } from '../stores/authStore.ts';
 import { motion } from 'framer-motion';
 import {
   Star, ChevronLeft, ChevronRight,
-  RotateCcw, Download, Play, Cloud, Plus
+  Cloud, Plus
 } from 'lucide-react';
+import ThreePreview from '../components/ThreePreview.tsx';
 
 // Real Minecraft cape images from NameMC
 const CAPES = [
@@ -40,8 +41,6 @@ export default function CosmeticsPage() {
   const [capeScroll, setCapeScroll] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const [activeSkin, setActiveSkin] = useState(username);
-  const [skinRotation, setSkinRotation] = useState(0);
-  const [isRotating, setIsRotating] = useState(false);
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -50,23 +49,6 @@ export default function CosmeticsPage() {
 
   const handleSkinSelect = (skinUser: string) => {
     setActiveSkin(skinUser);
-    setSkinRotation(0);
-  };
-
-  const handleRotate = () => {
-    setIsRotating(true);
-    setSkinRotation(prev => prev + 90);
-    setTimeout(() => setIsRotating(false), 500);
-  };
-
-  // Choose the right mc-heads angle based on rotation
-  const getSkinUrl = () => {
-    const angles = ['right', 'front', 'left', 'back'];
-    const idx = ((skinRotation / 90) % 4 + 4) % 4;
-    const angle = angles[idx];
-    if (angle === 'front') return `https://mc-heads.net/body/${activeSkin}/250`;
-    if (angle === 'back') return `https://mc-heads.net/body/${activeSkin}/250`;
-    return `https://mc-heads.net/body/${activeSkin}/250`;
   };
 
   return (
@@ -85,37 +67,21 @@ export default function CosmeticsPage() {
             {/* Glowing border effect */}
             <div className="absolute inset-0 rounded-2xl shadow-[inset_0_0_30px_rgba(45,125,210,0.15)] pointer-events-none" />
 
-            {/* Skin model with rotation animation */}
-            <motion.img
-              key={activeSkin + skinRotation}
-              initial={{ opacity: 0, scale: 0.9, rotateY: isRotating ? -30 : 0 }}
-              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-              src={getSkinUrl()}
-              alt="Current skin"
-              className="max-h-full object-contain drop-shadow-[0_10px_30px_rgba(45,125,210,0.3)] z-10 cursor-pointer hover:scale-105 transition-transform"
-              onClick={handleRotate}
-            />
+            {/* 3D Skin Preview with Three.js */}
+            <div className="w-full h-[220px] z-10 flex items-center justify-center">
+              <ThreePreview skin={activeSkin} capeUrl={CAPES[selectedCape]?.url} />
+            </div>
 
             {/* Active skin name badge */}
             <div className="absolute top-3 left-3 z-20">
               <span className="text-[8px] bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30 px-2 py-0.5 rounded-md font-bold uppercase">{activeSkin}</span>
             </div>
 
-            {/* Bottom action icons */}
+            {/* Bottom action info label */}
             <div className="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-2 z-20">
-              <button
-                onClick={handleRotate}
-                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-              <button className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all">
-                <Download className="w-3.5 h-3.5" />
-              </button>
-              <button className="w-8 h-8 rounded-lg bg-[#2D7DD2]/20 border border-[#2D7DD2]/30 flex items-center justify-center text-[#2D7DD2] hover:bg-[#2D7DD2]/30 transition-all">
-                <Play className="w-3.5 h-3.5" />
-              </button>
+              <span className="text-[8px] text-[#52525B] font-bold uppercase tracking-widest bg-black/40 px-2 py-1 rounded-md border border-white/5">
+                Çevirmek için Sürükleyin
+              </span>
             </div>
           </div>
         </div>

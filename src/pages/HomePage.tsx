@@ -9,10 +9,10 @@ import { sanitizeUrl, sanitizeParam } from '../lib/security.ts';
 import VersionModal from '../components/VersionModal.tsx';
 import MarinLogo from '../components/MarinLogo.tsx';
 import {
-  ChevronDown, User, LogOut, Search,
+  ChevronDown, LogOut, Search,
   MessageSquare, UserPlus, X, AlertTriangle,
   Trophy, CheckCircle2, WifiOff, ExternalLink, RefreshCw,
-  Pause
+  Pause, Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -20,8 +20,7 @@ import heroBg from '../../assets/home-hero-bg.png';
 
 export default function HomePage() {
   const { t } = useTranslation();
-  const session = useAuthStore((state) => state.session);
-  const logout = useAuthStore((state) => state.logout);
+  const { session, logout, profiles, switchProfile, removeProfile, addOfflineProfile, addMicrosoftProfile } = useAuthStore();
   const settings = useSettingsStore();
   const social = useSocialStore();
   const isOnline = useAppStore((state) => state.isOnline);
@@ -30,6 +29,10 @@ export default function HomePage() {
 
   const [versionModalOpen, setVersionModalOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [offlineAddOpen, setOfflineAddOpen] = useState(false);
+  const [newOfflineName, setNewOfflineName] = useState('');
+  const [profileAddError, setProfileAddError] = useState<string | null>(null);
+  const [profileAddSuccess, setProfileAddSuccess] = useState<string | null>(null);
 
   // Trigger launch if redirected from VersionsPage with launch query param
   useEffect(() => {
@@ -321,21 +324,161 @@ export default function HomePage() {
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
-                      className="absolute left-0 mt-2 bg-[#060305] border border-white/[0.08] rounded-xl shadow-2xl w-44 py-1.5 z-50 text-[10px] font-black"
+                      className="absolute left-0 mt-2 bg-[#060305] border border-white/[0.08] rounded-xl shadow-2xl w-64 py-2.5 z-50 text-[10px] font-black"
                     >
-                      <button
-                        onClick={() => { setProfileDropdownOpen(false); }}
-                        className="w-full flex items-center gap-2 px-3.5 py-2 text-[#A1A1AA] hover:bg-white/5 hover:text-white text-left"
-                      >
-                        <User className="w-3.5 h-3.5" />
-                        <span>{t('home.viewProfile')}</span>
-                      </button>
+                      <div className="px-3.5 pb-2 border-b border-white/[0.05] mb-2 flex items-center justify-between">
+                        <span className="text-[#52525B] uppercase tracking-wider text-[8px] font-black">Hesaplar</span>
+                        <span className="text-[7.5px] bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30 px-1.5 py-0.5 rounded uppercase">Aktif: {session?.type}</span>
+                      </div>
+
+                      {/* Display profiles list */}
+                      <div className="max-h-36 overflow-y-auto space-y-1 px-1.5 custom-scrollbar">
+                        {profiles.map((p) => {
+                          const isCurrent = p.id === session?.id;
+                          return (
+                            <div
+                              key={p.id}
+                              className={`flex items-center justify-between p-1.5 rounded-lg transition-colors group ${
+                                isCurrent ? 'bg-[#2D7DD2]/10 border border-[#2D7DD2]/25' : 'hover:bg-white/5 border border-transparent'
+                              }`}
+                            >
+                              <div
+                                onClick={async () => {
+                                  if (!isCurrent) {
+                                    setProfileDropdownOpen(false);
+                                    await switchProfile(p.id);
+                                  }
+                                }}
+                                className="flex items-center gap-2 cursor-pointer flex-grow min-w-0"
+                              >
+                                <img
+                                  src={p.avatar}
+                                  alt="avatar"
+                                  className="w-5 h-5 rounded bg-black/25 shrink-0"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
+                                  }}
+                                />
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-white truncate font-bold text-[9.5px]">{p.name}</span>
+                                  <span className="text-[7px] text-[#52525B] uppercase leading-none font-bold">
+                                    {p.type === 'ms' ? 'Microsoft' : 'Cracked'}
+                                  </span>
+                                </div>
+                              </div>
+                              {/* Remove profile button */}
+                              {profiles.length > 1 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeProfile(p.id);
+                                  }}
+                                  className="p-1 rounded text-[#52525B] hover:text-red-400 hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-all"
+                                  title="Hesabı Kaldır"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Add account forms/buttons */}
+                      <div className="mt-2 border-t border-white/[0.05] pt-2 px-3 space-y-1.5">
+                        {offlineAddOpen ? (
+                          <form
+                            onSubmit={async (e) => {
+                              e.preventDefault();
+                              if (newOfflineName.trim().length < 3) {
+                                setProfileAddError('En az 3 karakter giriniz.');
+                                return;
+                              }
+                              setProfileAddError(null);
+                              try {
+                                await addOfflineProfile(newOfflineName.trim());
+                                setOfflineAddOpen(false);
+                                setNewOfflineName('');
+                                setProfileAddSuccess('Profil başarıyla eklendi.');
+                                setTimeout(() => setProfileAddSuccess(null), 3000);
+                              } catch (err: any) {
+                                setProfileAddError(err.message || 'Profil eklenemedi.');
+                              }
+                            }}
+                            className="space-y-1.5"
+                          >
+                            <div className="flex items-center bg-[#111111] border border-white/10 rounded-lg px-2 py-1 focus-within:border-[#2D7DD2]/50">
+                              <input
+                                type="text"
+                                placeholder="Offline Kullanıcı Adı"
+                                value={newOfflineName}
+                                onChange={(e) => setNewOfflineName(e.target.value)}
+                                className="bg-transparent border-none outline-none text-[8.5px] w-full text-white placeholder-white/20 font-bold"
+                                autoFocus
+                              />
+                            </div>
+                            <div className="flex gap-1.5">
+                              <button
+                                type="submit"
+                                className="flex-1 py-1 bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white rounded font-bold text-[8px] uppercase tracking-wider transition-colors"
+                              >
+                                Ekle
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setOfflineAddOpen(false); setProfileAddError(null); }}
+                                className="flex-1 py-1 bg-white/5 hover:bg-white/10 text-[#A1A1AA] hover:text-white rounded font-bold text-[8px] uppercase tracking-wider transition-colors"
+                              >
+                                İptal
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => { setOfflineAddOpen(true); setProfileAddError(null); }}
+                              className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded font-bold text-[7.5px] uppercase tracking-wider transition-all"
+                            >
+                              <UserPlus className="w-2.5 h-2.5" />
+                              <span>Offline Ekle</span>
+                            </button>
+                            <button
+                              onClick={async () => {
+                                setProfileAddError(null);
+                                try {
+                                  await addMicrosoftProfile();
+                                  setProfileAddSuccess('Profil başarıyla eklendi.');
+                                  setTimeout(() => setProfileAddSuccess(null), 3000);
+                                } catch (err: any) {
+                                  setProfileAddError(err.message || 'Profil eklenemedi.');
+                                }
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-[#208390]/20 hover:bg-[#208390]/30 border border-[#208390]/30 text-[#208390] rounded font-bold text-[7.5px] uppercase tracking-wider transition-all"
+                            >
+                              <Plus className="w-2.5 h-2.5" />
+                              <span>Microsoft Ekle</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {profileAddError && (
+                          <div className="text-[7.5px] text-red-400 font-bold text-center mt-1">
+                            {profileAddError}
+                          </div>
+                        )}
+                        {profileAddSuccess && (
+                          <div className="text-[7.5px] text-[#259457] font-bold text-center mt-1 animate-pulse">
+                            {profileAddSuccess}
+                          </div>
+                        )}
+                      </div>
+
                       <button
                         onClick={async () => {
                           setProfileDropdownOpen(false);
                           await logout();
                         }}
-                        className="w-full flex items-center gap-2 px-3.5 py-2 text-red-400 hover:bg-red-500/10 text-left border-t border-white/[0.05]"
+                        className="w-full flex items-center gap-2 px-3.5 py-2 text-red-400 hover:bg-red-500/10 text-left border-t border-white/[0.05] mt-2.5"
                       >
                         <LogOut className="w-3.5 h-3.5" />
                         <span>{t('servers.logout')}</span>

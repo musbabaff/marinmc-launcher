@@ -90,6 +90,7 @@ export default function App() {
   // Load global settings on startup
   useEffect(() => {
     settings.loadSettings();
+    useAuthStore.getState().initializeSession();
   }, []);
 
   // Listen for game-crash events from the Electron main process

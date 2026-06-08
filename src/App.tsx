@@ -88,7 +88,19 @@ export default function App() {
 
     if (window.electronAPI) {
       unsubscribeStatus = window.electronAPI.onUpdateStatus((status: string, details?: any) => {
-        setUpdateStatus(status);
+        if (status === 'error') {
+          // Only show error screen if we were previously downloading or found an update
+          setUpdateStatus((prev) => {
+            if (prev === 'downloading' || prev === 'available') {
+              return 'error';
+            }
+            return 'idle';
+          });
+        } else if (status === 'not-available') {
+          setUpdateStatus('idle');
+        } else {
+          setUpdateStatus(status);
+        }
         if (details) setUpdateInfo(details);
       });
       unsubscribeProgress = window.electronAPI.onUpdateProgress((percent: number) => {
@@ -245,7 +257,7 @@ export default function App() {
         />
 
         {/* Global Auto-Updater Overlay */}
-        {updateStatus !== 'idle' && updateStatus !== 'not-available' && (
+        {(updateStatus === 'downloading' || updateStatus === 'downloaded' || updateStatus === 'available' || updateStatus === 'error') && (
           <div className="fixed inset-0 bg-[#060305]/95 backdrop-blur-md z-[200] flex flex-col items-center justify-center p-8 select-none text-center">
             {/* Spinning/pulsing update icon */}
             <div className="w-16 h-16 rounded-2xl bg-[#2D7DD2]/10 border border-[#2D7DD2]/20 flex items-center justify-center mb-6 animate-pulse">

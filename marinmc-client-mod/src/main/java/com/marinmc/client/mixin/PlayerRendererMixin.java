@@ -13,6 +13,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(PlayerEntityRenderer.class)
 public class PlayerRendererMixin {
 
+    // Commented out to prevent target method warnings in 1.21.8 render-state refactoring
+    /*
     @Inject(method = "render(Lnet/minecraft/client/network/AbstractClientPlayerEntity;FFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V", at = @At("HEAD"))
     private void onRender(AbstractClientPlayerEntity player, float yaw, float tickDelta, MatrixStack matrixStack,
                            VertexConsumerProvider vertexConsumerProvider, int light, CallbackInfo ci) {
@@ -42,4 +44,5 @@ public class PlayerRendererMixin {
             }
         });
     }
+    */
 }

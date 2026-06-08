@@ -11,10 +11,14 @@ import { backendSettings } from '../settings.js';
 export function getSmartJvmArgs(allocatedRamMb: number): string[] {
   const args: string[] = [];
 
-  // 1. Choose optimal Garbage Collector
+  // UnlockExperimentalVMOptions MUST precede any experimental flags (like G1NewSizePercent)
+  args.push('-XX:+UnlockExperimentalVMOptions');
+
+  // 1. Choose optimal Garbage Collector (G1GC is used always to prevent conflict with MCLC default args)
+  args.push('-XX:+UseG1GC');
+  args.push('-XX:MaxGCPauseMillis=50');
+
   if (allocatedRamMb >= 4096) {
-    args.push('-XX:+UseG1GC');
-    args.push('-XX:MaxGCPauseMillis=50');
     args.push('-XX:G1HeapRegionSize=32m');
     args.push('-XX:G1ReservePercent=20');
     args.push('-XX:G1NewSizePercent=30');
@@ -24,9 +28,6 @@ export function getSmartJvmArgs(allocatedRamMb: number): string[] {
     args.push('-XX:G1MixedGCLiveThresholdPercent=90');
     args.push('-XX:G1RSetUpdatingPauseTimePercent=5');
     args.push('-XX:SurvivorRatio=32');
-  } else {
-    args.push('-XX:+UseParallelGC');
-    args.push('-XX:MaxGCPauseMillis=100');
   }
 
   // 2. Thread allocations based on CPU Core Count
@@ -42,7 +43,6 @@ export function getSmartJvmArgs(allocatedRamMb: number): string[] {
   }
 
   // 3. Experimental & general JVM flags for performance
-  args.push('-XX:+UnlockExperimentalVMOptions');
   args.push('-XX:+ParallelRefProcEnabled');
   args.push('-XX:+DisableExplicitGC');
   args.push('-XX:+AlwaysPreTouch');
@@ -171,6 +171,68 @@ function cleanDuplicateMods(modsDir: string, logCallback: (msg: string) => void)
   }
 }
 
+async function compileAndCopyClientModDev(gameDir: string, logCallback: (msg: string) => void): Promise<void> {
+  if (app.isPackaged) return;
+
+  logCallback(`[MarinMC Launcher] [GELİŞTİRİCİ] Yerel istemci modu otomatik derleniyor...`);
+  
+  const modProjectDir = path.resolve(process.cwd(), 'marinmc-client-mod');
+  const gradlewBat = path.join(modProjectDir, 'gradlew.bat');
+  const compiledJarPath = path.join(modProjectDir, 'build', 'libs', 'marinmc-client-mod-1.0.0.jar');
+  const destinationJarPath = path.join(gameDir, 'mods', 'marinmc-client-mod-1.0.0.jar');
+
+  if (!fs.existsSync(gradlewBat)) {
+    logCallback(`[HATA] gradlew.bat bulunamadı: ${gradlewBat}. Derleme atlanıyor.`);
+    return;
+  }
+
+  const { exec } = require('child_process');
+  const compilePromise = new Promise<void>((resolve, reject) => {
+    const proc = exec('gradlew.bat build -x test', { cwd: modProjectDir });
+    
+    proc.stdout.on('data', (data: any) => {
+      const text = String(data).trim();
+      if (text) {
+        logCallback(`[Gradle] ${text}`);
+      }
+    });
+
+    proc.stderr.on('data', (data: any) => {
+      const text = String(data).trim();
+      if (text) {
+        logCallback(`[Gradle Hata] ${text}`);
+      }
+    });
+
+    proc.on('close', (code: number) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Gradle derleme hatası (çıkış kodu: ${code})`));
+      }
+    });
+  });
+
+  try {
+    await compilePromise;
+    logCallback(`[MarinMC Launcher] [GELİŞTİRİCİ] Derleme başarılı. Dosya kopyalanıyor...`);
+    
+    const modsDir = path.join(gameDir, 'mods');
+    if (!fs.existsSync(modsDir)) {
+      fs.mkdirSync(modsDir, { recursive: true });
+    }
+
+    if (fs.existsSync(compiledJarPath)) {
+      fs.copyFileSync(compiledJarPath, destinationJarPath);
+      logCallback(`[MarinMC Launcher] [GELİŞTİRİCİ] Mod başarıyla güncellendi: ${destinationJarPath}`);
+    } else {
+      logCallback(`[HATA] Derlenmiş mod dosyası bulunamadı: ${compiledJarPath}`);
+    }
+  } catch (err: any) {
+    logCallback(`[HATA] İstemci modu derlenirken hata oluştu: ${err.message}`);
+  }
+}
+
 async function verifyPerformanceMods(gameDir: string, logCallback: (msg: string) => void): Promise<void> {
   const modsDir = path.join(gameDir, 'mods');
   if (!fs.existsSync(modsDir)) {
@@ -191,6 +253,9 @@ async function verifyPerformanceMods(gameDir: string, logCallback: (msg: string)
         const fileHash = await calculateMD5(modPath);
         if (fileHash === mod.md5) {
           logCallback(`[MarinMC Launcher] Doğrulandı (Bütünlük OK): ${mod.name}`);
+          needDownload = false;
+        } else if (!app.isPackaged && mod.name === 'MarinMC Client Mod') {
+          logCallback(`[MarinMC Launcher] [GELİŞTİRİCİ] Yerel özel mod algılandı ve korundu: ${mod.name}`);
           needDownload = false;
         } else {
           logCallback(`[MarinMC Launcher] Bütünlük hatası: ${mod.name} (MD5 uyuşmadı, tekrar indiriliyor).`);
@@ -288,6 +353,93 @@ function injectResourcePack(gameDir: string, logCallback: (msg: string) => void)
   }
 }
 
+function parseCrashLogs(logs: string[]): {
+  suspectedMod?: string;
+  suspectedFilename?: string;
+  crashDetails: string;
+} {
+  const logsText = logs.join('\n');
+  
+  let suspectedMod = 'Unknown / System';
+  let suspectedFilename = 'Java/Minecraft Crash';
+  
+  if (logsText.includes('VM option') || logsText.includes('Java Virtual Machine') || logsText.includes('unlock option') || logsText.includes('unlocking')) {
+    suspectedMod = 'JVM / Java Settings';
+    suspectedFilename = 'JVM Configuration Error';
+    const errorLines = logs.filter(line => 
+      line.toLowerCase().includes('error:') || 
+      line.toLowerCase().includes('vm option') || 
+      line.toLowerCase().includes('unlock option') ||
+      line.toLowerCase().includes('unlocking')
+    );
+    const details = errorLines.length > 0 ? errorLines.join('\n') : 'Java Virtual Machine failed to start. Check JVM arguments.';
+    return { suspectedMod, suspectedFilename, crashDetails: details };
+  }
+  
+  if (logsText.includes('org.spongepowered.asm') || logsText.includes('mixin') || logsText.includes('FabricLoader') || logsText.includes('fabric-loader')) {
+    const jarMatch = logsText.match(/([a-zA-Z0-9_-]+\.jar)/);
+    if (jarMatch && jarMatch[1]) {
+      suspectedFilename = jarMatch[1];
+      suspectedMod = suspectedFilename
+        .replace(/\.jar$/, '')
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    } else {
+      suspectedMod = 'Fabric Loader / Mixin';
+      suspectedFilename = 'Mod Conflict or Incompatibility';
+    }
+    
+    const crashDetails = logs.slice(-6).join('\n');
+    return { suspectedMod, suspectedFilename, crashDetails };
+  }
+
+  if (logsText.includes('java.lang.OutOfMemoryError') || logsText.includes('OutOfMemory')) {
+    suspectedMod = 'Out of Memory';
+    suspectedFilename = 'Insufficient allocated RAM';
+    return {
+      suspectedMod,
+      suspectedFilename,
+      crashDetails: 'Minecraft run out of memory. Please allocate more RAM in launcher settings.'
+    };
+  }
+
+  if (logsText.includes('org.lwjgl.LWJGLException') || logsText.includes('Pixel format not accelerated') || logsText.includes('GLFW error 65542')) {
+    suspectedMod = 'Graphics Driver';
+    suspectedFilename = 'OpenGL / GLFW Error';
+    return {
+      suspectedMod,
+      suspectedFilename,
+      crashDetails: 'Failed to initialize graphics. Please update your GPU drivers.'
+    };
+  }
+
+  const last15Lines = logs.slice(-15);
+  for (let i = last15Lines.length - 1; i >= 0; i--) {
+    const line = last15Lines[i];
+    if (line.includes('Exception in thread') || line.includes('Caused by:') || line.includes('java.lang.')) {
+      suspectedMod = 'Java Exception';
+      suspectedFilename = line.split(':')[0] || 'Minecraft Crash';
+      return {
+        suspectedMod,
+        suspectedFilename,
+        crashDetails: last15Lines.slice(Math.max(0, i - 1), i + 6).join('\n')
+      };
+    }
+  }
+
+  return {
+    suspectedMod: 'Unknown / Client',
+    suspectedFilename: 'Minecraft Crash',
+    crashDetails: logs.slice(-8).join('\n') || 'Oyun beklenmedik şekilde kapandı (Çıkış kodu: 1).'
+  };
+}
+
+function isValidUUID(uuidStr?: string): boolean {
+  if (!uuidStr) return false;
+  return /^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$/.test(uuidStr);
+}
+
 let gameProcess: any = null;
 
 export function registerGameHandlers(mainWindow: BrowserWindow) {
@@ -298,6 +450,7 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
     username: string;
     accessToken?: string;
     uuid?: string;
+    userType?: 'cracked' | 'ms';
     version: string;
     serverId: string;
     gameDir: string;
@@ -307,11 +460,39 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
       return { success: false, error: 'Minecraft zaten çalışıyor.' };
     }
 
+    const logBuffer: string[] = [];
+    const logLimit = 150;
+    const gameDir = resolveGameDir(options.gameDir);
+    const launcherLogDir = path.join(gameDir, 'logs');
+    
+    try {
+      fs.mkdirSync(launcherLogDir, { recursive: true });
+    } catch {}
+    
+    const launcherLogFile = path.join(launcherLogDir, 'launcher-latest.log');
+    try {
+      fs.writeFileSync(launcherLogFile, ''); // clear log
+    } catch {}
+
+    const appendToLauncherLog = (line: string) => {
+      logBuffer.push(line);
+      if (logBuffer.length > logLimit) {
+        logBuffer.shift();
+      }
+      try {
+        fs.appendFileSync(launcherLogFile, line + '\n');
+      } catch (err) {
+        console.error('Failed to write to launcher-latest.log:', err);
+      }
+    };
+
+    const sendAndLog = (msg: string) => {
+      mainWindow.webContents.send('game:log', msg);
+      appendToLauncherLog(msg);
+    };
+
     try {
       const launcher = new Client();
-
-      // Determine game directory
-      const gameDir = resolveGameDir(options.gameDir);
 
       console.log('[game.ts] Using game directory:', gameDir);
 
@@ -326,40 +507,74 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         );
       }
 
-      mainWindow.webContents.send('game:log',
-        `[MarinMC Launcher] Senkronizasyon aşaması başlatıldı (Fabric 1.21.8).`);
+      sendAndLog(`[MarinMC Launcher] Senkronizasyon aşaması başlatıldı (Fabric 1.21.8).`);
+
+      // Geliştirici modunda yerel istemci modunu derle ve kopyala
+      if (!app.isPackaged) {
+        await compileAndCopyClientModDev(gameDir, (msg) => {
+          sendAndLog(msg);
+        });
+      }
 
       // 1. Verify performance mods
       await verifyPerformanceMods(gameDir, (msg) => {
-        mainWindow.webContents.send('game:log', msg);
+        sendAndLog(msg);
       });
 
       // 2. Download resource pack
       await downloadResourcePack(gameDir, (msg) => {
-        mainWindow.webContents.send('game:log', msg);
+        sendAndLog(msg);
       });
 
       // 3. Inject resource pack
       injectResourcePack(gameDir, (msg) => {
-        mainWindow.webContents.send('game:log', msg);
+        sendAndLog(msg);
       });
 
-      mainWindow.webContents.send('game:log',
-        `[MarinMC Launcher] Oyun başlatma motoru hazırlandı.`);
-      mainWindow.webContents.send('game:log',
-        `[MarinMC Launcher] Seçilen Sunucu: ${(options.serverId || 'survival').toUpperCase()}`);
-      mainWindow.webContents.send('game:log',
-        `[MarinMC Launcher] Oyuncu: ${options.username}`);
-      mainWindow.webContents.send('game:log',
-        `[MarinMC Launcher] Bellek Limiti: -Xmx${options.ram}M -Xms512M`);
-      mainWindow.webContents.send('game:log',
-        `[MarinMC Launcher] Oyun Dizin: ${gameDir}`);
-      mainWindow.webContents.send('game:log',
-        `[MarinMC Launcher] Minecraft sürümü: ${options.version || '1.21'}`);
+      // Resolve Fabric Loader version if 1.21 or 1.21.8 is selected
+      let versionToLaunch = options.version || '1.21';
+      if (versionToLaunch === '1.21' || versionToLaunch === '1.21.8') {
+        const gameVersion = '1.21.8';
+        const loaderVersion = '0.15.11';
+        const fabricVersionId = `fabric-loader-${loaderVersion}-${gameVersion}`;
+        const fabricVersionDir = path.join(gameDir, 'versions', fabricVersionId);
+        const fabricJsonPath = path.join(fabricVersionDir, `${fabricVersionId}.json`);
+
+        if (!fs.existsSync(fabricJsonPath)) {
+          sendAndLog(`[MarinMC Launcher] Fabric Loader 1.21.8 profili kuruluyor...`);
+          try {
+            fs.mkdirSync(fabricVersionDir, { recursive: true });
+            const profileUrl = `https://meta.fabricmc.net/v2/versions/loader/${gameVersion}/${loaderVersion}/profile/json`;
+            const profileRes = await axios.get(profileUrl, { timeout: 15000 });
+            fs.writeFileSync(fabricJsonPath, JSON.stringify(profileRes.data, null, 2), 'utf8');
+            sendAndLog(`[MarinMC Launcher] Fabric Loader profili başarıyla kuruldu.`);
+          } catch (fabricErr: any) {
+            console.error('Failed to download Fabric profile:', fabricErr.message);
+            sendAndLog(`[HATA] Fabric Loader profili indirilemedi: ${fabricErr.message}. Vanilla olarak başlatmayı deniyor.`);
+          }
+        }
+
+        if (fs.existsSync(fabricJsonPath)) {
+          versionToLaunch = fabricVersionId;
+        }
+      }
+
+      sendAndLog(`[MarinMC Launcher] Oyun başlatma motoru hazırlandı.`);
+      sendAndLog(`[MarinMC Launcher] Seçilen Sunucu: ${(options.serverId || 'survival').toUpperCase()}`);
+      sendAndLog(`[MarinMC Launcher] Oyuncu: ${options.username}`);
+      sendAndLog(`[MarinMC Launcher] Bellek Limiti: -Xmx${options.ram}M -Xms512M`);
+      sendAndLog(`[MarinMC Launcher] Oyun Dizin: ${gameDir}`);
+      sendAndLog(`[MarinMC Launcher] Minecraft sürümü: ${versionToLaunch}`);
 
       // Build authorization
-      // If access token is provided, construct premium auth, else use offline cracked mode
-      const auth = (options.accessToken && options.accessToken.trim() !== '')
+      const hasValidUuid = options.uuid && isValidUUID(options.uuid);
+      const isOffline = options.userType === 'cracked' ||
+                        !options.accessToken || 
+                        options.accessToken.startsWith('offline_token_') || 
+                        (options.uuid && options.uuid.startsWith('offline-')) ||
+                        !hasValidUuid;
+
+      const auth = !isOffline
         ? {
             access_token: options.accessToken,
             client_token: 'marinmc-launcher',
@@ -377,7 +592,7 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         authorization: auth,
         root: gameDir,
         version: {
-          number: options.version || '1.21',
+          number: versionToLaunch,
           type: 'release'
         },
         memory: {
@@ -401,17 +616,21 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         customArgsList = options.jvmArgs.split(' ').filter(Boolean);
       }
 
+      let finalArgs: string[] = [];
       if (backendSettings.smartJvmOpt) {
         const smartArgs = getSmartJvmArgs(options.ram);
         const customKeys = new Set(customArgsList.map(arg => arg.split('=')[0]));
         const uniqueSmartArgs = smartArgs.filter(arg => !customKeys.has(arg.split('=')[0]));
-        launchOptions.customArgs = [...uniqueSmartArgs, ...customArgsList];
-        
-        mainWindow.webContents.send('game:log',
-          `[MarinMC Launcher] Akıllı JVM optimizasyonu uygulandı.`);
+        finalArgs = [...uniqueSmartArgs, ...customArgsList];
+        sendAndLog(`[MarinMC Launcher] Akıllı JVM optimizasyonu uygulandı.`);
       } else {
-        launchOptions.customArgs = customArgsList;
+        finalArgs = customArgsList;
       }
+
+      // ALWAYS ensure -XX:+UnlockExperimentalVMOptions is the very first argument to avoid JVM creation crashes
+      const unlockFlag = '-XX:+UnlockExperimentalVMOptions';
+      const cleanArgs = finalArgs.filter(arg => arg !== unlockFlag);
+      launchOptions.customArgs = [unlockFlag, ...cleanArgs];
 
       // Set Discord activity: Launching game...
       if (backendSettings.discordRpcEnabled) {
@@ -422,18 +641,20 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
 
       // Status: CHECKING
       mainWindow.webContents.send('game:status', 'CHECKING');
-      mainWindow.webContents.send('game:log',
-        `[MarinMC Launcher] Dosyalar kontrol ediliyor...`);
+      sendAndLog(`[MarinMC Launcher] Dosyalar kontrol ediliyor...`);
 
       // Listen for debug logs from the launcher
       launcher.on('debug', (e: any) => {
         console.log('[MLCORE:debug]', e);
+        appendToLauncherLog(`[debug] ${e}`);
         mainWindow.webContents.send('game:log', `[debug] ${e}`);
       });
 
       // Listen for stdout data from the Java process
       launcher.on('data', (e: any) => {
-        mainWindow.webContents.send('game:log', String(e));
+        const line = String(e).trim();
+        appendToLauncherLog(line);
+        mainWindow.webContents.send('game:log', line);
       });
 
       // Listen for download progress events
@@ -441,20 +662,20 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         const percent = e.total > 0 ? Math.round((e.task / e.total) * 100) : 0;
         mainWindow.webContents.send('game:progress', percent);
         mainWindow.webContents.send('game:status', 'DOWNLOADING');
-        mainWindow.webContents.send('game:log',
-          `[MarinMC Launcher] İndiriliyor: ${e.type} (${e.task}/${e.total})`);
+        sendAndLog(`[MarinMC Launcher] İndiriliyor: ${e.type} (${e.task}/${e.total})`);
       });
 
       // Listen for download status changes
       launcher.on('download-status', (e: any) => {
-        mainWindow.webContents.send('game:log',
-          `[MarinMC Launcher] İndirme durumu: ${JSON.stringify(e)}`);
+        sendAndLog(`[MarinMC Launcher] İndirme durumu: ${JSON.stringify(e)}`);
       });
 
       // Listen for arguments (logged right before launch)
       launcher.on('arguments', (args: any) => {
-        mainWindow.webContents.send('game:log',
-          `[MarinMC Launcher] Java başlatma argümanları hazırlandı.`);
+        sendAndLog(`[MarinMC Launcher] Java başlatma argümanları hazırlandı.`);
+        if (Array.isArray(args)) {
+          sendAndLog(`[MarinMC Launcher] JVM Arguments: ${args.filter(a => typeof a === 'string' && a.startsWith('-')).join(' ')}`);
+        }
         
         // Enforce direct server connection arguments in args array
         if (Array.isArray(args)) {
@@ -466,8 +687,7 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
           }
         }
         
-        mainWindow.webContents.send('game:log',
-          `[MarinMC Launcher] Sunucu bağlantı parametreleri (oyna.marinmc.com:25565) doğrulanıp eklendi.`);
+        sendAndLog(`[MarinMC Launcher] Sunucu bağlantı parametreleri (oyna.marinmc.com:25565) doğrulanıp eklendi.`);
         mainWindow.webContents.send('game:status', 'LAUNCHING');
       });
 
@@ -476,8 +696,7 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         console.log('[game.ts] Minecraft process exited with code:', code);
         gameProcess = null;
         mainWindow.webContents.send('game:status', 'IDLE');
-        mainWindow.webContents.send('game:log',
-          `[MarinMC Launcher] Minecraft kapandı (çıkış kodu: ${code}).`);
+        sendAndLog(`[MarinMC Launcher] Minecraft kapandı (çıkış kodu: ${code}).`);
         mainWindow.webContents.send('game:progress', 0);
 
         if (backendSettings.discordRpcEnabled) {
@@ -487,16 +706,19 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         }
 
         if (code !== 0 && code !== null) {
+          const crashInfo = parseCrashLogs(logBuffer);
           mainWindow.webContents.send('game-crash', {
             exitCode: code,
-            crashLogPath: path.join(gameDir, 'crash-reports')
+            crashLogPath: path.join(gameDir, 'crash-reports'),
+            suspectedMod: crashInfo.suspectedMod,
+            suspectedFilename: crashInfo.suspectedFilename,
+            crashDetails: crashInfo.crashDetails
           });
         }
       });
 
       // Launch Minecraft
-      mainWindow.webContents.send('game:log',
-        `[MarinMC Launcher] minecraft-launcher-core ile başlatılıyor...`);
+      sendAndLog(`[MarinMC Launcher] minecraft-launcher-core ile başlatılıyor...`);
 
       gameProcess = await launcher.launch(launchOptions);
 
@@ -510,8 +732,7 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
 
       // The launch() resolves when the Java process is spawned
       mainWindow.webContents.send('game:status', 'RUNNING');
-      mainWindow.webContents.send('game:log',
-        `[MarinMC Launcher] Java Sanal Makinesi (JVM) aktif edildi. Minecraft başlatıldı.`);
+      sendAndLog(`[MarinMC Launcher] Java Sanal Makinesi (JVM) aktif edildi. Minecraft başlatıldı.`);
 
       return { success: true };
 

@@ -8,6 +8,7 @@ export interface IElectronAPI {
     username: string; 
     accessToken?: string;
     uuid?: string;
+    userType?: 'cracked' | 'ms';
     version: string;
     serverId: string;
     gameDir: string;
@@ -21,7 +22,13 @@ export interface IElectronAPI {
   onGameLog: (callback: (log: string) => void) => () => void;
   onDownloadProgress: (callback: (percent: number) => void) => () => void;
   onGameStatus: (callback: (status: 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'LAUNCHING' | 'RUNNING' | 'ERROR') => void) => () => void;
-  onGameCrash: (callback: (data: { exitCode: number; crashLogPath: string }) => void) => () => void;
+  onGameCrash: (callback: (data: { 
+    exitCode: number; 
+    crashLogPath: string; 
+    suspectedMod?: string; 
+    suspectedFilename?: string; 
+    crashDetails?: string; 
+  }) => void) => () => void;
   getSystemInfo: () => Promise<{ totalRAM: number; javaPath: string; os: string; defaultGameDir?: string }>;
   updateSettings: (settings: { smartJvmOpt: boolean; discordRpcEnabled: boolean; language: 'tr' | 'en' }) => Promise<{ success: boolean }>;
   validateMojangUsername: (username: string) => Promise<{ success: boolean; uuid?: string; name?: string }>;

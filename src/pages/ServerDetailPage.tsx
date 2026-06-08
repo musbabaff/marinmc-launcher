@@ -261,6 +261,8 @@ export default function ServerDetailPage() {
           jvmArgs,
           username: session?.name || 'Player',
           accessToken: session?.token,
+          uuid: session?.id,
+          userType: session?.type,
           version: selectedServer.version || '1.21',
           serverId: selectedServer.id,
           gameDir: launcherDir,

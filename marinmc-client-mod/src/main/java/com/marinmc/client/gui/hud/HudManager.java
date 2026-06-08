@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 
@@ -133,7 +134,7 @@ public class HudManager {
             MinecraftClient mc = MinecraftClient.getInstance();
             String fpsText = "FPS: " + mc.getCurrentFps();
             context.fill(x, y, x + getWidth(), y + getHeight(), 0xAA000000);
-            context.drawBorder(context, x, y, getWidth(), getHeight(), 0x33FFFFFF);
+            context.drawBorder(x, y, getWidth(), getHeight(), 0x33FFFFFF);
             context.drawTextWithShadow(mc.textRenderer, fpsText, x + 5, y + 4, 0xFFFFFFFF);
         }
     }
@@ -148,7 +149,7 @@ public class HudManager {
             MinecraftClient mc = MinecraftClient.getInstance();
             String cpsText = "CPS: " + getCps(0) + " | " + getCps(1);
             context.fill(x, y, x + getWidth(), y + getHeight(), 0xAA000000);
-            context.drawBorder(context, x, y, getWidth(), getHeight(), 0x33FFFFFF);
+            context.drawBorder(x, y, getWidth(), getHeight(), 0x33FFFFFF);
             context.drawTextWithShadow(mc.textRenderer, cpsText, x + 5, y + 4, 0xFFFFFFFF);
         }
     }
@@ -184,7 +185,7 @@ public class HudManager {
             int color = pressed ? 0xDDFFFFFF : 0xAA000000;
             int textColor = pressed ? 0xFF000000 : 0xFFFFFFFF;
             context.fill(kx, ky, kx + kw, ky + kh, color);
-            context.drawBorder(context, kx, ky, kw, kh, 0x33FFFFFF);
+            context.drawBorder(kx, ky, kw, kh, 0x33FFFFFF);
             context.drawCenteredTextWithShadow(
                 mc.textRenderer, 
                 key, 
@@ -206,11 +207,17 @@ public class HudManager {
             if (mc.player == null) return;
 
             context.fill(x, y, x + getWidth(), y + getHeight(), 0xAA000000);
-            context.drawBorder(context, x, y, getWidth(), getHeight(), 0x33FFFFFF);
+            context.drawBorder(x, y, getWidth(), getHeight(), 0x33FFFFFF);
 
             int currentY = y + 4;
+            EquipmentSlot[] slots = {
+                EquipmentSlot.HEAD,
+                EquipmentSlot.CHEST,
+                EquipmentSlot.LEGS,
+                EquipmentSlot.FEET
+            };
             for (int i = 0; i < 4; i++) {
-                ItemStack stack = mc.player.getInventory().getArmorStack(3 - i); // Helmet to Boots
+                ItemStack stack = mc.player.getEquippedStack(slots[i]);
                 if (!stack.isEmpty()) {
                     // Draw item icon
                     context.drawItem(stack, x + 4, currentY);
@@ -256,7 +263,7 @@ public class HudManager {
 
             String heading = String.format("%d° %s", (int)yaw, dir);
             context.fill(x, y, x + getWidth(), y + getHeight(), 0xAA000000);
-            context.drawBorder(context, x, y, getWidth(), getHeight(), 0x33FFFFFF);
+            context.drawBorder(x, y, getWidth(), getHeight(), 0x33FFFFFF);
             context.drawCenteredTextWithShadow(mc.textRenderer, heading, x + getWidth() / 2, y + 6, 0xFFFFFFFF);
         }
     }

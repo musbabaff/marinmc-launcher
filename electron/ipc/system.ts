@@ -124,12 +124,15 @@ ipcMain.handle('open-crash-log', async (_event, crashPath: string) => {
       }
     }
 
-    // Fallback to logs/latest.log if no crash report exists
+    // Fallback to logs/latest.log or launcher-latest.log if no crash report exists
     if (!targetFile || !fs.existsSync(targetFile)) {
       const gameDir = path.dirname(crashPath);
       const latestLog = path.join(gameDir, 'logs', 'latest.log');
+      const launcherLog = path.join(gameDir, 'logs', 'launcher-latest.log');
       if (fs.existsSync(latestLog)) {
         targetFile = latestLog;
+      } else if (fs.existsSync(launcherLog)) {
+        targetFile = launcherLog;
       }
     }
 
@@ -159,12 +162,15 @@ ipcMain.handle('copy-crash-log', async (_event, crashPath: string) => {
       }
     }
 
-    // Fallback to logs/latest.log if no crash report exists
+    // Fallback to logs/latest.log or launcher-latest.log if no crash report exists
     if (!targetFile || !fs.existsSync(targetFile)) {
       const gameDir = path.dirname(crashPath);
       const latestLog = path.join(gameDir, 'logs', 'latest.log');
+      const launcherLog = path.join(gameDir, 'logs', 'launcher-latest.log');
       if (fs.existsSync(latestLog)) {
         targetFile = latestLog;
+      } else if (fs.existsSync(launcherLog)) {
+        targetFile = launcherLog;
       }
     }
 

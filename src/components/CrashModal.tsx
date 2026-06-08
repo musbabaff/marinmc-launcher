@@ -7,18 +7,34 @@ interface CrashModalProps {
   isOpen: boolean;
   exitCode: number;
   crashLogPath: string;
+  suspectedMod?: string;
+  suspectedFilename?: string;
+  crashDetails?: string;
   onClose: () => void;
   onRelaunch: () => void;
 }
 
-export default function CrashModal({ isOpen, exitCode, crashLogPath, onClose, onRelaunch }: CrashModalProps) {
+export default function CrashModal({
+  isOpen,
+  exitCode,
+  crashLogPath,
+  suspectedMod,
+  suspectedFilename,
+  crashDetails,
+  onClose,
+  onRelaunch
+}: CrashModalProps) {
   const { t } = useTranslation();
   const [copySuccess, setCopySuccess] = useState(false);
   const [openError, setOpenError] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
-  // Suspected cause mock
-  const suspectedModName = 'Sodium';
-  const suspectedFilename = 'sodium-fabric-0.6.0.jar';
+  const suspectedModName = suspectedMod || 'Unknown / System';
+  const suspectedFile = suspectedFilename || 'Java/Minecraft Crash';
+  const fileTypeBadge = suspectedFile.toLowerCase().endsWith('.jar') ? 'JAR' : 'ERR';
+  const badgeBgColor = fileTypeBadge === 'JAR'
+    ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/20 text-[#8B5CF6]'
+    : 'bg-amber-500/10 border-amber-500/20 text-amber-400';
 
   const handleCopyLog = async () => {
     if (window.electronAPI) {
@@ -69,7 +85,7 @@ export default function CrashModal({ isOpen, exitCode, crashLogPath, onClose, on
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.9, y: 20, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="bg-[#0A0A0A] border border-[#EF4444]/30 w-[420px] rounded-2xl overflow-hidden shadow-2xl relative flex flex-col p-6 items-center"
+              className="bg-[#0A0A0A] border border-[#EF4444]/30 w-[430px] rounded-2xl overflow-hidden shadow-2xl relative flex flex-col p-6 items-center"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close btn */}
@@ -94,23 +110,50 @@ export default function CrashModal({ isOpen, exitCode, crashLogPath, onClose, on
               </p>
 
               {/* Suspected Cause box */}
-              <div className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl p-4 mb-5">
+              <div className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl p-4 mb-3">
                 <span className="text-[10px] font-extrabold text-[#52525B] uppercase tracking-wider block mb-2">
                   {t('crash.suspectedCause')}
                 </span>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 rounded-lg flex items-center justify-center text-[#8B5CF6] text-xs font-bold font-mono">
-                    JAR
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold font-mono border shrink-0 ${badgeBgColor}`}>
+                    {fileTypeBadge}
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white leading-none mb-0.5">{suspectedModName}</h4>
-                    <p className="text-[10px] text-[#A1A1AA] font-mono leading-none">{suspectedFilename}</p>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-xs font-bold text-white leading-none mb-1 truncate">{suspectedModName}</h4>
+                    <p className="text-[10px] text-[#A1A1AA] font-mono leading-none truncate" title={suspectedFile}>{suspectedFile}</p>
                   </div>
-                  <span className="ml-auto text-[9px] bg-red-500/15 text-red-400 px-2 py-0.5 rounded border border-red-500/20 font-bold uppercase tracking-wider">
+                  <span className="ml-auto shrink-0 text-[9px] bg-red-500/15 text-red-400 px-2 py-0.5 rounded border border-red-500/20 font-bold uppercase tracking-wider">
                     Kritik Hata
                   </span>
                 </div>
               </div>
+
+              {/* Collapsible Details Panel */}
+              {crashDetails && (
+                <div className="w-full mb-4">
+                  <button
+                    onClick={() => setDetailsOpen(!detailsOpen)}
+                    className="flex items-center gap-1.5 text-[10px] font-bold text-[#2D7DD2] hover:text-blue-400 transition-colors uppercase tracking-wider select-none mb-2"
+                  >
+                    <span>{detailsOpen ? 'Hata Detaylarını Gizle' : 'Hata Detaylarını Göster'}</span>
+                    <span className="text-[8px]">{detailsOpen ? '▲' : '▼'}</span>
+                  </button>
+                  <AnimatePresence>
+                    {detailsOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="w-full overflow-hidden"
+                      >
+                        <pre className="w-full bg-[#050505] border border-[#2A2A2A] rounded-xl p-3 text-[9px] font-mono text-red-400/90 overflow-x-auto max-h-32 whitespace-pre-wrap text-left select-text scrollbar-thin">
+                          {crashDetails}
+                        </pre>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="w-full space-y-2 mb-4">

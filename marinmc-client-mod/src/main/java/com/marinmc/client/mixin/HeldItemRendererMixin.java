@@ -5,7 +5,7 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.HeldItemRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.SwordItem;
+import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.util.Hand;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -29,7 +29,7 @@ public class HeldItemRendererMixin {
         CallbackInfo ci
     ) {
         // If main hand is a sword and player is using/blocking, force 1.7 block-hit matrix adjustments
-        if (hand == Hand.MAIN_HAND && player.isUsingItem() && item.getItem() instanceof SwordItem) {
+        if (hand == Hand.MAIN_HAND && player.isUsingItem() && item.isIn(ItemTags.SWORDS)) {
             matrices.translate(0.05F, 0.05F, -0.05F);
             matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(-15F));
             matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(-15F));

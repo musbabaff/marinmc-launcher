@@ -75,6 +75,9 @@ export default function App() {
   const [crashOpen, setCrashOpen] = useState(false);
   const [crashCode, setCrashCode] = useState(0);
   const [crashPath, setCrashPath] = useState('');
+  const [crashSuspectedMod, setCrashSuspectedMod] = useState('');
+  const [crashSuspectedFile, setCrashSuspectedFile] = useState('');
+  const [crashDetails, setCrashDetails] = useState('');
 
   // Auto-Updater States
   const [updateStatus, setUpdateStatus] = useState<string>('idle');
@@ -138,6 +141,9 @@ export default function App() {
       unsubscribeCrash = window.electronAPI.onGameCrash((data) => {
         setCrashCode(data.exitCode);
         setCrashPath(data.crashLogPath);
+        setCrashSuspectedMod(data.suspectedMod || '');
+        setCrashSuspectedFile(data.suspectedFilename || '');
+        setCrashDetails(data.crashDetails || '');
         setCrashOpen(true);
       });
     }
@@ -149,11 +155,14 @@ export default function App() {
   const handleRelaunch = () => {
     if (window.electronAPI) {
       const settingsState = useSettingsStore.getState();
+      const session = useAuthStore.getState().session;
       window.electronAPI.launchGame({
         ram: settingsState.ram,
         jvmArgs: settingsState.jvmArgs,
-        username: useAuthStore.getState().session?.name || 'Player',
-        accessToken: useAuthStore.getState().session?.token,
+        username: session?.name || 'Player',
+        accessToken: session?.token,
+        uuid: session?.id,
+        userType: session?.type,
         version: settingsState.selectedVersion,
         serverId: 'towny',
         gameDir: settingsState.launcherDir,
@@ -252,6 +261,9 @@ export default function App() {
           isOpen={crashOpen}
           exitCode={crashCode}
           crashLogPath={crashPath}
+          suspectedMod={crashSuspectedMod}
+          suspectedFilename={crashSuspectedFile}
+          crashDetails={crashDetails}
           onClose={() => setCrashOpen(false)}
           onRelaunch={handleRelaunch}
         />

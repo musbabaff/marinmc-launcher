@@ -28,8 +28,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('game:status', subscription);
     return () => ipcRenderer.removeListener('game:status', subscription);
   },
-  onGameCrash: (callback: (data: { exitCode: number; crashLogPath: string }) => void) => {
-    const subscription = (_event: any, data: { exitCode: number; crashLogPath: string }) => callback(data);
+  onGameCrash: (callback: (data: { exitCode: number; crashLogPath: string; suspectedMod?: string; suspectedFilename?: string; crashDetails?: string }) => void) => {
+    const subscription = (_event: any, data: { exitCode: number; crashLogPath: string; suspectedMod?: string; suspectedFilename?: string; crashDetails?: string }) => callback(data);
     ipcRenderer.on('game-crash', subscription);
     return () => ipcRenderer.removeListener('game-crash', subscription);
   },

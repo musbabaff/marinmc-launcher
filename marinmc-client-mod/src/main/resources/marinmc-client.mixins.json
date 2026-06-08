@@ -4,12 +4,13 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
-    "PlayerRendererMixin",
     "DisconnectedScreenMixin",
     "HeldItemRendererMixin",
     "LivingEntityRendererMixin",
     "ItemEntityRendererMixin",
-    "InGameHudMixin"
+    "InGameHudMixin",
+    "GameMenuScreenMixin",
+    "TitleScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

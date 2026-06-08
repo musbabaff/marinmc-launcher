@@ -140,7 +140,7 @@ public class OverlayScreen extends Screen {
 
             // Card outline/background
             context.fill(x, y, x + cardW, y + cardH, 0xAA0F0F0F);
-            context.drawBorder(context, x, y, cardW, cardH, isEnabled ? 0xFF259457 : 0xFFEF4444);
+            context.drawBorder(x, y, cardW, cardH, isEnabled ? 0xFF259457 : 0xFFEF4444);
 
             // Draw Mod Title
             context.drawTextWithShadow(this.textRenderer, mod.name, x + 10, y + 8, 0xFFFFFFFF);

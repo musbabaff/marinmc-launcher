@@ -44,7 +44,7 @@ public abstract class HudElement {
     public void renderDummy(DrawContext context) {
         // Draw dotted outline / transparent gray background for editor
         context.fill(x, y, x + getWidth(), y + getHeight(), 0x55000000);
-        context.drawBorder(context, x, y, getWidth(), getHeight(), 0xFF2D7DD2);
+        context.drawBorder(x, y, getWidth(), getHeight(), 0xFF2D7DD2);
         context.drawCenteredTextWithShadow(
             net.minecraft.client.MinecraftClient.getInstance().textRenderer, 
             name, 

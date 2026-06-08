@@ -159,6 +159,7 @@ export default function HomePage() {
           username: session?.name || 'dbrn',
           accessToken: session?.token,
           uuid: session?.id,
+          userType: session?.type,
           version: settings.selectedVersion || '1.21',
           serverId: 'towny',
           gameDir: settings.launcherDir,

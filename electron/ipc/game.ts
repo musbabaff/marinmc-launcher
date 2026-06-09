@@ -85,39 +85,45 @@ export function resolveGameDir(customDir?: string): string {
 const PERFORMANCE_MODS = [
   {
     name: 'Fabric API',
-    filename: 'fabric-api-0.100.0+1.21.8.jar',
-    url: 'https://cdn.marinmc.com/mods/fabric-api-0.100.0+1.21.8.jar',
-    md5: 'a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8'
+    filename: 'fabric-api-0.136.1+1.21.8.jar',
+    url: 'https://cdn.marinmc.com/mods/fabric-api-0.136.1+1.21.8.jar',
+    fallbackUrl: 'https://cdn.modrinth.com/data/P7dR8mSH/versions/g58ofrov/fabric-api-0.136.1%2B1.21.8.jar',
+    md5: '85d76d57a7b5bb7043ea815133d2f6ba'
   },
   {
     name: 'Sodium',
-    filename: 'sodium-fabric-0.6.0+1.21.8.jar',
-    url: 'https://cdn.marinmc.com/mods/sodium-fabric-0.6.0+1.21.8.jar',
-    md5: 'b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9'
+    filename: 'sodium-fabric-0.7.3+mc1.21.8.jar',
+    url: 'https://cdn.marinmc.com/mods/sodium-fabric-0.7.3+mc1.21.8.jar',
+    fallbackUrl: 'https://cdn.modrinth.com/data/AANobbMI/versions/7pwil2dy/sodium-fabric-0.7.3%2Bmc1.21.8.jar',
+    md5: '2e38db8afdf3a8d319658780b7f45501'
   },
   {
     name: 'Iris Shaders',
-    filename: 'iris-1.8.0+1.21.8.jar',
-    url: 'https://cdn.marinmc.com/mods/iris-1.8.0+1.21.8.jar',
-    md5: 'c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0'
+    filename: 'iris-fabric-1.9.6+mc1.21.8.jar',
+    url: 'https://cdn.marinmc.com/mods/iris-fabric-1.9.6+mc1.21.8.jar',
+    fallbackUrl: 'https://cdn.modrinth.com/data/YL57xq9U/versions/Rhzf61g1/iris-fabric-1.9.6%2Bmc1.21.8.jar',
+    md5: '64fdd8ffe47175923a1cfb6b0617867d'
   },
   {
     name: 'Lithium',
-    filename: 'lithium-fabric-0.12.0+1.21.8.jar',
-    url: 'https://cdn.marinmc.com/mods/lithium-fabric-0.12.0+1.21.8.jar',
-    md5: 'd6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1'
+    filename: 'lithium-fabric-0.18.1+mc1.21.8.jar',
+    url: 'https://cdn.marinmc.com/mods/lithium-fabric-0.18.1+mc1.21.8.jar',
+    fallbackUrl: 'https://cdn.modrinth.com/data/gvQqBUqZ/versions/qxIL7Kb8/lithium-fabric-0.18.1%2Bmc1.21.8.jar',
+    md5: '7852499e964ca766501bd2c6f5a14f22'
   },
   {
     name: 'Reese\'s Sodium Options',
-    filename: 'reeses-sodium-options-1.7.2+1.21.8.jar',
-    url: 'https://cdn.marinmc.com/mods/reeses-sodium-options-1.7.2+1.21.8.jar',
-    md5: 'e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2'
+    filename: 'reeses-sodium-options-fabric-1.8.4+mc1.21.6.jar',
+    url: 'https://cdn.marinmc.com/mods/reeses-sodium-options-fabric-1.8.4+mc1.21.6.jar',
+    fallbackUrl: 'https://cdn.modrinth.com/data/Bh37bMuy/versions/AgGRyydH/reeses-sodium-options-fabric-1.8.4%2Bmc1.21.6.jar',
+    md5: '6256d2626c3a7252c681bdd7c992db46'
   },
   {
     name: 'Sodium Extra',
-    filename: 'sodium-extra-0.5.4+1.21.8.jar',
-    url: 'https://cdn.marinmc.com/mods/sodium-extra-0.5.4+1.21.8.jar',
-    md5: 'f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3'
+    filename: 'sodium-extra-fabric-0.7.0+mc1.21.8.jar',
+    url: 'https://cdn.marinmc.com/mods/sodium-extra-fabric-0.7.0+mc1.21.8.jar',
+    fallbackUrl: 'https://cdn.modrinth.com/data/PtjYWJkn/versions/Of25zuEG/sodium-extra-fabric-0.7.0%2Bmc1.21.8.jar',
+    md5: 'b5ac5b552279a9adb2d99cbfe7d1edef'
   },
   {
     name: 'MarinMC Client Mod',
@@ -142,12 +148,12 @@ function cleanDuplicateMods(modsDir: string, logCallback: (msg: string) => void)
   try {
     const files = fs.readdirSync(modsDir);
     const prefixes = [
-      { key: 'fabric-api', target: 'fabric-api-0.100.0+1.21.8.jar' },
-      { key: 'sodium-fabric', target: 'sodium-fabric-0.6.0+1.21.8.jar' },
-      { key: 'iris', target: 'iris-1.8.0+1.21.8.jar' },
-      { key: 'lithium', target: 'lithium-fabric-0.12.0+1.21.8.jar' },
-      { key: 'reeses-sodium-options', target: 'reeses-sodium-options-1.7.2+1.21.8.jar' },
-      { key: 'sodium-extra', target: 'sodium-extra-0.5.4+1.21.8.jar' },
+      { key: 'fabric-api', target: 'fabric-api-0.136.1+1.21.8.jar' },
+      { key: 'sodium-fabric', target: 'sodium-fabric-0.7.3+mc1.21.8.jar' },
+      { key: 'iris', target: 'iris-fabric-1.9.6+mc1.21.8.jar' },
+      { key: 'lithium', target: 'lithium-fabric-0.18.1+mc1.21.8.jar' },
+      { key: 'reeses-sodium-options', target: 'reeses-sodium-options-fabric-1.8.4+mc1.21.6.jar' },
+      { key: 'sodium-extra', target: 'sodium-extra-fabric-0.7.0+mc1.21.8.jar' },
       { key: 'marinmc-client-mod', target: 'marinmc-client-mod-1.0.0.jar' }
     ];
 
@@ -267,25 +273,48 @@ async function verifyPerformanceMods(gameDir: string, logCallback: (msg: string)
 
     if (needDownload) {
       logCallback(`[MarinMC Launcher] Mod indiriliyor: ${mod.name}...`);
-      try {
+      
+      const downloadFile = async (downloadUrl: string) => {
         const response = await axios({
           method: 'get',
-          url: mod.url,
+          url: downloadUrl,
           responseType: 'stream',
-          timeout: 20000
+          timeout: 25000
         });
-
         const writer = fs.createWriteStream(modPath);
         response.data.pipe(writer);
-
-        await new Promise<void>((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           writer.on('finish', resolve);
           writer.on('error', reject);
         });
+      };
+
+      let success = false;
+      let downloadError: any = null;
+
+      try {
+        await downloadFile(mod.url);
+        success = true;
         logCallback(`[MarinMC Launcher] Başarıyla indirildi: ${mod.name}`);
       } catch (err: any) {
-        console.error(`Failed to download mod ${mod.name}:`, err.message);
-        logCallback(`[UYARI] ${mod.name} indirilemedi (offline/hata): ${err.message}. Devam ediliyor.`);
+        downloadError = err;
+        console.error(`Failed to download mod ${mod.name} from primary URL:`, err.message);
+      }
+
+      if (!success && (mod as any).fallbackUrl) {
+        logCallback(`[MarinMC Launcher] Sunucu çevrimdışı. Yedek sunucudan indiriliyor: ${mod.name}...`);
+        try {
+          await downloadFile((mod as any).fallbackUrl);
+          success = true;
+          logCallback(`[MarinMC Launcher] Başarıyla indirildi (Yedek): ${mod.name}`);
+        } catch (err: any) {
+          downloadError = err;
+          console.error(`Failed to download mod ${mod.name} from fallback URL:`, err.message);
+        }
+      }
+
+      if (!success) {
+        logCallback(`[UYARI] ${mod.name} indirilemedi (offline/hata): ${downloadError?.message || 'Bilinmeyen Hata'}. Devam ediliyor.`);
       }
     }
   }

@@ -89,6 +89,12 @@ const cosmeticsSchema = z.object({
   coins: z.number().nonnegative().optional()
 });
 
+const screenshotSchema = z.object({
+  title: z.string().min(1).max(100),
+  url: z.string().min(1),
+  username: z.string().min(3).max(30)
+});
+
 const contactsSchema = z.object({
   contacts: z.array(z.object({
     id: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/),
@@ -521,6 +527,171 @@ router.put('/chats/:username/messages', validateUsername, async (req, res) => {
       }
     }
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- COMMUNITY GALLERY ---
+router.get('/gallery/community', async (req, res) => {
+  try {
+    const list = await dbAll('SELECT * FROM community_screenshots ORDER BY date DESC LIMIT 30');
+    res.json(list.map(item => ({
+      id: item.id,
+      url: item.url,
+      title: item.title,
+      username: item.username,
+      likes: item.likes,
+      date: item.date
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/gallery/community', async (req, res) => {
+  const validation = screenshotSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Geçersiz veri formatı.', details: validation.error.format() });
+  }
+  const { title, url, username } = validation.data;
+  try {
+    const id = Math.random().toString(36).substring(2, 11);
+    const dateStr = new Date().toLocaleDateString('tr-TR');
+    await dbRun(`
+      INSERT INTO community_screenshots (id, url, title, username, likes, date)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [id, url, title, username, 0, dateStr]);
+    res.json({ success: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/gallery/community/:id/like', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const item = await dbGet('SELECT * FROM community_screenshots WHERE id = ?', [id]);
+    if (!item) {
+      return res.status(404).json({ error: 'Görsel bulunamadı.' });
+    }
+    const nextLikes = (item.likes || 0) + 1;
+    await dbRun('UPDATE community_screenshots SET likes = ? WHERE id = ?', [nextLikes, id]);
+    res.json({ success: true, likes: nextLikes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- QUESTS & ACHIEVEMENTS ---
+router.get('/users/:username/quests', validateUsername, async (req, res) => {
+  const username = req.params.username;
+  try {
+    let list = await dbAll('SELECT * FROM quests WHERE username = ?', [username]);
+    if (list.length === 0) {
+      const initialQuests = [
+        { id: 'q1', description: 'Lobi Sohbetine 1 Mesaj Yaz', progress: 0, target: 1, coins: 50, claimed: 0 },
+        { id: 'q2', description: 'Bir Arkadaş Ekle', progress: 0, target: 1, coins: 100, claimed: 0 },
+        { id: 'q3', description: 'Günde 30 dakika oyna', progress: 0, target: 30, coins: 150, claimed: 0 }
+      ];
+      for (const q of initialQuests) {
+        await dbRun(`
+          INSERT INTO quests (id, username, description, progress, target, coins, claimed)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [q.id, username, q.description, q.progress, q.target, q.coins, q.claimed]);
+      }
+      list = await dbAll('SELECT * FROM quests WHERE username = ?', [username]);
+    }
+
+    // Dynamically update progress on fetch
+    const contacts = await dbAll('SELECT * FROM contacts WHERE username = ?', [username]);
+    const user = await dbGet('SELECT total_play_time FROM users WHERE username = ?', [username]);
+
+    const hasFriend = contacts.length > 0 ? 1 : 0;
+    await dbRun('UPDATE quests SET progress = ? WHERE username = ? AND id = ? AND claimed = 0', [hasFriend, username, 'q2']);
+    
+    if (user) {
+      const playedMin = Math.min(30, Math.max(0, Math.round((user.total_play_time - 124) * 60)));
+      await dbRun('UPDATE quests SET progress = ? WHERE username = ? AND id = ? AND claimed = 0', [playedMin, username, 'q3']);
+    }
+
+    // Fetch again after updates
+    list = await dbAll('SELECT * FROM quests WHERE username = ?', [username]);
+
+    res.json(list.map(q => ({
+      id: q.id,
+      description: q.description,
+      progress: q.progress,
+      target: q.target,
+      coins: q.coins,
+      claimed: q.claimed === 1
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/users/:username/quests/:id/claim', validateUsername, async (req, res) => {
+  const { username, id } = req.params;
+  try {
+    const quest = await dbGet('SELECT * FROM quests WHERE username = ? AND id = ?', [username, id]);
+    if (!quest) {
+      return res.status(404).json({ error: 'Görev bulunamadı.' });
+    }
+    if (quest.claimed === 1) {
+      return res.status(400).json({ error: 'Ödül zaten alınmış.' });
+    }
+    if (quest.progress < quest.target) {
+      return res.status(400).json({ error: 'Görev henüz tamamlanmadı.' });
+    }
+
+    await dbRun('UPDATE quests SET claimed = 1 WHERE username = ? AND id = ?', [username, id]);
+    
+    const user = await dbGet('SELECT coins FROM users WHERE username = ?', [username]);
+    const nextCoins = (user ? user.coins : 500) + quest.coins;
+    await dbRun('UPDATE users SET coins = ? WHERE username = ?', [nextCoins, username]);
+
+    res.json({ success: true, coins: nextCoins });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/users/:username/achievements', validateUsername, async (req, res) => {
+  const username = req.params.username;
+  try {
+    let list = await dbAll('SELECT * FROM achievements WHERE username = ?', [username]);
+    if (list.length === 0) {
+      const initialAchievements = [
+        { id: 'a1', title: 'İlk Adım', description: 'Yeni tasarımlı launcher\'a ilk kez giriş yap.', completed: 1, date: new Date().toLocaleDateString('tr-TR') },
+        { id: 'a2', title: 'Mod Meraklısı', description: 'Mod Yöneticisinden ilk modunu indir.', completed: 0, date: '-' },
+        { id: 'a3', title: 'Jeton Avcısı', description: 'Cüzdanında 1,000 veya daha fazla Jeton barındır.', completed: 0, date: '-' }
+      ];
+      for (const a of initialAchievements) {
+        await dbRun(`
+          INSERT INTO achievements (id, username, title, description, completed, date)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [a.id, username, a.title, a.description, a.completed, a.date]);
+      }
+      list = await dbAll('SELECT * FROM achievements WHERE username = ?', [username]);
+    }
+
+    // Dynamically update 'a3' (Jeton Avcısı)
+    const user = await dbGet('SELECT coins FROM users WHERE username = ?', [username]);
+    if (user && user.coins >= 1000) {
+      await dbRun('UPDATE achievements SET completed = 1, date = ? WHERE username = ? AND id = ? AND completed = 0', [new Date().toLocaleDateString('tr-TR'), username, 'a3']);
+    }
+
+    // Fetch again
+    list = await dbAll('SELECT * FROM achievements WHERE username = ?', [username]);
+
+    res.json(list.map(a => ({
+      id: a.id,
+      title: a.title,
+      description: a.description,
+      completed: a.completed === 1,
+      date: a.date
+    })));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

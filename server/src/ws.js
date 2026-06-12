@@ -93,6 +93,25 @@ export const initWebSocket = (server) => {
               }
             }));
           }
+        } else if (message.event === 'lobby:message') {
+          const { content, time } = message.data;
+          console.log(`[WebSocket] Lobby message from ${username}: ${content}`);
+          
+          const packet = JSON.stringify({
+            event: 'lobby:message',
+            data: {
+              id: Math.random().toString(36).substr(2, 9),
+              sender: username,
+              content,
+              time
+            }
+          });
+
+          clients.forEach(wsClient => {
+            if (wsClient.readyState === 1) { // WebSocket.OPEN
+              wsClient.send(packet);
+            }
+          });
         }
       } catch (err) {
         console.error('[WebSocket] Error processing message:', err.message);
@@ -106,6 +125,43 @@ export const initWebSocket = (server) => {
       await broadcastStatus(userId, 'offline');
     });
   });
+
+  // Live Lobby Chat Simulation Interval
+  const LOBBY_BOT_NAMES = ['Steve', 'Alex', '172px', 'masaya46', 'cuvsa', 'zakhbear', 'daaaavidds'];
+  const LOBBY_BOT_MESSAGES = [
+    'Sa beyler, Towny\'e gelcek var mı?',
+    'Beyler lobi neden bu kadar kalabalık bugün?',
+    'Son güncellemeyle FPS değerleri çok iyi olmuş yalnız.',
+    'Admin bey markete yeni pelerinler ne zaman gelecek?',
+    'Survival klan alımı vardır, pm atın.',
+    'Ejderha kanatları bende aşırı iyi duruyor abi.',
+    'oyna.marinmc.com ping değerleriniz kaç? bende 15ms',
+    'Optifine yerine Sodium kullanın, başlatıcıda zaten yüklü geliyor'
+  ];
+
+  setInterval(() => {
+    if (clients.size === 0) return;
+    const randomName = LOBBY_BOT_NAMES[Math.floor(Math.random() * LOBBY_BOT_NAMES.length)];
+    const randomMsg = LOBBY_BOT_MESSAGES[Math.floor(Math.random() * LOBBY_BOT_MESSAGES.length)];
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    const packet = JSON.stringify({
+      event: 'lobby:message',
+      data: {
+        id: Math.random().toString(36).substr(2, 9),
+        sender: randomName,
+        content: randomMsg,
+        time: timeStr
+      }
+    });
+
+    clients.forEach(wsClient => {
+      if (wsClient.readyState === 1) { // WebSocket.OPEN
+        wsClient.send(packet);
+      }
+    });
+  }, 20000); // Send every 20 seconds
 
   // Handle upgrade request from Express server
   server.on('upgrade', (request, socket, head) => {

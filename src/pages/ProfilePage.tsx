@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore.ts';
-import { Clock, Calendar, Heart, Edit2, Check, Trophy, User, Coins, Loader2 } from 'lucide-react';
-import { api } from '../lib/api';
+import { Clock, Calendar, Heart, Edit2, Check, Trophy, User, Coins, Loader2, ClipboardList, Award, CheckCircle2, Lock } from 'lucide-react';
+import { api, Quest, Achievement } from '../lib/api';
 
 interface PlaySession {
   id: string;
@@ -32,9 +32,11 @@ export default function ProfilePage() {
   const session = useAuthStore((state) => state.session);
   const setSession = useAuthStore((state) => state.setSession);
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'leaderboard'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'leaderboard' | 'quests' | 'achievements'>('profile');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
+  const [quests, setQuests] = useState<Quest[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   
   const [usernameInput, setUsernameInput] = useState(session?.name || 'Player');
   const [editing, setEditing] = useState(false);
@@ -43,6 +45,9 @@ export default function ProfilePage() {
   
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  const [loadingQuests, setLoadingQuests] = useState(false);
+  const [loadingAchievements, setLoadingAchievements] = useState(false);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
 
   // Load profile from API
   useEffect(() => {
@@ -69,6 +74,53 @@ export default function ProfilePage() {
         .finally(() => setLoadingLeaderboard(false));
     }
   }, [activeTab]);
+
+  // Load quests from API
+  useEffect(() => {
+    if (!session) return;
+    if (activeTab === 'quests') {
+      setLoadingQuests(true);
+      api.getQuests(session.name)
+        .then((data) => setQuests(data))
+        .catch((err) => console.error('Failed to load quests:', err))
+        .finally(() => setLoadingQuests(false));
+    }
+  }, [activeTab, session]);
+
+  // Load achievements from API
+  useEffect(() => {
+    if (!session) return;
+    if (activeTab === 'achievements') {
+      setLoadingAchievements(true);
+      api.getAchievements(session.name)
+        .then((data) => setAchievements(data))
+        .catch((err) => console.error('Failed to load achievements:', err))
+        .finally(() => setLoadingAchievements(false));
+    }
+  }, [activeTab, session]);
+
+  const handleClaimReward = async (questId: string) => {
+    if (!session) return;
+    setClaimingId(questId);
+    try {
+      const res = await api.claimQuestReward(session.name, questId);
+      if (res.success) {
+        // Update quests state
+        setQuests(prev => prev.map(q => q.id === questId ? { ...q, claimed: true } : q));
+        // Update profile coins state if profile exists
+        if (profile) {
+          setProfile({
+            ...profile,
+            coins: res.coins
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to claim quest reward:', err);
+    } finally {
+      setClaimingId(null);
+    }
+  };
 
   const handleEditToggle = async () => {
     if (editing && session && profile) {
@@ -133,6 +185,28 @@ export default function ProfilePage() {
           >
             <User className="w-3.5 h-3.5" />
             <span>Profilim</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('quests')}
+            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+              activeTab === 'quests'
+                ? 'bg-[#8B5CF6] text-white shadow-[0_0_12px_rgba(139,92,246,0.25)]'
+                : 'text-[#52525B] hover:text-white'
+            }`}
+          >
+            <ClipboardList className="w-3.5 h-3.5" />
+            <span>Günlük Görevler</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('achievements')}
+            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+              activeTab === 'achievements'
+                ? 'bg-[#8B5CF6] text-white shadow-[0_0_12px_rgba(139,92,246,0.25)]'
+                : 'text-[#52525B] hover:text-white'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5" />
+            <span>Başarımlarım</span>
           </button>
           <button
             onClick={() => setActiveTab('leaderboard')}
@@ -278,6 +352,161 @@ export default function ProfilePage() {
 
             </div>
 
+          </div>
+        )
+      ) : activeTab === 'quests' ? (
+        loadingQuests ? (
+          <div className="flex-grow flex items-center justify-center">
+            <Loader2 className="w-6 h-6 text-[#8B5CF6] animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 animate-[fadeIn_0.25s_ease-out]">
+            {quests.map((q) => {
+              const progressPercentage = Math.min(100, (q.progress / q.target) * 100);
+              const isCompleted = q.progress >= q.target;
+              return (
+                <div 
+                  key={q.id} 
+                  className={`bg-[#111111] border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 ${
+                    q.claimed 
+                      ? 'border-white/[0.04] opacity-50' 
+                      : isCompleted 
+                        ? 'border-emerald-500/30 bg-gradient-to-br from-[#111111] to-emerald-950/10 shadow-[0_0_15px_rgba(16,185,129,0.05)]' 
+                        : 'border-white/[0.06] hover:border-white/10'
+                  }`}
+                >
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="text-xs font-black text-white leading-relaxed uppercase tracking-wider">{q.description}</h4>
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/20 shrink-0">
+                        <Coins className="w-3 h-3" />
+                        <span>+{q.coins} Jeton</span>
+                      </div>
+                    </div>
+                    
+                    {/* Progress details */}
+                    <div className="flex justify-between items-center text-[9px] font-bold text-[#52525B] mb-2.5">
+                      <span>İlerleme</span>
+                      <span className={isCompleted ? 'text-emerald-400' : 'text-white'}>
+                        {q.progress} / {q.target}
+                      </span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-5">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          q.claimed 
+                            ? 'bg-white/20' 
+                            : isCompleted 
+                              ? 'bg-emerald-500' 
+                              : 'bg-[#8B5CF6]'
+                        }`}
+                        style={{ width: `${progressPercentage}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    {q.claimed ? (
+                      <button 
+                        disabled 
+                        className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[#52525B] text-[9px] font-bold uppercase tracking-wider flex items-center gap-1.5 w-full justify-center"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Ödül Alındı</span>
+                      </button>
+                    ) : isCompleted ? (
+                      <button 
+                        onClick={() => handleClaimReward(q.id)}
+                        disabled={claimingId === q.id}
+                        className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 w-full justify-center shadow-[0_0_12px_rgba(16,185,129,0.25)] transition-all transform hover:-translate-y-0.5"
+                      >
+                        {claimingId === q.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Coins className="w-3.5 h-3.5" />
+                        )}
+                        <span>Ödülü Al</span>
+                      </button>
+                    ) : (
+                      <button 
+                        disabled 
+                        className="px-4 py-2 rounded-xl bg-white/[0.02] border border-white/[0.04] text-[#52525B] text-[9px] font-bold uppercase tracking-wider w-full text-center"
+                      >
+                        Devam Ediyor
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : activeTab === 'achievements' ? (
+        loadingAchievements ? (
+          <div className="flex-grow flex items-center justify-center">
+            <Loader2 className="w-6 h-6 text-[#8B5CF6] animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-4 animate-[fadeIn_0.25s_ease-out]">
+            {achievements.map((a) => (
+              <div 
+                key={a.id} 
+                className={`bg-[#111111] border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
+                  a.completed 
+                    ? 'border-purple-500/30 bg-gradient-to-br from-[#111111] to-purple-950/10 shadow-[0_0_15px_rgba(139,92,246,0.05)]' 
+                    : 'border-white/[0.04] opacity-50'
+                }`}
+              >
+                {a.completed && (
+                  <div className="absolute -top-6 -right-6 w-12 h-12 bg-purple-500/10 rounded-full blur-xl" />
+                )}
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border ${
+                      a.completed 
+                        ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' 
+                        : 'bg-white/5 border-white/10 text-[#52525B]'
+                    }`}>
+                      {a.completed ? <Trophy className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+                    </div>
+                    
+                    {a.completed ? (
+                      <span className="text-[7.5px] font-extrabold bg-purple-500/15 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                        Açıldı ({a.date})
+                      </span>
+                    ) : (
+                      <span className="text-[7.5px] font-extrabold bg-white/5 text-[#52525B] border border-white/5 px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                        Kilitli
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-black text-white leading-none uppercase tracking-wider">{a.title}</h4>
+                    <p className="text-[9px] text-[#A1A1AA] font-bold mt-2 leading-relaxed">
+                      {a.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-white/[0.02] flex items-center gap-1.5 text-[8.5px] font-bold">
+                  {a.completed ? (
+                    <span className="text-purple-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-purple-400" />
+                      Rozet Kazanıldı
+                    </span>
+                  ) : (
+                    <span className="text-[#52525B] flex items-center gap-1">
+                      <Lock className="w-3 h-3" />
+                      Kilitli Rozet
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )
       ) : (

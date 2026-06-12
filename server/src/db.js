@@ -153,6 +153,45 @@ export const initDb = async () => {
     )
   `);
 
+  // 6. Community Screenshots table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS community_screenshots (
+      id VARCHAR(50) PRIMARY KEY,
+      url TEXT,
+      title TEXT,
+      username VARCHAR(100),
+      likes INTEGER DEFAULT 0,
+      date TEXT
+    )
+  `);
+
+  // 7. Quests table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS quests (
+      id VARCHAR(50),
+      username VARCHAR(100),
+      description TEXT,
+      progress INTEGER DEFAULT 0,
+      target INTEGER DEFAULT 1,
+      coins INTEGER DEFAULT 100,
+      claimed INTEGER DEFAULT 0,
+      PRIMARY KEY (username, id)
+    )
+  `);
+
+  // 8. Achievements table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS achievements (
+      id VARCHAR(50),
+      username VARCHAR(100),
+      title VARCHAR(100),
+      description TEXT,
+      completed INTEGER DEFAULT 0,
+      date TEXT,
+      PRIMARY KEY (username, id)
+    )
+  `);
+
   // Column Migrations for Advanced Features
   const addColumnSafe = async (tableName, columnName, definition) => {
     try {

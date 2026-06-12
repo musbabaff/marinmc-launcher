@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore.ts';
@@ -13,9 +13,10 @@ import {
   ChevronDown, LogOut, Search,
   MessageSquare, UserPlus, X, AlertTriangle,
   Trophy, CheckCircle2, WifiOff, ExternalLink, RefreshCw,
-  Pause, Plus, Trash2
+  Pause, Plus, Trash2, Send
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { wsManager } from '../lib/websocket';
 
 import heroBg from '../../assets/home-hero-bg.png';
 
@@ -90,9 +91,75 @@ export default function HomePage() {
   }, []);
 
   // Friends Panel states
-  const [friendsTab, setFriendsTab] = useState<'friends' | 'requests'>('friends');
+  const [friendsTab, setFriendsTab] = useState<'friends' | 'requests' | 'lobby'>('friends');
   const [friendsSearch, setFriendsSearch] = useState('');
   const [friendsPanelOpen, setFriendsPanelOpen] = useState(true);
+
+  // Lobby Chat states
+  interface LobbyMessage {
+    id: string;
+    sender: string;
+    content: string;
+    time: string;
+  }
+  const INITIAL_LOBBY_MESSAGES: LobbyMessage[] = [
+    { id: 'l1', sender: 'Solmazzz', content: 'MarinMC Towny sunucusunda bugün büyük savaş var beyler!', time: '14:02' },
+    { id: 'l2', sender: 'wtfbro', content: 'Market fiyatları güncellendi mi?', time: '14:05' },
+    { id: 'l3', sender: 'wtfbroimlagging', content: 'Sodium ayarlarıyla ilgili sorusu olan var mı?', time: '14:08' },
+    { id: 'l4', sender: 'Admin', content: 'Etkinlik 1 saat sonra başlayacak, yerlerinizi alın.', time: '14:10' }
+  ];
+  const [lobbyMessages, setLobbyMessages] = useState<LobbyMessage[]>(INITIAL_LOBBY_MESSAGES);
+  const [lobbyInput, setLobbyInput] = useState('');
+  const lobbyEndRef = useRef<HTMLDivElement>(null);
+
+  // Setup WebSocket connection and lobby:message listener
+  useEffect(() => {
+    if (!session?.name) return;
+    
+    // Auto-connect to websocket
+    wsManager.connect(session.name);
+
+    const removeLobbyListener = wsManager.addListener('lobby:message', (msg: any) => {
+      setLobbyMessages((prev) => {
+        const next = [...prev, {
+          id: msg.id || Math.random().toString(),
+          sender: msg.sender,
+          content: msg.content,
+          time: msg.time || new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+        }];
+        if (next.length > 40) {
+          next.shift();
+        }
+        return next;
+      });
+    });
+
+    return () => {
+      removeLobbyListener();
+    };
+  }, [session]);
+
+  // Scroll to bottom when lobbyMessages change or tab active
+  useEffect(() => {
+    if (friendsTab === 'lobby' && lobbyEndRef.current) {
+      lobbyEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [lobbyMessages, friendsTab]);
+
+  const handleSendLobbyMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lobbyInput.trim() || !session?.name) return;
+    
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    wsManager.send('lobby:message', {
+      content: lobbyInput.trim(),
+      time: timeStr
+    });
+    
+    setLobbyInput('');
+  };
 
   // Add Friend modal
   const [addFriendOpen, setAddFriendOpen] = useState(false);
@@ -809,19 +876,28 @@ export default function HomePage() {
         {friendsPanelOpen && (
           <div className="flex flex-col h-full w-[300px]">
             {/* Tab Header Selector */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
-              <div className="flex gap-4">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-white/[0.04]">
+              <div className="flex gap-3">
                 <button
                   onClick={() => setFriendsTab('friends')}
-                  className={`text-[11px] font-black uppercase tracking-wider relative transition-colors ${
+                  className={`text-[10px] font-black uppercase tracking-wider relative transition-colors ${
                     friendsTab === 'friends' ? 'text-white' : 'text-[#52525B] hover:text-[#A1A1AA]'
                   }`}
                 >
                   {t('home.friendsTab')}
                 </button>
                 <button
+                  onClick={() => setFriendsTab('lobby')}
+                  className={`text-[10px] font-black uppercase tracking-wider relative transition-colors ${
+                    friendsTab === 'lobby' ? 'text-white' : 'text-[#52525B] hover:text-[#A1A1AA]'
+                  }`}
+                >
+                  <span>Lobi</span>
+                  <span className="absolute top-0 -right-2.5 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                </button>
+                <button
                   onClick={() => setFriendsTab('requests')}
-                  className={`text-[11px] font-black uppercase tracking-wider relative transition-colors ${
+                  className={`text-[10px] font-black uppercase tracking-wider relative transition-colors ${
                     friendsTab === 'requests' ? 'text-white' : 'text-[#52525B] hover:text-[#A1A1AA]'
                   }`}
                 >
@@ -983,6 +1059,61 @@ export default function HomePage() {
                   </div>
                 )}
               </>
+            ) : friendsTab === 'lobby' ? (
+              // Lobby Chat View
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-black/10">
+                {/* Message logs */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                  {lobbyMessages.map((msg) => {
+                    const isSelf = msg.sender.toLowerCase() === session?.name?.toLowerCase();
+                    const isAdmin = msg.sender === 'Admin';
+                    return (
+                      <div key={msg.id} className="flex gap-2.5 items-start">
+                        <img 
+                          src={`https://minotar.net/avatar/${msg.sender}/24`} 
+                          alt={msg.sender} 
+                          className="w-6 h-6 rounded shrink-0 border border-white/5 bg-black/35"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-baseline">
+                            <span className={`text-[9.5px] font-black tracking-wide ${
+                              isSelf ? 'text-amber-400' : isAdmin ? 'text-red-400' : 'text-[#a78bfa]'
+                            }`}>
+                              {msg.sender}
+                            </span>
+                            <span className="text-[7.5px] text-[#52525B] font-medium font-mono">{msg.time}</span>
+                          </div>
+                          <p className="text-[10px] text-white/90 font-medium leading-normal mt-0.5 break-all">
+                            {msg.content}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={lobbyEndRef} />
+                </div>
+
+                {/* Input box */}
+                <form onSubmit={handleSendLobbyMessage} className="p-3 border-t border-white/[0.04] flex gap-2 items-center bg-black/15 shrink-0">
+                  <input
+                    type="text"
+                    value={lobbyInput}
+                    onChange={(e) => setLobbyInput(e.target.value)}
+                    placeholder="Lobiye mesaj yaz..."
+                    maxLength={150}
+                    className="flex-1 bg-white/[0.02] border border-white/10 rounded-xl px-3 py-2 text-[9.5px] text-white placeholder-white/20 outline-none focus:border-[#2D7DD2]/50 font-medium"
+                  />
+                  <button 
+                    type="submit"
+                    className="p-2 bg-[#2D7DD2]/20 hover:bg-[#2D7DD2]/30 border border-[#2D7DD2]/30 text-[#2D7DD2] rounded-xl transition-all active:scale-95 shrink-0"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              </div>
             ) : (
               // Requests View
               <div className="flex-grow overflow-y-auto p-4 space-y-3 custom-scrollbar">

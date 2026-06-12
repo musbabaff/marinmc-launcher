@@ -5,9 +5,10 @@ interface ThreePreviewProps {
   skin: string; // Minecraft Username
   capeUrl?: string; // Optional Cape Image URL
   wingsEnabled?: boolean; // Toggled by active cosmetics
+  modelType?: 'classic' | 'slim'; // Steve vs Alex arm type selection
 }
 
-export default function ThreePreview({ skin, capeUrl, wingsEnabled = true }: ThreePreviewProps) {
+export default function ThreePreview({ skin, capeUrl, wingsEnabled = true, modelType = 'classic' }: ThreePreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,11 +60,86 @@ export default function ThreePreview({ skin, capeUrl, wingsEnabled = true }: Thr
 
     // Load skin texture
     const textureLoader = new THREE.TextureLoader();
-    const skinImgUrl = `https://mc-heads.net/skin/${skin}`;
+    const skinImgUrl = skin.startsWith('data:') || skin.startsWith('file:') || skin.startsWith('http')
+      ? skin
+      : `https://mc-heads.net/skin/${skin}`;
+
+    // Helper to generate a custom premium glowing wing texture using 2D Canvas
+    const createWingTexture = (isLeft: boolean) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, 256, 256);
+
+        // Premium vibrant linear gradient
+        const gradient = ctx.createLinearGradient(0, 0, isLeft ? 0 : 256, 256);
+        gradient.addColorStop(0, 'rgba(139, 92, 246, 0.95)'); // Electric Violet
+        gradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.85)'); // Royal Blue
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.95)');  // Cyber Mint/Green
+
+        ctx.fillStyle = gradient;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = 4;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = 'rgba(139, 92, 246, 0.8)';
+
+        ctx.beginPath();
+        if (isLeft) {
+          ctx.moveTo(240, 40); // Joint top-right
+          ctx.quadraticCurveTo(120, 10, 20, 80); // Top curve
+          ctx.quadraticCurveTo(80, 140, 10, 160); // Feather 1
+          ctx.quadraticCurveTo(100, 170, 30, 200); // Feather 2
+          ctx.quadraticCurveTo(120, 190, 80, 230); // Feather 3
+          ctx.quadraticCurveTo(180, 200, 240, 120); // Bottom curve back to joint
+        } else {
+          ctx.moveTo(16, 40); // Joint top-left
+          ctx.quadraticCurveTo(136, 10, 236, 80); // Top curve
+          ctx.quadraticCurveTo(176, 140, 246, 160); // Feather 1
+          ctx.quadraticCurveTo(156, 170, 226, 200); // Feather 2
+          ctx.quadraticCurveTo(136, 190, 176, 230); // Feather 3
+          ctx.quadraticCurveTo(76, 200, 16, 120); // Bottom curve back to joint
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Glowing wing ribs/bones
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        if (isLeft) {
+          ctx.moveTo(240, 40);
+          ctx.lineTo(100, 95);
+          ctx.lineTo(25, 140);
+          ctx.moveTo(240, 40);
+          ctx.lineTo(130, 130);
+          ctx.lineTo(85, 185);
+          ctx.moveTo(240, 40);
+          ctx.lineTo(175, 145);
+        } else {
+          ctx.moveTo(16, 40);
+          ctx.lineTo(156, 95);
+          ctx.lineTo(231, 140);
+          ctx.moveTo(16, 40);
+          ctx.lineTo(126, 130);
+          ctx.lineTo(171, 185);
+          ctx.moveTo(16, 40);
+          ctx.lineTo(81, 145);
+        }
+        ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.magFilter = THREE.NearestFilter;
+      tex.minFilter = THREE.NearestFilter;
+      return tex;
+    };
 
     // Helper to slice texture from image canvas
     const sliceSkin = (img: HTMLImageElement) => {
       const is64x64 = img.height === img.width;
+      const isSlim = modelType === 'slim';
 
       const getMaterial = (x: number, y: number, w: number, h: number) => {
         const canvas = document.createElement('canvas');
@@ -109,8 +185,15 @@ export default function ThreePreview({ skin, capeUrl, wingsEnabled = true }: Thr
       body.position.y = 6;
       playerGroup.add(body);
 
-      // Right Arm: 4x12x4.
-      const rArmMaterials = [
+      // Right Arm: classic (4x12x4) vs slim (3x12x4)
+      const rArmMaterials = isSlim ? [
+        getMaterial(40, 20, 4, 12), // Right (depth 4)
+        getMaterial(47, 20, 4, 12), // Left (depth 4)
+        getMaterial(44, 16, 3, 4),  // Top (width 3, depth 4)
+        getMaterial(47, 16, 3, 4),  // Bottom (width 3, depth 4)
+        getMaterial(44, 20, 3, 12), // Front (width 3)
+        getMaterial(51, 20, 3, 12)  // Back (width 3)
+      ] : [
         getMaterial(40, 20, 4, 12), // Right
         getMaterial(48, 20, 4, 12), // Left
         getMaterial(44, 16, 4, 4),  // Top
@@ -118,23 +201,30 @@ export default function ThreePreview({ skin, capeUrl, wingsEnabled = true }: Thr
         getMaterial(44, 20, 4, 12), // Front
         getMaterial(52, 20, 4, 12)  // Back
       ];
-      const rArmGeo = new THREE.BoxGeometry(4, 12, 4);
+      const rArmGeo = new THREE.BoxGeometry(isSlim ? 3 : 4, 12, 4);
       rightArm = new THREE.Mesh(rArmGeo, rArmMaterials);
-      rightArm.position.set(6, 6, 0);
+      rightArm.position.set(isSlim ? 5.5 : 6, 6, 0);
       playerGroup.add(rightArm);
 
-      // Left Arm: 4x12x4.
-      const lArmMaterials = is64x64 ? [
+      // Left Arm: classic (4x12x4) vs slim (3x12x4)
+      const lArmMaterials = is64x64 ? (isSlim ? [
+        getMaterial(32, 52, 4, 12), // Right (depth 4)
+        getMaterial(39, 52, 4, 12), // Left (depth 4)
+        getMaterial(36, 48, 3, 4),  // Top (width 3, depth 4)
+        getMaterial(39, 48, 3, 4),  // Bottom (width 3, depth 4)
+        getMaterial(36, 52, 3, 12), // Front (width 3)
+        getMaterial(43, 52, 3, 12)  // Back (width 3)
+      ] : [
         getMaterial(32, 52, 4, 12), // Right
         getMaterial(40, 52, 4, 12), // Left
         getMaterial(36, 48, 4, 4),  // Top
         getMaterial(40, 48, 4, 4),  // Bottom
         getMaterial(36, 52, 4, 12), // Front
         getMaterial(44, 52, 4, 12)  // Back
-      ] : rArmMaterials; // Mirror right arm if 64x32
-      const lArmGeo = new THREE.BoxGeometry(4, 12, 4);
+      ]) : rArmMaterials; // Mirror right arm if 64x32
+      const lArmGeo = new THREE.BoxGeometry(isSlim ? 3 : 4, 12, 4);
       leftArm = new THREE.Mesh(lArmGeo, lArmMaterials);
-      leftArm.position.set(-6, 6, 0);
+      leftArm.position.set(isSlim ? -5.5 : -6, 6, 0);
       playerGroup.add(leftArm);
 
       // Right Leg: 4x12x4.
@@ -165,24 +255,39 @@ export default function ThreePreview({ skin, capeUrl, wingsEnabled = true }: Thr
       leftLeg.position.set(-2, -6, 0);
       playerGroup.add(leftLeg);
 
-      // 4. Wings Cosmetics (optional)
+      // 4. Wings Cosmetics (optional) - Premium Custom Canvas-drawn feathers
       if (wingsEnabled) {
-        const wingMat = new THREE.MeshBasicMaterial({ color: 0x2d7dd2, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
-        const wingGeo = new THREE.PlaneGeometry(10, 14);
+        const leftWingTex = createWingTexture(true);
+        const rightWingTex = createWingTexture(false);
+
+        const leftWingMat = new THREE.MeshBasicMaterial({
+          map: leftWingTex,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.95
+        });
+        const rightWingMat = new THREE.MeshBasicMaterial({
+          map: rightWingTex,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.95
+        });
+
+        const wingGeo = new THREE.PlaneGeometry(12, 14);
 
         // Wing pivots for rotation
         const leftWingPivot = new THREE.Group();
         leftWingPivot.position.set(-4, 8, -2.1);
-        const lWingMesh = new THREE.Mesh(wingGeo, wingMat);
-        lWingMesh.position.set(-5, 0, 0); // shift mesh to pivot edge
+        const lWingMesh = new THREE.Mesh(wingGeo, leftWingMat);
+        lWingMesh.position.set(-6, 0, 0); // shift mesh to pivot edge
         leftWingPivot.add(lWingMesh);
         playerGroup.add(leftWingPivot);
         leftWing = leftWingPivot as any;
 
         const rightWingPivot = new THREE.Group();
         rightWingPivot.position.set(4, 8, -2.1);
-        const rWingMesh = new THREE.Mesh(wingGeo, wingMat);
-        rWingMesh.position.set(5, 0, 0); // shift mesh to pivot edge
+        const rWingMesh = new THREE.Mesh(wingGeo, rightWingMat);
+        rWingMesh.position.set(6, 0, 0); // shift mesh to pivot edge
         rightWingPivot.add(rWingMesh);
         playerGroup.add(rightWingPivot);
         rightWing = rightWingPivot as any;
@@ -326,7 +431,7 @@ export default function ThreePreview({ skin, capeUrl, wingsEnabled = true }: Thr
       }
       renderer.dispose();
     };
-  }, [skin, capeUrl, wingsEnabled]);
+  }, [skin, capeUrl, wingsEnabled, modelType]);
 
   return <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />;
 }

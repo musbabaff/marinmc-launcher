@@ -103,12 +103,12 @@ export default function ModManagerPage() {
 
       const file = latest.files.find(f => f.primary) || latest.files[0];
 
-      // If Electron API available, download to mods folder
+      // If Electron API available, download to correct folder
       if (window.electronAPI) {
-        await window.electronAPI.downloadFile(file.url, file.filename);
+        await window.electronAPI.downloadFile(file.url, file.filename, projectType);
       }
 
-      const installed: InstalledMod = {
+      const installed: InstalledMod & { enabled?: boolean; projectType?: string } = {
         projectId: hit.project_id,
         versionId: latest.id,
         slug: hit.slug,
@@ -120,6 +120,8 @@ export default function ModManagerPage() {
         installedAt: new Date().toISOString(),
         gameVersions: latest.game_versions,
         loaders: latest.loaders,
+        enabled: true,
+        projectType: projectType
       };
 
       const updated = [...installedMods, installed];
@@ -136,8 +138,32 @@ export default function ModManagerPage() {
     }
   };
 
-  const handleUninstall = (projectId: string) => {
+  const handleUninstall = async (projectId: string) => {
+    const mod = installedMods.find(m => m.projectId === projectId) as any;
+    if (mod && window.electronAPI) {
+      try {
+        await window.electronAPI.deleteModFile(mod.fileName, mod.projectType || 'mod');
+      } catch (err) {
+        console.error('Failed to delete mod file from disk:', err);
+      }
+    }
     const updated = installedMods.filter(m => m.projectId !== projectId);
+    setInstalledMods(updated);
+    saveInstalled(updated);
+  };
+
+  const handleToggleEnable = async (projectId: string) => {
+    const updated = installedMods.map((m: any) => {
+      if (m.projectId === projectId) {
+        const nextEnabled = m.enabled !== false ? false : true;
+        if (window.electronAPI) {
+          window.electronAPI.toggleModFile(m.fileName, m.projectType || 'mod', nextEnabled)
+            .catch(err => console.error('Failed to toggle mod file:', err));
+        }
+        return { ...m, enabled: nextEnabled };
+      }
+      return m;
+    });
     setInstalledMods(updated);
     saveInstalled(updated);
   };
@@ -396,12 +422,29 @@ export default function ModManagerPage() {
                       ))}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleUninstall(mod.projectId)}
-                    className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all shrink-0"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    {/* Enable/Deactivate Toggle Switch */}
+                    <button
+                      onClick={() => handleToggleEnable(mod.projectId)}
+                      className={`w-8 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none shrink-0 ${
+                        mod.enabled !== false ? 'bg-[#259457]' : 'bg-white/5 border border-white/10'
+                      }`}
+                      title={mod.enabled !== false ? "Devre Dışı Bırak" : "Etkinleştir"}
+                    >
+                      <div
+                        className={`w-3.5 h-3.5 rounded-full bg-white transition-transform duration-200 ${
+                          mod.enabled !== false ? 'translate-x-3' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                    <button
+                      onClick={() => handleUninstall(mod.projectId)}
+                      className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all shrink-0"
+                      title="Kaldır"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </motion.div>
               ))}
             </div>

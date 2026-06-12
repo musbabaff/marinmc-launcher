@@ -1,25 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { useSettingsStore } from '../stores/settingsStore.ts';
+import { useAuthStore } from '../stores/authStore.ts';
 import {
-  Search, Upload, Save, Cloud, Grid3X3, List, AlignJustify,
-  ArrowUpDown, Calendar, User, Server, ChevronDown
+  Search, Cloud, Grid3X3, List, AlignJustify,
+  ArrowUpDown, Calendar, User, Server, ChevronDown, FolderOpen
 } from 'lucide-react';
 
-const MOCK_SCREENSHOTS = [
-  { id: '1', url: 'https://mc-heads.net/body/Steve/300', title: 'Base Overview', date: '2026-06-01', server: 'Donut SMP', player: 'dbrn', size: '2.4 MB' },
-  { id: '2', url: 'https://mc-heads.net/body/Alex/300', title: 'Nether Portal', date: '2026-05-28', server: 'MarinMC Towny', player: 'cuvsa', size: '1.8 MB' },
-  { id: '3', url: 'https://mc-heads.net/body/Notch/300', title: 'Diamond Mine', date: '2026-05-25', server: 'Hypixel', player: '172px', size: '3.1 MB' },
-  { id: '4', url: 'https://mc-heads.net/body/Dream/300', title: 'PvP Arena', date: '2026-05-20', server: 'MarinMC Survival', player: 'masaya46', size: '2.0 MB' },
-  { id: '5', url: 'https://mc-heads.net/body/Technoblade/300', title: 'Castle Build', date: '2026-05-15', server: 'Donut SMP', player: 'dbrn', size: '4.2 MB' },
-  { id: '6', url: 'https://mc-heads.net/body/Philza/300', title: 'End City', date: '2026-05-10', server: 'MarinMC Creative', player: '3wafyy', size: '2.7 MB' },
-  { id: '7', url: 'https://mc-heads.net/body/Herobrine/300', title: 'Underwater Temple', date: '2026-05-05', server: 'MarinMC Towny', player: 'dbrn', size: '1.5 MB' },
-  { id: '8', url: 'https://mc-heads.net/body/Sapnap/300', title: 'Farm Design', date: '2026-04-30', server: 'Donut SMP', player: 'cuvsa', size: '2.9 MB' },
-  { id: '9', url: 'https://mc-heads.net/body/TommyInnit/300', title: 'Redstone Machine', date: '2026-04-25', server: 'Hypixel', player: '172px', size: '1.2 MB' },
-];
+interface Screenshot {
+  id: string;
+  url: string;
+  title: string;
+  date: string;
+  server: string;
+  player: string;
+  size: string;
+}
 
-const PLAYERS = ['dbrn', 'cuvsa', '172px', 'masaya46', '3wafyy', 'daaaavidds'];
-const SERVERS = ['Donut SMP', 'MarinMC Towny', 'MarinMC Survival', 'MarinMC Creative', 'Hypixel'];
+const MOCK_SCREENSHOTS = [
+  { id: '1', url: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=600&auto=format&fit=crop&q=60', title: 'Ev İnşaatı', date: '2026-06-01', server: 'MarinMC Towny', player: 'Solmazzz', size: '2.4 MB' },
+  { id: '2', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=60', title: 'PvP Arenası', date: '2026-05-28', server: 'MarinMC Towny', player: 'Solmazzz', size: '1.8 MB' },
+  { id: '3', url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=60', title: 'Maden Günlüğü', date: '2026-05-25', server: 'MarinMC Survival', player: 'Steve', size: '3.1 MB' }
+];
 
 export default function GalleryPage() {
   const { t } = useTranslation();
@@ -31,7 +34,56 @@ export default function GalleryPage() {
   const [playerSearch, setPlayerSearch] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
 
-  const filtered = MOCK_SCREENSHOTS
+  const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const launcherDir = useSettingsStore(state => state.launcherDir);
+  const session = useAuthStore(state => state.session);
+  const currentUsername = session?.name || 'Player';
+
+  const screenshotsDir = launcherDir ? `${launcherDir}/screenshots` : '';
+
+  // 1. Fetch screenshots from local disk using Electron IPC
+  useEffect(() => {
+    async function loadScreenshots() {
+      if (window.electronAPI && launcherDir) {
+        try {
+          const res = await window.electronAPI.getScreenshots(launcherDir);
+          if (res.success && res.screenshots && res.screenshots.length > 0) {
+            const mapped: Screenshot[] = res.screenshots.map((s: any, idx: number) => ({
+              id: idx.toString(),
+              url: s.url, // base64 data URL
+              title: s.name,
+              date: s.date,
+              server: 'Yerel Oyun',
+              player: currentUsername,
+              size: s.size
+            }));
+            setScreenshots(mapped);
+          } else {
+            // Fallback to mocks if no local screenshots found
+            setScreenshots(MOCK_SCREENSHOTS);
+          }
+        } catch (err) {
+          console.error('Failed to load local screenshots:', err);
+          setScreenshots(MOCK_SCREENSHOTS);
+        }
+      } else {
+        // Fallback to mock data in browser mode
+        setScreenshots(MOCK_SCREENSHOTS);
+      }
+      setLoading(false);
+    }
+    loadScreenshots();
+  }, [launcherDir, currentUsername]);
+
+  const handleOpenFolder = () => {
+    if (window.electronAPI && screenshotsDir) {
+      window.electronAPI.openDirectory(screenshotsDir);
+    }
+  };
+
+  const filtered = screenshots
     .filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()))
     .filter(s => !filterPlayer || s.player === filterPlayer)
     .filter(s => !filterServer || s.server === filterServer)
@@ -41,14 +93,16 @@ export default function GalleryPage() {
       return parseFloat(b.size) - parseFloat(a.size);
     });
 
-  const filteredPlayers = PLAYERS.filter(p => p.toLowerCase().includes(playerSearch.toLowerCase()));
+  // Unique players and servers extracted dynamically from active images list
+  const uniquePlayers = Array.from(new Set(screenshots.map(s => s.player)));
+  const uniqueServers = Array.from(new Set(screenshots.map(s => s.server)));
+
+  const filteredPlayers = uniquePlayers.filter(p => p.toLowerCase().includes(playerSearch.toLowerCase()));
 
   return (
-    <div className="flex-1 flex h-full overflow-hidden select-none">
-
+    <div className="flex-grow flex h-full overflow-hidden select-none">
       {/* ===== MAIN CONTENT ===== */}
       <div className="flex-1 flex flex-col bg-[#060305] h-full">
-
         {/* Top bar */}
         <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
@@ -65,22 +119,38 @@ export default function GalleryPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-[8px] text-[#52525B] font-medium">
-              <Cloud className="w-3 h-3" />
-              <span>{t('gallery.synced')}</span>
+            <div className="flex items-center gap-1.5 text-[8px] text-[#52525B] font-medium mr-2">
+              <Cloud className="w-3 h-3 text-[#2D7DD2]" />
+              <span>{window.electronAPI ? 'Yerel Eşitleme Aktif' : t('gallery.synced')}</span>
             </div>
-            <button className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/50 hover:text-white transition-all">
-              <Upload className="w-3.5 h-3.5" />
-            </button>
-            <button className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/50 hover:text-white transition-all">
-              <Save className="w-3.5 h-3.5" />
-            </button>
+            {window.electronAPI && (
+              <button
+                onClick={handleOpenFolder}
+                className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white flex items-center gap-1.5 text-[9px] font-bold transition-all"
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                <span>Görsel Klasörünü Aç</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Gallery Grid */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-          {viewMode === 'grid' ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="w-6 h-6 border-2 border-[#2D7DD2]/30 border-t-[#2D7DD2] rounded-full animate-spin mb-2" />
+              <span className="text-[10px] text-[#52525B] font-bold uppercase">Yükleniyor...</span>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <Search className="w-8 h-8 text-[#52525B] mb-2" />
+              <p className="text-[10px] text-white font-bold mb-1">{t('gallery.noScreenshots')}</p>
+              <p className="text-[8px] text-[#52525B] max-w-[240px] leading-relaxed">
+                Oyunda F2 tuşuyla ekran görüntüsü aldığınızda görselleriniz otomatik olarak burada listelenecektir.
+              </p>
+            </div>
+          ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-3 gap-3">
               {filtered.map((shot, idx) => (
                 <motion.div
@@ -126,19 +196,11 @@ export default function GalleryPage() {
               ))}
             </div>
           )}
-
-          {filtered.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <Search className="w-8 h-8 text-[#52525B] mb-2" />
-              <p className="text-[11px] text-[#52525B] font-bold">{t('gallery.noScreenshots')}</p>
-            </div>
-          )}
         </div>
       </div>
 
       {/* ===== RIGHT PANEL — Filters ===== */}
       <div className="w-[240px] shrink-0 bg-[#0a080a] border-l border-white/[0.04] p-4 overflow-y-auto custom-scrollbar space-y-5">
-
         {/* View */}
         <div>
           <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">{t('gallery.view')}</span>
@@ -185,67 +247,71 @@ export default function GalleryPage() {
         </div>
 
         {/* Filter by Player */}
-        <div>
-          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">
-            <User className="w-3 h-3 inline mr-1" />
-            {t('gallery.filterByPlayer')}
-          </span>
-          <div className="flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-lg px-2.5 py-1.5 mb-2">
-            <Search className="w-3 h-3 text-[#52525B]" />
-            <input
-              type="text"
-              value={playerSearch}
-              onChange={(e) => setPlayerSearch(e.target.value)}
-              placeholder={t('gallery.searchPlayerPlaceholder')}
-              className="bg-transparent border-none outline-none text-[9px] text-white placeholder-white/20 w-full"
-            />
-          </div>
-          <div className="grid grid-cols-4 gap-1.5">
-            {filteredPlayers.map(p => (
-              <button
-                key={p}
-                onClick={() => setFilterPlayer(filterPlayer === p ? null : p)}
-                className={`rounded-lg overflow-hidden transition-all ${
-                  filterPlayer === p ? 'ring-2 ring-[#2D7DD2] scale-105' : 'hover:scale-105 opacity-60 hover:opacity-100'
-                }`}
-              >
-                <img
-                  src={`https://minotar.net/avatar/${p}/32`}
-                  alt={p}
-                  className="w-full aspect-square rounded-lg"
-                />
+        {filteredPlayers.length > 0 && (
+          <div>
+            <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">
+              <User className="w-3 h-3 inline mr-1" />
+              {t('gallery.filterByPlayer')}
+            </span>
+            <div className="flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-lg px-2.5 py-1.5 mb-2">
+              <Search className="w-3 h-3 text-[#52525B]" />
+              <input
+                type="text"
+                value={playerSearch}
+                onChange={(e) => setPlayerSearch(e.target.value)}
+                placeholder={t('gallery.searchPlayerPlaceholder')}
+                className="bg-transparent border-none outline-none text-[9px] text-white placeholder-white/20 w-full"
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {filteredPlayers.map(p => (
+                <button
+                  key={p}
+                  onClick={() => setFilterPlayer(filterPlayer === p ? null : p)}
+                  className={`rounded-lg overflow-hidden transition-all ${
+                    filterPlayer === p ? 'ring-2 ring-[#2D7DD2] scale-105' : 'hover:scale-105 opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={`https://minotar.net/avatar/${p}/32`}
+                    alt={p}
+                    className="w-full aspect-square rounded-lg"
+                  />
+                </button>
+              ))}
+            </div>
+            {filterPlayer && (
+              <button onClick={() => setFilterPlayer(null)} className="text-[8px] text-[#2D7DD2] font-bold mt-1 hover:underline">
+                {t('gallery.clearFilter')}
               </button>
-            ))}
+            )}
           </div>
-          {filterPlayer && (
-            <button onClick={() => setFilterPlayer(null)} className="text-[8px] text-[#2D7DD2] font-bold mt-1 hover:underline">
-              {t('gallery.clearFilter')}
-            </button>
-          )}
-        </div>
+        )}
 
         {/* Filter by Server */}
-        <div>
-          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">
-            <Server className="w-3 h-3 inline mr-1" />
-            {t('gallery.filterByServer')}
-          </span>
-          <div className="flex flex-col gap-1">
-            {SERVERS.map(s => (
-              <button
-                key={s}
-                onClick={() => setFilterServer(filterServer === s ? null : s)}
-                className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold text-left transition-all ${
-                  filterServer === s
-                    ? 'bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30'
-                    : 'bg-white/[0.02] text-[#52525B] border border-white/[0.04] hover:text-white'
-                }`}
-              >
-                {s}
-              </button>
-            ))}
+        {uniqueServers.length > 0 && (
+          <div>
+            <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">
+              <Server className="w-3 h-3 inline mr-1" />
+              {t('gallery.filterByServer')}
+            </span>
+            <div className="flex flex-col gap-1">
+              {uniqueServers.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setFilterServer(filterServer === s ? null : s)}
+                  className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold text-left transition-all ${
+                    filterServer === s
+                      ? 'bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30'
+                      : 'bg-white/[0.02] text-[#52525B] border border-white/[0.04] hover:text-white'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Calendar Filter */}
         <div>

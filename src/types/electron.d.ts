@@ -15,6 +15,10 @@ export interface IElectronAPI {
     javaPath?: string;
     smartJvmOpt?: boolean;
     discordRpcEnabled?: boolean;
+    cosmetics?: {
+      skinType: 'file' | 'username';
+      capeUrl: string;
+    };
   }) => Promise<{ success: boolean; error?: string }>;
   stopGame: () => Promise<{ success: boolean }>;
   isGameRunning: () => Promise<{ running: boolean }>;
@@ -30,7 +34,7 @@ export interface IElectronAPI {
     crashDetails?: string; 
   }) => void) => () => void;
   getSystemInfo: () => Promise<{ totalRAM: number; javaPath: string; os: string; defaultGameDir?: string }>;
-  updateSettings: (settings: { smartJvmOpt: boolean; discordRpcEnabled: boolean; language: 'tr' | 'en' }) => Promise<{ success: boolean }>;
+  updateSettings: (settings: { smartJvmOpt: boolean; discordRpcEnabled: boolean; language: 'tr' | 'en'; launcherDir: string }) => Promise<{ success: boolean }>;
   validateMojangUsername: (username: string) => Promise<{ success: boolean; uuid?: string; name?: string }>;
   selectDirectory: () => Promise<string | null>;
   validateDirectory: (dirPath: string) => Promise<{ valid: boolean; path?: string; error?: string }>;
@@ -44,7 +48,12 @@ export interface IElectronAPI {
   logout: () => Promise<{ success: boolean }>;
   onUpdateStatus: (callback: (status: string, details?: any) => void) => () => void;
   onUpdateProgress: (callback: (percent: number) => void) => () => void;
-  downloadFile: (url: string, filename: string) => Promise<{ success: boolean; path?: string; error?: string }>;
+  downloadFile: (url: string, filename: string, projectType: string) => Promise<{ success: boolean; path?: string; error?: string }>;
+  getVersion: () => Promise<string>;
+  deleteModFile: (filename: string, projectType: string) => Promise<{ success: boolean; error?: string }>;
+  toggleModFile: (filename: string, projectType: string, enabled: boolean) => Promise<{ success: boolean; error?: string }>;
+  openDirectory: (dirPath: string) => Promise<{ success: boolean; error?: string }>;
+  uploadSkinFile: (filePath: string) => Promise<{ success: boolean; path?: string; error?: string }>;
 }
 
 declare global {

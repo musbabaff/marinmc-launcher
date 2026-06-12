@@ -41,10 +41,10 @@ function createWindow() {
   const splash = createSplash();
 
   mainWindow = new BrowserWindow({
-    width: 960,
-    height: 600,
-    minWidth: 960,
-    minHeight: 600,
+    width: 1080,
+    height: 680,
+    minWidth: 1080,
+    minHeight: 680,
     frame: false,
     resizable: true,
     maximizable: false,
@@ -112,6 +112,10 @@ app.whenReady().then(() => {
   // Initialize auto updater (only in packaged builds, with a 5s delay)
   if (app.isPackaged) {
     autoUpdater.logger = console;
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+    // Disable the default update dialog - we handle everything silently
+    autoUpdater.disableWebInstaller = true;
     setTimeout(() => {
       autoUpdater.checkForUpdatesAndNotify().catch((err) => {
         console.error('Error starting auto-updater:', err);
@@ -135,6 +139,10 @@ app.on('activate', () => {
 });
 
 // IPC listeners for the custom titlebar
+ipcMain.handle('app:version', () => {
+  return app.getVersion();
+});
+
 ipcMain.on('window-minimize', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   win?.minimize();
@@ -179,6 +187,6 @@ autoUpdater.on('download-progress', (progressObj) => {
 
 autoUpdater.on('update-downloaded', (info) => {
   mainWindow?.webContents.send('updater:status', 'downloaded', info);
-  // Install the update
-  autoUpdater.quitAndInstall();
+  // Install the update silently and relaunch
+  autoUpdater.quitAndInstall(true, true);
 });

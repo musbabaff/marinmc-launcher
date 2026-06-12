@@ -35,6 +35,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // System Information
+  getVersion: () => ipcRenderer.invoke('app:version'),
+  downloadFile: (url: string, filename: string, projectType: string) => ipcRenderer.invoke('system:download-file', url, filename, projectType),
+  deleteModFile: (filename: string, projectType: string) => ipcRenderer.invoke('system:delete-file', filename, projectType),
+  toggleModFile: (filename: string, projectType: string, enabled: boolean) => ipcRenderer.invoke('system:toggle-file', filename, projectType, enabled),
+  openDirectory: (dirPath: string) => ipcRenderer.invoke('system:open-directory', dirPath),
+  uploadSkinFile: (filePath: string) => ipcRenderer.invoke('system:upload-skin-file', filePath),
   getSystemInfo: () => ipcRenderer.invoke('system:info'),
   updateSettings: (settings: any) => ipcRenderer.invoke('system:update-settings', settings),
   validateMojangUsername: (username: string) => ipcRenderer.invoke('system:validate-mojang', username),

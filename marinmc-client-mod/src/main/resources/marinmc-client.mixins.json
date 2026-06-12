@@ -6,11 +6,11 @@
   "client": [
     "DisconnectedScreenMixin",
     "HeldItemRendererMixin",
-    "LivingEntityRendererMixin",
-    "ItemEntityRendererMixin",
     "InGameHudMixin",
     "GameMenuScreenMixin",
-    "TitleScreenMixin"
+    "TitleScreenMixin",
+    "BlockOutlineMixin",
+    "AbstractClientPlayerEntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1

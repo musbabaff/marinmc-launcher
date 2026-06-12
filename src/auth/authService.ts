@@ -1,7 +1,5 @@
-import axios from 'axios';
 import { UserSession } from '../types/auth';
 
-const API_BASE_URL = 'https://api.marinmc.com';
 const SESSION_STORE_NAME = 'marinmc_session';
 
 export const authService = {
@@ -14,51 +12,22 @@ export const authService = {
       throw new Error('Kullanıcı adı 3-16 karakter arasında olmalıdır.');
     }
 
-    try {
-      // POST to https://api.marinmc.com/auth/cracked
-      const response = await axios.post(`${API_BASE_URL}/auth/cracked`, {
-        username: username.trim(),
-      });
+    // Completely bypass api.marinmc.com request to avoid DNS name resolution failures
+    const session: UserSession = {
+      id: `offline-${username.toLowerCase()}`,
+      name: username.trim(),
+      token: `offline_token_${Date.now()}`,
+      type: 'cracked',
+      avatar: `https://mc-heads.net/avatar/${username.trim()}/64`,
+    };
 
-      // API returns: { uuid, username, accessToken }
-      const { uuid, username: apiUsername, accessToken } = response.data;
-
-      const session: UserSession = {
-        id: uuid || `offline-${apiUsername.toLowerCase()}`,
-        name: apiUsername || username.trim(),
-        token: accessToken || `offline_token_${Date.now()}`,
-        type: 'cracked',
-        avatar: `https://mc-heads.net/avatar/${apiUsername || username.trim()}/64`,
-      };
-
-      localStorage.setItem(SESSION_STORE_NAME, JSON.stringify(session));
-      
-      // Also notify Electron if available
-      if (window.electronAPI) {
-        await window.electronAPI.loginCracked(username);
-      }
-
-      return session;
-    } catch (error: any) {
-      console.warn('MarinMC API cracked auth failed, falling back to local session...', error);
-      
-      // Fallback for development/testing when API is offline
-      const fallbackSession: UserSession = {
-        id: `offline-${username.toLowerCase()}`,
-        name: username.trim(),
-        token: `offline_token_${Date.now()}`,
-        type: 'cracked',
-        avatar: `https://mc-heads.net/avatar/${username.trim()}/64`,
-      };
-
-      localStorage.setItem(SESSION_STORE_NAME, JSON.stringify(fallbackSession));
-      
-      if (window.electronAPI) {
-        await window.electronAPI.loginCracked(username);
-      }
-
-      return fallbackSession;
+    localStorage.setItem(SESSION_STORE_NAME, JSON.stringify(session));
+    
+    if (window.electronAPI) {
+      await window.electronAPI.loginCracked(username);
     }
+
+    return session;
   },
 
   /**

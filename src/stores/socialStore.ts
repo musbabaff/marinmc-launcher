@@ -57,6 +57,15 @@ export const useSocialStore = create<SocialState>((set, get) => {
 
     initializeSocial: () => {
       const key = getStorageKey();
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        try {
+          set({ friends: JSON.parse(stored) });
+          return;
+        } catch (e) {
+          // Fallback to seeding if JSON is corrupted
+        }
+      }
       localStorage.setItem(key, JSON.stringify(SEED_FRIENDS));
       set({ friends: SEED_FRIENDS });
     },

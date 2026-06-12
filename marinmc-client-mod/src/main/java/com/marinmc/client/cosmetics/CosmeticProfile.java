@@ -1,5 +1,6 @@
 package com.marinmc.client.cosmetics;
 
+import net.minecraft.util.Identifier;
 import com.google.gson.Gson;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -81,5 +82,101 @@ public class CosmeticProfile {
             PROFILE_CACHE.put(uuid, profile);
             return profile;
         });
+    }
+
+    private static Identifier customSkinId = null;
+    private static Identifier customCapeId = null;
+    private static boolean loadedLocalCosmetics = false;
+
+    public static void loadLocalCosmetics() {
+        if (loadedLocalCosmetics) return;
+        loadedLocalCosmetics = true;
+
+        try {
+            net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+            java.io.File configFile = new java.io.File(client.runDirectory, "config/marinmc-cosmetics.json");
+            if (!configFile.exists()) return;
+
+            String content = new String(java.nio.file.Files.readAllBytes(configFile.toPath()), java.nio.charset.StandardCharsets.UTF_8);
+            
+            String skinType = "username";
+            if (content.contains("\"skinType\": \"file\"") || content.contains("\"skinType\":\"file\"")) {
+                skinType = "file";
+            }
+
+            if ("file".equals(skinType)) {
+                java.io.File skinFile = new java.io.File(client.runDirectory, "skins/active_skin.png");
+                if (skinFile.exists()) {
+                    try (java.io.FileInputStream fis = new java.io.FileInputStream(skinFile)) {
+                        net.minecraft.client.texture.NativeImage nativeImage = net.minecraft.client.texture.NativeImage.read(fis);
+                        net.minecraft.client.texture.NativeImageBackedTexture texture = new net.minecraft.client.texture.NativeImageBackedTexture(() -> "active_skin", nativeImage);
+                        Identifier skinId = Identifier.of("marinmc-client", "textures/skins/active_skin");
+                        client.getTextureManager().registerTexture(skinId, texture);
+                        customSkinId = skinId;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            String capeUrl = null;
+            if (content.contains("\"capeUrl\"")) {
+                int idx = content.indexOf("\"capeUrl\"");
+                int colon = content.indexOf(":", idx);
+                int startQuote = content.indexOf("\"", colon);
+                int endQuote = content.indexOf("\"", startQuote + 1);
+                if (startQuote != -1 && endQuote != -1) {
+                    capeUrl = content.substring(startQuote + 1, endQuote);
+                }
+            }
+
+            if (capeUrl != null && !capeUrl.isEmpty()) {
+                final String finalCapeUrl = capeUrl;
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        java.net.URL url = new java.net.URL(finalCapeUrl);
+                        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                        conn.setRequestMethod("GET");
+                        conn.setConnectTimeout(5000);
+                        conn.setReadTimeout(5000);
+                        if (conn.getResponseCode() == 200) {
+                            try (java.io.InputStream is = conn.getInputStream()) {
+                                net.minecraft.client.texture.NativeImage nativeImage = net.minecraft.client.texture.NativeImage.read(is);
+                                net.minecraft.client.texture.NativeImageBackedTexture texture = new net.minecraft.client.texture.NativeImageBackedTexture(() -> "active_cape", nativeImage);
+                                Identifier capeId = Identifier.of("marinmc-client", "textures/capes/active_cape");
+                                client.execute(() -> {
+                                    client.getTextureManager().registerTexture(capeId, texture);
+                                    customCapeId = capeId;
+                                });
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static net.minecraft.client.util.SkinTextures getLocalSkinTextures(net.minecraft.client.util.SkinTextures original) {
+        loadLocalCosmetics();
+        if (customSkinId == null && customCapeId == null) {
+            return original;
+        }
+
+        Identifier skin = customSkinId != null ? customSkinId : original.texture();
+        Identifier cape = customCapeId != null ? customCapeId : original.capeTexture();
+        Identifier elytra = customCapeId != null ? customCapeId : original.elytraTexture();
+
+        return new net.minecraft.client.util.SkinTextures(
+            skin,
+            original.textureUrl(),
+            cape,
+            elytra,
+            original.model(),
+            original.secure()
+        );
     }
 }

@@ -28,13 +28,28 @@ export default function ProfilePage() {
     setEditing(!editing);
   };
 
-  const mockSessions = [
-    { id: '1', date: 'Bugün 20:15', duration: '45 dk', server: 'MarinMC Towny' },
-    { id: '2', date: 'Dün 18:00', duration: '1 sa 20 dk', server: 'MarinMC Survival' },
-    { id: '3', date: '02.06.2026 21:00', duration: '2 sa 15 dk', server: 'MarinMC Towny' },
-    { id: '4', date: '29.05.2026 15:30', duration: '30 dk', server: 'MarinMC Creative' },
-    { id: '5', date: '25.05.2026 14:00', duration: '1 sa 50 dk', server: 'MarinMC Towny' }
-  ];
+  const totalPlayMinutes = (() => {
+    const val = localStorage.getItem('marinmc_total_play_time') || '124';
+    const parsed = parseInt(val, 10);
+    return parsed === 124 ? 124 * 60 : parsed;
+  })();
+  const totalPlayTimeText = totalPlayMinutes >= 60 
+    ? `${Math.round(totalPlayMinutes / 60)} Saat` 
+    : `${totalPlayMinutes} dk`;
+
+  const lastLogin = localStorage.getItem('marinmc_last_login_time') || 'Bugün 20:15';
+
+  const sessionsList = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('marinmc_play_sessions') || '[]');
+    } catch {
+      return [];
+    }
+  })();
+
+  const favoriteServer = sessionsList.length > 0 
+    ? sessionsList[0].server.replace('MarinMC ', '') 
+    : 'Towny';
 
   return (
     <div className="flex-grow flex flex-col p-6 overflow-y-auto no-drag custom-scrollbar space-y-5 select-none bg-[#0A0A0A]">
@@ -115,7 +130,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <span className="text-[8px] font-extrabold text-[#52525B] uppercase tracking-widest block leading-none mb-1">Oynama Süresi</span>
-                <span className="text-xs font-black text-white leading-none">124 Saat</span>
+                <span className="text-xs font-black text-white leading-none">{totalPlayTimeText}</span>
               </div>
             </div>
 
@@ -125,7 +140,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <span className="text-[8px] font-extrabold text-[#52525B] uppercase tracking-widest block leading-none mb-1">Son Giriş</span>
-                <span className="text-xs font-black text-white leading-none">Bugün 20:15</span>
+                <span className="text-xs font-black text-white leading-none">{lastLogin}</span>
               </div>
             </div>
 
@@ -135,7 +150,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <span className="text-[8px] font-extrabold text-[#52525B] uppercase tracking-widest block leading-none mb-1">Favori Oda</span>
-                <span className="text-xs font-black text-white leading-none">Towny</span>
+                <span className="text-xs font-black text-white leading-none">{favoriteServer}</span>
               </div>
             </div>
           </div>
@@ -144,7 +159,7 @@ export default function ProfilePage() {
           <div className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-4 space-y-3">
             <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest block">Son Oynanan Oturumlar</span>
             <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
-              {mockSessions.map((item) => (
+              {sessionsList.map((item: any) => (
                 <div key={item.id} className="flex justify-between items-center p-2.5 hover:bg-white/[0.01] rounded-xl">
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#8B5CF6]" />

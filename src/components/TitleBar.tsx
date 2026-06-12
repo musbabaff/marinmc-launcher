@@ -6,17 +6,24 @@ import MarinLogo from './MarinLogo.tsx';
 
 export default function TitleBar() {
   const isOnline = useAppStore((state) => state.isOnline);
-  const [onlineCount, setOnlineCount] = useState(9671);
+  const [onlineCount, setOnlineCount] = useState<number | null>(null);
+  const [version, setVersion] = useState('');
+
+  useEffect(() => {
+    if (window.electronAPI && window.electronAPI.getVersion) {
+      window.electronAPI.getVersion().then(setVersion);
+    }
+  }, []);
 
   useEffect(() => {
     api.getOnlineCount().then((res) => {
-      if (res && res.total) {
+      if (res && res.total !== undefined) {
         setOnlineCount(res.total);
       }
     });
     const interval = setInterval(() => {
       api.getOnlineCount().then((res) => {
-        if (res && res.total) {
+        if (res && res.total !== undefined) {
           setOnlineCount(res.total);
         }
       });
@@ -38,12 +45,20 @@ export default function TitleBar() {
       {/* Brand */}
       <div className="flex items-center space-x-3 text-[10px] tracking-wide font-normal">
         <MarinLogo glyphOnly size={14} className="text-white" />
-        <span className="text-white hover:text-white/80 transition-colors">MarinMC Client</span>
-        <span className="text-[#333]">Build 0.9.2</span>
+        <span className="text-white hover:text-white/80 transition-colors font-bold tracking-wider">MarinMC Client</span>
+        <span className="text-[#52525B] font-mono text-[9px] bg-white/5 px-2 py-0.5 rounded border border-white/[0.03]">
+          {version ? `v${version}` : 'v1.0.8'}
+        </span>
         <div className="flex items-center space-x-1.5">
-          <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#259457]' : 'bg-[#EF4444]'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#259457] animate-pulse' : 'bg-[#EF4444]'}`} />
           <span className={`${isOnline ? 'text-[#259457]' : 'text-[#EF4444]'} font-bold`}>
-            {isOnline ? `${onlineCount} Online` : 'Offline'}
+            {isOnline ? (
+              onlineCount !== null ? (
+                `${onlineCount} Aktif`
+              ) : (
+                <span className="text-gray-500 animate-pulse font-medium">Bağlanıyor...</span>
+              )
+            ) : 'Çevrimdışı'}
           </span>
         </div>
       </div>

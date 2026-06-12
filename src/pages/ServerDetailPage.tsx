@@ -268,7 +268,11 @@ export default function ServerDetailPage() {
           gameDir: launcherDir,
           javaPath: useSettingsStore.getState().javaPath,
           smartJvmOpt: useSettingsStore.getState().smartJvmOpt,
-          discordRpcEnabled: useSettingsStore.getState().discordRpcEnabled
+          discordRpcEnabled: useSettingsStore.getState().discordRpcEnabled,
+          cosmetics: {
+            skinType: (localStorage.getItem('marinmc_active_skin_type') as any) || 'username',
+            capeUrl: localStorage.getItem('marinmc_active_cape_url') || ''
+          }
         };
 
         const result = await window.electronAPI.launchGame(launchOptions);

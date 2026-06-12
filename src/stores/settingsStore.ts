@@ -45,6 +45,11 @@ interface SettingsState {
   setSelectedVersion: (version: string) => void;
   setSelectedSubVersion: (subVersion: string) => void;
   addRecentProfile: (profile: RecentProfile) => void;
+  resolutionWidth: number;
+  resolutionHeight: number;
+  fullscreen: boolean;
+  setResolution: (width: number, height: number) => void;
+  setFullscreen: (enabled: boolean) => void;
   resetAll: () => void;
 }
 
@@ -100,6 +105,18 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     const val = localStorage.getItem('marinmc_setting_discordRpc');
     return val !== 'false'; // default true
   })(),
+  resolutionWidth: (() => {
+    const val = localStorage.getItem('marinmc_setting_res_width');
+    return val ? parseInt(val, 10) : 1280;
+  })(),
+  resolutionHeight: (() => {
+    const val = localStorage.getItem('marinmc_setting_res_height');
+    return val ? parseInt(val, 10) : 720;
+  })(),
+  fullscreen: (() => {
+    const val = localStorage.getItem('marinmc_setting_fullscreen');
+    return val === 'true'; // default false
+  })(),
 
   loadSettings: async () => {
     let defaultDir = '';
@@ -118,13 +135,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           defaultGameDirResolved = sysInfo.defaultGameDir;
         }
 
-        // Notify backend of loaded settings
-        const state = useSettingsStore.getState();
-        await window.electronAPI.updateSettings({
-          smartJvmOpt: state.smartJvmOpt,
-          discordRpcEnabled: state.discordRpcEnabled,
-          language: state.language
-        });
+        // Notify backend of loaded settings (moved below set)
       } catch (err) {
         console.error('Error fetching system specs:', err);
       }
@@ -151,6 +162,16 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       javaPath: savedJava,
       launcherBehavior: savedBehavior as 'minimize' | 'close' | 'nothing'
     });
+
+    if (window.electronAPI) {
+      const state = useSettingsStore.getState();
+      window.electronAPI.updateSettings({
+        smartJvmOpt: state.smartJvmOpt,
+        discordRpcEnabled: state.discordRpcEnabled,
+        language: state.language,
+        launcherDir: state.launcherDir
+      }).catch(err => console.error('updateSettings failed:', err));
+    }
   },
 
   saveSettings: (newSettings) => {
@@ -179,7 +200,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       window.electronAPI.updateSettings({
         smartJvmOpt,
         discordRpcEnabled,
-        language: useSettingsStore.getState().language
+        language: useSettingsStore.getState().language,
+        launcherDir: newSettings.launcherDir
       });
     }
   },
@@ -194,7 +216,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       window.electronAPI.updateSettings({
         smartJvmOpt: state.smartJvmOpt,
         discordRpcEnabled: state.discordRpcEnabled,
-        language: lang
+        language: lang,
+        launcherDir: state.launcherDir
       });
     }
   },
@@ -234,13 +257,25 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     });
   },
 
+  setResolution: (width, height) => {
+    localStorage.setItem('marinmc_setting_res_width', width.toString());
+    localStorage.setItem('marinmc_setting_res_height', height.toString());
+    set({ resolutionWidth: width, resolutionHeight: height });
+  },
+
+  setFullscreen: (enabled) => {
+    localStorage.setItem('marinmc_setting_fullscreen', enabled.toString());
+    set({ fullscreen: enabled });
+  },
+
   resetAll: () => {
     const keys = [
       'marinmc_setting_ram', 'marinmc_setting_jvmArgs', 'marinmc_setting_launcherDir',
       'marinmc_setting_javaPath', 'marinmc_setting_behavior', 'marinmc_setting_language',
       'marinmc_setting_theme', 'marinmc_setting_autoUpdate',
       'marinmc_setting_selectedVersion', 'marinmc_setting_selectedSubVersion',
-      'marinmc_setting_recentProfiles', 'marinmc_setting_smartJvmOpt', 'marinmc_setting_discordRpc'
+      'marinmc_setting_recentProfiles', 'marinmc_setting_smartJvmOpt', 'marinmc_setting_discordRpc',
+      'marinmc_setting_res_width', 'marinmc_setting_res_height', 'marinmc_setting_fullscreen'
     ];
     keys.forEach(k => localStorage.removeItem(k));
     import('../lib/i18n.ts').then(mod => mod.default.changeLanguage('tr'));
@@ -257,14 +292,19 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       selectedSubVersion: '1.21.8',
       recentProfiles: INITIAL_MOCK_RECENT_PROFILES,
       smartJvmOpt: true,
-      discordRpcEnabled: true
+      discordRpcEnabled: true,
+      resolutionWidth: 1280,
+      resolutionHeight: 720,
+      fullscreen: false
     });
 
     if (window.electronAPI) {
+      const state = useSettingsStore.getState();
       window.electronAPI.updateSettings({
         smartJvmOpt: true,
         discordRpcEnabled: true,
-        language: 'tr'
+        language: 'tr',
+        launcherDir: state.launcherDir
       });
     }
   }

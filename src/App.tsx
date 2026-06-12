@@ -7,7 +7,7 @@ import TitleBar from './components/TitleBar.tsx';
 import Sidebar from './components/Sidebar.tsx';
 import OfflineBanner from './components/OfflineBanner.tsx';
 import CrashModal from './components/CrashModal.tsx';
-import { checkConnectivity } from './lib/api.ts';
+import { checkConnectivity, api } from './lib/api.ts';
 
 import { useTranslation } from 'react-i18next';
 
@@ -70,6 +70,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 export default function App() {
   const setOnline = useAppStore((state) => state.setOnline);
   const settings = useSettingsStore();
+  const session = useAuthStore((state) => state.session);
 
   // Crash Modal States
   const [crashOpen, setCrashOpen] = useState(false);
@@ -128,10 +129,98 @@ export default function App() {
     return () => clearInterval(interval);
   }, [setOnline]);
 
-  // Load global settings on startup
+  // Load global settings on startup & initialize session
   useEffect(() => {
     settings.loadSettings();
     useAuthStore.getState().initializeSession();
+  }, []);
+
+  // Fetch and cache user profile statistics on login
+  useEffect(() => {
+    if (session?.name) {
+      api.getUserProfile(session.name).then(profile => {
+        if (profile) {
+          localStorage.setItem('marinmc_total_play_time', (profile.totalPlayTime || 0).toString());
+          localStorage.setItem('marinmc_last_login_time', profile.lastLogin || 'Bugün 20:15');
+          localStorage.setItem('marinmc_play_sessions', JSON.stringify(profile.playSessions || []));
+        }
+      });
+    }
+  }, [session]);
+
+  // Listen for game status to track play sessions and total duration
+  useEffect(() => {
+    let unsubscribeStatus: (() => void) | undefined;
+    let startTime = 0;
+
+    if (window.electronAPI) {
+      unsubscribeStatus = window.electronAPI.onGameStatus((status) => {
+        if (status === 'RUNNING') {
+          startTime = Date.now();
+        } else if (status === 'IDLE' || status === 'ERROR') {
+          if (startTime > 0) {
+            const endTime = Date.now();
+            const durationMs = endTime - startTime;
+            startTime = 0;
+
+            const durationMin = Math.max(1, Math.round(durationMs / 60000)); // Minimum 1 minute
+            
+            // 1. Total Play Time (stored in minutes)
+            const prevTotalStr = localStorage.getItem('marinmc_total_play_time') || '0';
+            let prevTotal = parseInt(prevTotalStr, 10);
+            if (prevTotal === 124) {
+              prevTotal = 124 * 60;
+            }
+            const newTotal = prevTotal + durationMin;
+            localStorage.setItem('marinmc_total_play_time', newTotal.toString());
+
+            // 2. Play Sessions List
+            const sessionsStr = localStorage.getItem('marinmc_play_sessions') || '[]';
+            let sessions = [];
+            try {
+              sessions = JSON.parse(sessionsStr);
+            } catch (e) {
+              sessions = [];
+            }
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('tr-TR') + ' ' + now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+            
+            let durText = '';
+            if (durationMin < 60) {
+              durText = `${durationMin} dk`;
+            } else {
+              const hrs = Math.floor(durationMin / 60);
+              const mins = durationMin % 60;
+              durText = mins > 0 ? `${hrs} sa ${mins} dk` : `${hrs} sa`;
+            }
+
+            sessions.unshift({
+              id: Math.random().toString(36).substr(2, 9),
+              date: dateStr,
+              duration: durText,
+              server: 'MarinMC Towny'
+            });
+
+            sessions = sessions.slice(0, 20); // Keep last 20
+            localStorage.setItem('marinmc_play_sessions', JSON.stringify(sessions));
+            localStorage.setItem('marinmc_last_login_time', dateStr);
+
+            // Sync with backend database
+            const username = useAuthStore.getState().session?.name || 'Player';
+            api.updateUserProfile(username, {
+              totalPlayTime: newTotal,
+              lastLogin: dateStr,
+              playSessions: sessions
+            });
+          }
+        }
+      });
+    }
+
+    return () => {
+      if (unsubscribeStatus) unsubscribeStatus();
+    };
   }, []);
 
   // Listen for game-crash events from the Electron main process
@@ -166,7 +255,11 @@ export default function App() {
         version: settingsState.selectedVersion,
         serverId: 'towny',
         gameDir: settingsState.launcherDir,
-        javaPath: settingsState.javaPath
+        javaPath: settingsState.javaPath,
+        cosmetics: {
+          skinType: (localStorage.getItem('marinmc_active_skin_type') as any) || 'username',
+          capeUrl: localStorage.getItem('marinmc_active_cape_url') || ''
+        }
       });
     }
   };

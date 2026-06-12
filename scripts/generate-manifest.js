@@ -44,7 +44,7 @@ const manifest = {
       name: "MarinMC Client Mod",
       filename: "marinmc-client-mod-1.0.0.jar",
       url: "https://cdn.marinmc.com/mods/marinmc-client-mod-1.0.0.jar",
-      md5: "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+      md5: "1532a4ec6a7bfeb0b7681cf68d280a53"
     }
   ]
 };

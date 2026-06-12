@@ -62,7 +62,7 @@ export default function LoginPage() {
 
         {/* Top-left branding */}
         <div className="self-start flex items-center gap-2 text-[11px] text-[#52525B] font-medium">
-          <MarinLogo glyphOnly size={14} className="text-white/60" />
+          <MarinLogo glyphOnly size={14} className="opacity-60" />
           <span className="text-white/60">MarinMC Client</span>
           <span className="text-white/20">|</span>
           <span>Build 0.9.2</span>

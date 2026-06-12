@@ -6,13 +6,14 @@ import { useSettingsStore } from '../stores/settingsStore.ts';
 import { useSocialStore } from '../stores/socialStore.ts';
 import { useAppStore } from '../stores/appStore.ts';
 import { sanitizeUrl, sanitizeParam } from '../lib/security.ts';
+import { api } from '../lib/api.ts';
 import VersionModal from '../components/VersionModal.tsx';
 import MarinLogo from '../components/MarinLogo.tsx';
 import {
   ChevronDown, LogOut, Search,
   MessageSquare, UserPlus, X, AlertTriangle,
   Trophy, CheckCircle2, WifiOff, ExternalLink, RefreshCw,
-  Pause, Plus
+  Pause, Plus, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -60,6 +61,13 @@ export default function HomePage() {
   }
   const [newsData, setNewsData] = useState<GitHubNewsItem[]>([]);
   const [newsError, setNewsError] = useState(false);
+  const [homeServers, setHomeServers] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.getServerList().then((list) => {
+      setHomeServers(list);
+    });
+  }, []);
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -165,7 +173,14 @@ export default function HomePage() {
           gameDir: settings.launcherDir,
           javaPath: settings.javaPath,
           smartJvmOpt: settings.smartJvmOpt,
-          discordRpcEnabled: settings.discordRpcEnabled
+          discordRpcEnabled: settings.discordRpcEnabled,
+          resolutionWidth: settings.resolutionWidth,
+          resolutionHeight: settings.resolutionHeight,
+          fullscreen: settings.fullscreen,
+          cosmetics: {
+            skinType: (localStorage.getItem('marinmc_active_skin_type') as any) || 'username',
+            capeUrl: localStorage.getItem('marinmc_active_cape_url') || ''
+          }
         };
 
         // Simulating progress if launching offline or locally for design test
@@ -232,6 +247,27 @@ export default function HomePage() {
     } else {
       alert(t('home.playerNotFound'));
     }
+  };
+
+  const handleOpenChat = async (friendUsername: string) => {
+    const activeUser = useAuthStore.getState().session?.name || 'Player';
+    const chatContacts = await api.getContacts(activeUser);
+    const exists = chatContacts.some(c => c.id.toLowerCase() === friendUsername.toLowerCase());
+    if (!exists) {
+      const newContact = {
+        id: friendUsername.toLowerCase(),
+        name: friendUsername,
+        avatar: `https://minotar.net/avatar/${friendUsername}/48`,
+        status: 'online',
+        lastMessage: 'Sohbet başlatıldı',
+        time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+        type: 'dm' as const,
+        unread: 0
+      };
+      const updated = [...chatContacts, newContact];
+      await api.updateContacts(activeUser, updated as any);
+    }
+    navigate(`/chat?active=${friendUsername.toLowerCase()}`);
   };
 
   // Filter friends list
@@ -557,6 +593,43 @@ export default function HomePage() {
               )}
             </div>
 
+            {/* Server Widgets with Glassmorphic styles and interactive hover effects */}
+            {homeServers.map((srv) => (
+              <motion.div
+                key={srv.id}
+                whileHover={{ y: -4, scale: 1.01 }}
+                className="w-[205px] h-[150px] rounded-2xl p-4 bg-white/[0.02] border border-white/[0.04] hover:border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/5 hover:shadow-[0_0_25px_rgba(139,92,246,0.12)] backdrop-blur-md flex flex-col justify-between relative overflow-hidden transition-all duration-300 group cursor-pointer shrink-0"
+                onClick={() => navigate(`/versions?launch=true`)}
+              >
+                {/* Background Glow */}
+                <div className="absolute top-0 right-0 w-16 h-16 bg-[#8B5CF6]/5 rounded-full blur-xl pointer-events-none group-hover:bg-[#8B5CF6]/10 transition-all" />
+
+                <div className="flex justify-between items-start">
+                  <span className="text-[7.5px] font-black text-white/40 uppercase tracking-widest bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
+                    {srv.id === 'towny' ? 'TOWNY' : 'SURVIVAL'}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#259457] animate-pulse" />
+                    <span className="text-[7.5px] font-bold text-[#259457] uppercase tracking-wider">AKTİF</span>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-[11px] font-black text-white group-hover:text-[#a78bfa] transition-colors uppercase tracking-wide">{srv.name}</h4>
+                  <p className="text-[8.5px] text-[#52525B] font-bold mt-0.5 line-clamp-1 leading-normal">{srv.description}</p>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-white/[0.03] pt-2">
+                  <span className="text-[9px] font-extrabold text-white/70">
+                    {srv.onlinePlayers || 0} <span className="text-[#52525B] font-bold">/ {srv.maxPlayers || 1000}</span>
+                  </span>
+                  <span className="text-[7.5px] text-[#8B5CF6] group-hover:text-[#a78bfa] font-black uppercase tracking-wider flex items-center gap-0.5 transition-colors">
+                    Hızlı Bağlan
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </span>
+                </div>
+              </motion.div>
+            ))}
 
           </div>
 
@@ -598,7 +671,7 @@ export default function HomePage() {
                     </button>
                   </div>
                   <div className="w-16 h-16 flex items-center justify-center text-white/10 group-hover:scale-105 transition-transform duration-300">
-                    <MarinLogo glyphOnly size={56} className="text-white/10" />
+                    <MarinLogo glyphOnly size={56} className="opacity-10" />
                   </div>
                 </div>
 
@@ -633,17 +706,30 @@ export default function HomePage() {
                 return (
                   <div
                     key={idx}
-                    className={`relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-[#111111]/45 flex p-3 items-center group cursor-pointer`}
+                    className={`relative rounded-2xl overflow-hidden h-28 border border-white/[0.04] hover:border-white/20 bg-[#111111]/40 flex p-4 items-center group cursor-pointer transition-all duration-300 hover:shadow-[0_0_20px_rgba(139,92,246,0.15)]`}
                   >
+                    {/* Blurred background image that unblurs and scales up on hover */}
                     <div
-                      className="absolute inset-0 bg-cover bg-center opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none"
-                      style={{ backgroundImage: `url(${item.imageUrl})` }}
+                      className="absolute inset-0 bg-cover bg-center blur-[12px] group-hover:blur-0 scale-110 group-hover:scale-100 opacity-20 group-hover:opacity-40 transition-all duration-500 pointer-events-none"
+                      style={{ backgroundImage: `url(${item.imageUrl || 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=400'})` }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-br from-black/60 to-black/90 pointer-events-none" />
-                    <div className="flex flex-col z-10 pr-2">
-                      <span className={`text-[7px] ${c.tagColor} font-black uppercase tracking-widest`}>{c.tag}</span>
-                      <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5 line-clamp-1">{item.title}</h3>
-                      <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{item.date}</p>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
+                    
+                    {/* Left glowing neon indicator stripe */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-[4px] rounded-r-md transition-all duration-300 opacity-50 group-hover:opacity-100 ${
+                      idx === 0 ? 'bg-[#8B5CF6] group-hover:shadow-[0_0_12px_#8B5CF6]' : idx === 1 ? 'bg-[#259457] group-hover:shadow-[0_0_12px_#259457]' : 'bg-[#F59E0B] group-hover:shadow-[0_0_12px_#F59E0B]'
+                    }`} />
+                    
+                    <div className="flex flex-col z-10 pr-2 pl-2">
+                      <span className={`text-[8px] ${c.tagColor} font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] w-fit mb-1.5`}>
+                        {c.tag}
+                      </span>
+                      <h3 className="text-xs font-black text-white leading-snug uppercase line-clamp-2 transition-colors group-hover:text-white">
+                        {item.title}
+                      </h3>
+                      <p className="text-[9px] text-[#A1A1AA] mt-1.5 font-bold flex items-center gap-1 font-mono">
+                        <span>{item.date}</span>
+                      </p>
                     </div>
                   </div>
                 );
@@ -651,33 +737,51 @@ export default function HomePage() {
             ) : (
               <>
                 {/* Community Event */}
-                <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-gradient-to-br from-[#1a1535]/80 to-[#0b0a0d]/95 flex p-3 items-center group cursor-pointer">
-                  <div className="flex flex-col z-10">
-                    <span className="text-[7px] text-[#8B5CF6] font-black uppercase tracking-widest">{t('home.community')} (Offline)</span>
-                    <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5">{t('home.survivalEvent')}</h3>
-                    <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.eventDesc')}</p>
+                <div className="relative rounded-2xl overflow-hidden h-28 border border-white/[0.04] hover:border-white/20 bg-gradient-to-br from-[#1a1535]/80 to-[#0b0a0d]/95 flex p-4 items-center group cursor-pointer transition-all duration-300 hover:shadow-[0_0_20px_rgba(139,92,246,0.15)]">
+                  <div
+                    className="absolute inset-0 bg-cover bg-center blur-[12px] group-hover:blur-0 scale-110 group-hover:scale-100 opacity-20 group-hover:opacity-40 transition-all duration-500 pointer-events-none"
+                    style={{ backgroundImage: `url(https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=400)` }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
+                  <div className="absolute left-0 top-0 bottom-0 w-[4px] rounded-r-md bg-[#8B5CF6] group-hover:shadow-[0_0_12px_#8B5CF6] transition-all opacity-50 group-hover:opacity-100" />
+                  <div className="flex flex-col z-10 pl-2">
+                    <span className="text-[8px] text-[#8B5CF6] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] w-fit mb-1.5">{t('home.community')}</span>
+                    <h3 className="text-xs font-black text-white leading-snug uppercase">{t('home.survivalEvent')}</h3>
+                    <p className="text-[9px] text-[#A1A1AA] mt-1.5 font-medium">{t('home.eventDesc')}</p>
                   </div>
-                  <div className="text-[22px] font-black text-[#8B5CF6]/10 select-none absolute right-3">🎮</div>
+                  <div className="text-[28px] font-black text-[#8B5CF6]/10 select-none absolute right-4 group-hover:scale-110 transition-transform">🎮</div>
                 </div>
 
                 {/* Server Status */}
-                <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-gradient-to-br from-[#0a1f15]/80 to-[#0b0c0a]/95 flex p-3 items-center group cursor-pointer">
-                  <div className="flex flex-col z-10">
-                    <span className="text-[7px] text-[#259457] font-black uppercase tracking-widest">{t('home.serverStatus')} (Offline)</span>
-                    <h3 className="text-[10px] font-black text-[#259457] leading-tight uppercase mt-0.5">{t('home.allOnline')}</h3>
-                    <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.activePlayers', { count: 247 })}</p>
+                <div className="relative rounded-2xl overflow-hidden h-28 border border-white/[0.04] hover:border-white/20 bg-gradient-to-br from-[#0a1f15]/80 to-[#0b0c0a]/95 flex p-4 items-center group cursor-pointer transition-all duration-300 hover:shadow-[0_0_20px_rgba(37,148,87,0.15)]">
+                  <div
+                    className="absolute inset-0 bg-cover bg-center blur-[12px] group-hover:blur-0 scale-110 group-hover:scale-100 opacity-20 group-hover:opacity-40 transition-all duration-500 pointer-events-none"
+                    style={{ backgroundImage: `url(https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400)` }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
+                  <div className="absolute left-0 top-0 bottom-0 w-[4px] rounded-r-md bg-[#259457] group-hover:shadow-[0_0_12px_#259457] transition-all opacity-50 group-hover:opacity-100" />
+                  <div className="flex flex-col z-10 pl-2">
+                    <span className="text-[8px] text-[#259457] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] w-fit mb-1.5">{t('home.serverStatus')}</span>
+                    <h3 className="text-xs font-black text-[#259457] leading-snug uppercase">{t('home.allOnline')}</h3>
+                    <p className="text-[9px] text-[#A1A1AA] mt-1.5 font-medium">{t('home.activePlayers', { count: 247 })}</p>
                   </div>
-                  <div className="text-[22px] font-black text-[#259457]/10 select-none absolute right-3">●</div>
+                  <div className="text-[28px] font-black text-[#259457]/10 select-none absolute right-4 group-hover:scale-110 transition-transform">●</div>
                 </div>
 
                 {/* Tips */}
-                <div className="relative rounded-xl overflow-hidden h-24 border border-white/[0.04] bg-[#111111]/45 flex p-3 items-center group cursor-pointer">
-                  <div className="flex flex-col z-10">
-                    <span className="text-[7px] text-[#F59E0B] font-black uppercase tracking-widest">{t('home.tip')} (Offline)</span>
-                    <h3 className="text-[10px] font-black text-white leading-tight uppercase mt-0.5">{t('home.performance')}</h3>
-                    <p className="text-[8px] text-[#A1A1AA] mt-0.5 font-medium">{t('home.fpsTip')}</p>
+                <div className="relative rounded-2xl overflow-hidden h-28 border border-white/[0.04] hover:border-white/20 bg-[#111111]/45 flex p-4 items-center group cursor-pointer transition-all duration-300 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+                  <div
+                    className="absolute inset-0 bg-cover bg-center blur-[12px] group-hover:blur-0 scale-110 group-hover:scale-100 opacity-20 group-hover:opacity-40 transition-all duration-500 pointer-events-none"
+                    style={{ backgroundImage: `url(https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400)` }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
+                  <div className="absolute left-0 top-0 bottom-0 w-[4px] rounded-r-md bg-[#F59E0B] group-hover:shadow-[0_0_12px_#F59E0B] transition-all opacity-50 group-hover:opacity-100" />
+                  <div className="flex flex-col z-10 pl-2">
+                    <span className="text-[8px] text-[#F59E0B] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] w-fit mb-1.5">{t('home.tip')}</span>
+                    <h3 className="text-xs font-black text-white leading-snug uppercase">{t('home.performance')}</h3>
+                    <p className="text-[9px] text-[#A1A1AA] mt-1.5 font-medium">{t('home.fpsTip')}</p>
                   </div>
-                  <div className="text-[22px] font-black text-[#F59E0B]/10 select-none absolute right-3">⚡</div>
+                  <div className="text-[28px] font-black text-[#F59E0B]/10 select-none absolute right-4 group-hover:scale-110 transition-transform">⚡</div>
                 </div>
               </>
             )}
@@ -805,9 +909,20 @@ export default function HomePage() {
                               {getStatusText(f)}
                             </p>
                           </div>
-                          <div className="relative">
-                            <button className="p-1 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-white transition-colors">
+                          <div className="relative flex items-center gap-1">
+                            <button
+                              onClick={() => handleOpenChat(f.username)}
+                              className="p-1 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-white transition-colors"
+                              title="Mesaj Gönder"
+                            >
                               <MessageSquare className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => social.removeFriend(f.username)}
+                              className="p-1 rounded bg-red-500/10 border border-red-500/20 text-[#52525B] hover:text-red-400 hover:bg-red-500/20 transition-colors"
+                              title="Arkadaşı Sil"
+                            >
+                              <Trash2 className="w-3 h-3" />
                             </button>
                             {/* Chat Badge mockup unread dot */}
                             {(f.username === '172px' || f.username === '3wafyy' || f.username === 'cuvsa') && (
@@ -834,9 +949,20 @@ export default function HomePage() {
                             <h4 className="text-[11px] font-bold text-white leading-none mb-1">{f.username}</h4>
                             <p className="text-[8px] text-[#A1A1AA] leading-none font-semibold uppercase">{f.lastSeen}</p>
                           </div>
-                          <div className="relative opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="p-1 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-white transition-colors">
+                          <div className="relative opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                            <button
+                              onClick={() => handleOpenChat(f.username)}
+                              className="p-1 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-white transition-colors"
+                              title="Mesaj Gönder"
+                            >
                               <MessageSquare className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => social.removeFriend(f.username)}
+                              className="p-1 rounded bg-red-500/10 border border-red-500/20 text-[#52525B] hover:text-red-400 hover:bg-red-500/20 transition-colors"
+                              title="Arkadaşı Sil"
+                            >
+                              <Trash2 className="w-3 h-3" />
                             </button>
                             {f.username === '2fishbowl' && (
                               <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-[#ef4444] rounded-full" />

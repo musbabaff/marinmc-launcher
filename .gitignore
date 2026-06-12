@@ -81,3 +81,7 @@ Desktop.ini
 # Client Mod (Gradle build artifacts)
 marinmc-client-mod/.gradle/
 marinmc-client-mod/build/
+
+# Local databases
+*.db
+server/*.db

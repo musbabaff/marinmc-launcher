@@ -112,4 +112,6 @@ export interface InstalledMod {
   installedAt: string;
   gameVersions: string[];
   loaders: string[];
+  enabled?: boolean;
+  projectType?: 'mod' | 'modpack' | 'resourcepack' | 'shader';
 }

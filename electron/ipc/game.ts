@@ -86,50 +86,44 @@ const PERFORMANCE_MODS = [
   {
     name: 'Fabric API',
     filename: 'fabric-api-0.136.1+1.21.8.jar',
-    url: 'https://cdn.marinmc.com/mods/fabric-api-0.136.1+1.21.8.jar',
-    fallbackUrl: 'https://cdn.modrinth.com/data/P7dR8mSH/versions/g58ofrov/fabric-api-0.136.1%2B1.21.8.jar',
+    url: 'https://cdn.modrinth.com/data/P7dR8mSH/versions/g58ofrov/fabric-api-0.136.1%2B1.21.8.jar',
     md5: '85d76d57a7b5bb7043ea815133d2f6ba'
   },
   {
     name: 'Sodium',
     filename: 'sodium-fabric-0.7.3+mc1.21.8.jar',
-    url: 'https://cdn.marinmc.com/mods/sodium-fabric-0.7.3+mc1.21.8.jar',
-    fallbackUrl: 'https://cdn.modrinth.com/data/AANobbMI/versions/7pwil2dy/sodium-fabric-0.7.3%2Bmc1.21.8.jar',
+    url: 'https://cdn.modrinth.com/data/AANobbMI/versions/7pwil2dy/sodium-fabric-0.7.3%2Bmc1.21.8.jar',
     md5: '2e38db8afdf3a8d319658780b7f45501'
   },
   {
     name: 'Iris Shaders',
     filename: 'iris-fabric-1.9.6+mc1.21.8.jar',
-    url: 'https://cdn.marinmc.com/mods/iris-fabric-1.9.6+mc1.21.8.jar',
-    fallbackUrl: 'https://cdn.modrinth.com/data/YL57xq9U/versions/Rhzf61g1/iris-fabric-1.9.6%2Bmc1.21.8.jar',
+    url: 'https://cdn.modrinth.com/data/YL57xq9U/versions/Rhzf61g1/iris-fabric-1.9.6%2Bmc1.21.8.jar',
     md5: '64fdd8ffe47175923a1cfb6b0617867d'
   },
   {
     name: 'Lithium',
     filename: 'lithium-fabric-0.18.1+mc1.21.8.jar',
-    url: 'https://cdn.marinmc.com/mods/lithium-fabric-0.18.1+mc1.21.8.jar',
-    fallbackUrl: 'https://cdn.modrinth.com/data/gvQqBUqZ/versions/qxIL7Kb8/lithium-fabric-0.18.1%2Bmc1.21.8.jar',
+    url: 'https://cdn.modrinth.com/data/gvQqBUqZ/versions/qxIL7Kb8/lithium-fabric-0.18.1%2Bmc1.21.8.jar',
     md5: '7852499e964ca766501bd2c6f5a14f22'
   },
   {
     name: 'Reese\'s Sodium Options',
     filename: 'reeses-sodium-options-fabric-1.8.4+mc1.21.6.jar',
-    url: 'https://cdn.marinmc.com/mods/reeses-sodium-options-fabric-1.8.4+mc1.21.6.jar',
-    fallbackUrl: 'https://cdn.modrinth.com/data/Bh37bMuy/versions/AgGRyydH/reeses-sodium-options-fabric-1.8.4%2Bmc1.21.6.jar',
+    url: 'https://cdn.modrinth.com/data/Bh37bMuy/versions/AgGRyydH/reeses-sodium-options-fabric-1.8.4%2Bmc1.21.6.jar',
     md5: '6256d2626c3a7252c681bdd7c992db46'
   },
   {
     name: 'Sodium Extra',
     filename: 'sodium-extra-fabric-0.7.0+mc1.21.8.jar',
-    url: 'https://cdn.marinmc.com/mods/sodium-extra-fabric-0.7.0+mc1.21.8.jar',
-    fallbackUrl: 'https://cdn.modrinth.com/data/PtjYWJkn/versions/Of25zuEG/sodium-extra-fabric-0.7.0%2Bmc1.21.8.jar',
+    url: 'https://cdn.modrinth.com/data/PtjYWJkn/versions/Of25zuEG/sodium-extra-fabric-0.7.0%2Bmc1.21.8.jar',
     md5: 'b5ac5b552279a9adb2d99cbfe7d1edef'
   },
   {
     name: 'MarinMC Client Mod',
     filename: 'marinmc-client-mod-1.0.0.jar',
-    url: 'https://cdn.marinmc.com/mods/marinmc-client-mod-1.0.0.jar',
-    md5: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6'
+    url: 'https://raw.githubusercontent.com/musbabaff/marinmc-launcher/main/assets/marinmc-client-mod-1.0.0.jar',
+    md5: '1532a4ec6a7bfeb0b7681cf68d280a53'
   }
 ];
 
@@ -298,19 +292,7 @@ async function verifyPerformanceMods(gameDir: string, logCallback: (msg: string)
         logCallback(`[MarinMC Launcher] Başarıyla indirildi: ${mod.name}`);
       } catch (err: any) {
         downloadError = err;
-        console.error(`Failed to download mod ${mod.name} from primary URL:`, err.message);
-      }
-
-      if (!success && (mod as any).fallbackUrl) {
-        logCallback(`[MarinMC Launcher] Sunucu çevrimdışı. Yedek sunucudan indiriliyor: ${mod.name}...`);
-        try {
-          await downloadFile((mod as any).fallbackUrl);
-          success = true;
-          logCallback(`[MarinMC Launcher] Başarıyla indirildi (Yedek): ${mod.name}`);
-        } catch (err: any) {
-          downloadError = err;
-          console.error(`Failed to download mod ${mod.name} from fallback URL:`, err.message);
-        }
+        console.error(`Failed to download mod ${mod.name} from URL:`, err.message);
       }
 
       if (!success) {
@@ -321,34 +303,9 @@ async function verifyPerformanceMods(gameDir: string, logCallback: (msg: string)
 }
 
 async function downloadResourcePack(gameDir: string, logCallback: (msg: string) => void): Promise<void> {
-  const resourcePacksDir = path.join(gameDir, 'resourcepacks');
-  if (!fs.existsSync(resourcePacksDir)) {
-    fs.mkdirSync(resourcePacksDir, { recursive: true });
-  }
-  const packPath = path.join(resourcePacksDir, 'programmatic_marinmc_pack.zip');
-  const url = 'https://cdn.marinmc.com/resourcepacks/marinmc_pack.zip';
-
-  logCallback(`[MarinMC Launcher] Server kaynak paketi indiriliyor...`);
-  try {
-    const response = await axios({
-      method: 'get',
-      url: url,
-      responseType: 'stream',
-      timeout: 20000
-    });
-
-    const writer = fs.createWriteStream(packPath);
-    response.data.pipe(writer);
-
-    await new Promise<void>((resolve, reject) => {
-      writer.on('finish', resolve);
-      writer.on('error', reject);
-    });
-    logCallback(`[MarinMC Launcher] Server kaynak paketi başarıyla indirildi.`);
-  } catch (err: any) {
-    console.error('Failed to download resource pack:', err.message);
-    logCallback(`[UYARI] Sunucu kaynak paketi indirilemedi: ${err.message}. Devam ediliyor.`);
-  }
+  // Bypassed to prevent DNS name resolution error timeouts on cdn.marinmc.com
+  logCallback(`[MarinMC Launcher] Sunucu kaynak paketi indirme işlemi atlandı (çevrimdışı mod).`);
+  return;
 }
 
 function injectResourcePack(gameDir: string, logCallback: (msg: string) => void) {
@@ -484,6 +441,13 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
     serverId: string;
     gameDir: string;
     javaPath?: string;
+    resolutionWidth?: number;
+    resolutionHeight?: number;
+    fullscreen?: boolean;
+    cosmetics?: {
+      skinType: 'file' | 'username';
+      capeUrl: string;
+    };
   }) => {
     if (gameProcess) {
       return { success: false, error: 'Minecraft zaten çalışıyor.' };
@@ -538,6 +502,19 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
 
       sendAndLog(`[MarinMC Launcher] Senkronizasyon aşaması başlatıldı (Fabric 1.21.8).`);
 
+      // Write cosmetics configuration
+      const cosmeticsConfig = options.cosmetics || { skinType: 'username', capeUrl: '' };
+      try {
+        const configDir = path.join(gameDir, 'config');
+        fs.mkdirSync(configDir, { recursive: true });
+        const cosmeticsPath = path.join(configDir, 'marinmc-cosmetics.json');
+        fs.writeFileSync(cosmeticsPath, JSON.stringify(cosmeticsConfig, null, 2), 'utf8');
+        sendAndLog(`[MarinMC Launcher] Kozmetikler uygulandı (Cilt Tipi: ${cosmeticsConfig.skinType}, Pelerin: ${cosmeticsConfig.capeUrl || 'Yok'}).`);
+      } catch (cosmErr: any) {
+        console.error('Failed to write cosmetics config:', cosmErr);
+        sendAndLog(`[UYARI] Kozmetik konfigürasyonu yazılamadı: ${cosmErr.message}`);
+      }
+
       // Geliştirici modunda yerel istemci modunu derle ve kopyala
       if (!app.isPackaged) {
         await compileAndCopyClientModDev(gameDir, (msg) => {
@@ -560,11 +537,15 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         sendAndLog(msg);
       });
 
-      // Resolve Fabric Loader version if 1.21 or 1.21.8 is selected
+      // Resolve Fabric Loader version if 1.21 or 1.21.8 is selected (or an old fabric-loader version of it)
       let versionToLaunch = options.version || '1.21';
-      if (versionToLaunch === '1.21' || versionToLaunch === '1.21.8') {
+      const is121Version = versionToLaunch === '1.21' || 
+                            versionToLaunch === '1.21.8' || 
+                            (versionToLaunch.startsWith('fabric-loader-') && (versionToLaunch.endsWith('-1.21.8') || versionToLaunch.endsWith('-1.21')));
+
+      if (is121Version) {
         const gameVersion = '1.21.8';
-        const loaderVersion = '0.15.11';
+        const loaderVersion = '0.19.3';
         const fabricVersionId = `fabric-loader-${loaderVersion}-${gameVersion}`;
         const fabricVersionDir = path.join(gameDir, 'versions', fabricVersionId);
         const fabricJsonPath = path.join(fabricVersionDir, `${fabricVersionId}.json`);
@@ -613,9 +594,21 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
           }
         : Authenticator.getAuth(options.username);
 
-      const javaPathResolved = (options.javaPath && options.javaPath !== 'Bundled Java')
+      let javaPathResolved = (options.javaPath && options.javaPath !== 'Bundled Java')
         ? options.javaPath
         : 'java';
+
+      // Security check on custom javaPath
+      if (javaPathResolved !== 'java') {
+        const normalized = javaPathResolved.toLowerCase().trim();
+        const base = path.basename(normalized);
+        if (base !== 'java.exe' && base !== 'java' && base !== 'javaw.exe' && base !== 'javaw') {
+          throw new Error('Geçersiz Java yürütülebilir dosyası. Seçilen dosya java veya java.exe olmalıdır.');
+        }
+        if (!fs.existsSync(javaPathResolved)) {
+          throw new Error('Belirtilen Java yolu bulunamadı.');
+        }
+      }
 
       let customVersionName: string | undefined = undefined;
       let vanillaVersionNumber = versionToLaunch;
@@ -644,15 +637,24 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
           port: '25565'
         },
         window: {
-          width: 925,
-          height: 530
+          width: options.resolutionWidth || 1280,
+          height: options.resolutionHeight || 720,
+          fullscreen: !!options.fullscreen
         }
       };
 
       // Resolve JVM arguments (Smart Optimization vs Custom Only)
       let customArgsList: string[] = [];
       if (options.jvmArgs) {
-        customArgsList = options.jvmArgs.split(' ').filter(Boolean);
+        customArgsList = options.jvmArgs.split(' ').filter(Boolean).filter(arg => {
+          const lower = arg.toLowerCase();
+          // Filter out dangerous flags that could execute commands or write arbitrary files
+          return !lower.startsWith('-xx:onoutofmemoryerror') &&
+                 !lower.startsWith('-xx:errorfile') &&
+                 !lower.startsWith('-agentpath') &&
+                 !lower.startsWith('-javaagent') &&
+                 !lower.startsWith('-xrun');
+        });
       }
 
       let finalArgs: string[] = [];

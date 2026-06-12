@@ -20,9 +20,9 @@ import java.util.List;
 import java.util.Map;
 
 public class HudManager {
-    private static final HudManager INSTANCE = new HudManager();
     private static final File CONFIG_FILE = new File("marinmc-hud-config.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final HudManager INSTANCE = new HudManager();
 
     private final List<HudElement> elements = new ArrayList<>();
     
@@ -41,6 +41,10 @@ public class HudManager {
         elements.add(new KeystrokesElement("keystrokes", "Keystrokes", 10, 60));
         elements.add(new ArmorStatusElement("armor", "Armor Status", 10, 150));
         elements.add(new CompassElement("compass", "Direction HUD", 100, 10));
+        elements.add(new CoordsElement("coords", "Coordinates", 100, 30));
+        elements.add(new PingElement("ping", "Ping Counter", 100, 50));
+        elements.add(new SpeedElement("speed", "Speedometer", 100, 70));
+        elements.add(new ReplayElement("replay", "Replay Status", 100, 90));
         
         loadConfig();
     }
@@ -89,6 +93,12 @@ public class HudManager {
                         el.setY(cfg.y);
                         el.setEnabled(cfg.enabled);
                         el.setScale(cfg.scale);
+                        if (cfg.colorTheme != null) {
+                            el.setColorTheme(cfg.colorTheme);
+                        }
+                        if (cfg.bgOpacity != 0) {
+                            el.setBgOpacity(cfg.bgOpacity);
+                        }
                     }
                 }
             }
@@ -100,7 +110,14 @@ public class HudManager {
     public void saveConfig() {
         Map<String, ElementConfig> configMap = new HashMap<>();
         for (HudElement el : elements) {
-            configMap.put(el.getId(), new ElementConfig(el.getX(), el.getY(), el.isEnabled(), el.getScale()));
+            configMap.put(el.getId(), new ElementConfig(
+                el.getX(), 
+                el.getY(), 
+                el.isEnabled(), 
+                el.getScale(),
+                el.getColorTheme(),
+                el.getBgOpacity()
+            ));
         }
         try (FileWriter writer = new FileWriter(CONFIG_FILE)) {
             GSON.toJson(configMap, writer);
@@ -114,12 +131,16 @@ public class HudManager {
         int y;
         boolean enabled;
         float scale;
+        String colorTheme;
+        int bgOpacity;
 
-        ElementConfig(int x, int y, boolean enabled, float scale) {
+        ElementConfig(int x, int y, boolean enabled, float scale, String colorTheme, int bgOpacity) {
             this.x = x;
             this.y = y;
             this.enabled = enabled;
             this.scale = scale;
+            this.colorTheme = colorTheme;
+            this.bgOpacity = bgOpacity;
         }
     }
 
@@ -133,9 +154,10 @@ public class HudManager {
         public void render(DrawContext context) {
             MinecraftClient mc = MinecraftClient.getInstance();
             String fpsText = "FPS: " + mc.getCurrentFps();
-            context.fill(x, y, x + getWidth(), y + getHeight(), 0xAA000000);
-            context.drawBorder(x, y, getWidth(), getHeight(), 0x33FFFFFF);
-            context.drawTextWithShadow(mc.textRenderer, fpsText, x + 5, y + 4, 0xFFFFFFFF);
+            int bgColor = (bgOpacity << 24) | 0x000000;
+            context.fill(x, y, x + getWidth(), y + getHeight(), bgColor);
+            context.drawBorder(x, y, getWidth(), getHeight(), getThemeBorderColorHex());
+            context.drawTextWithShadow(mc.textRenderer, fpsText, x + 5, y + 4, getThemeColorHex());
         }
     }
 
@@ -147,10 +169,11 @@ public class HudManager {
         @Override
         public void render(DrawContext context) {
             MinecraftClient mc = MinecraftClient.getInstance();
-            String cpsText = "CPS: " + getCps(0) + " | " + getCps(1);
-            context.fill(x, y, x + getWidth(), y + getHeight(), 0xAA000000);
-            context.drawBorder(x, y, getWidth(), getHeight(), 0x33FFFFFF);
-            context.drawTextWithShadow(mc.textRenderer, cpsText, x + 5, y + 4, 0xFFFFFFFF);
+            String text = "CPS: " + getCps(0) + " | " + getCps(1);
+            int bgColor = (bgOpacity << 24) | 0x000000;
+            context.fill(x, y, x + getWidth(), y + getHeight(), bgColor);
+            context.drawBorder(x, y, getWidth(), getHeight(), getThemeBorderColorHex());
+            context.drawTextWithShadow(mc.textRenderer, text, x + 5, y + 4, getThemeColorHex());
         }
     }
 
@@ -182,10 +205,10 @@ public class HudManager {
 
         private void drawKey(DrawContext context, String key, int kx, int ky, int kw, int kh, boolean pressed) {
             MinecraftClient mc = MinecraftClient.getInstance();
-            int color = pressed ? 0xDDFFFFFF : 0xAA000000;
-            int textColor = pressed ? 0xFF000000 : 0xFFFFFFFF;
+            int color = pressed ? 0xDDFFFFFF : ((bgOpacity << 24) | 0x000000);
+            int textColor = pressed ? 0xFF000000 : getThemeColorHex();
             context.fill(kx, ky, kx + kw, ky + kh, color);
-            context.drawBorder(kx, ky, kw, kh, 0x33FFFFFF);
+            context.drawBorder(kx, ky, kw, kh, getThemeBorderColorHex());
             context.drawCenteredTextWithShadow(
                 mc.textRenderer, 
                 key, 
@@ -206,8 +229,9 @@ public class HudManager {
             MinecraftClient mc = MinecraftClient.getInstance();
             if (mc.player == null) return;
 
-            context.fill(x, y, x + getWidth(), y + getHeight(), 0xAA000000);
-            context.drawBorder(x, y, getWidth(), getHeight(), 0x33FFFFFF);
+            int bgColor = (bgOpacity << 24) | 0x000000;
+            context.fill(x, y, x + getWidth(), y + getHeight(), bgColor);
+            context.drawBorder(x, y, getWidth(), getHeight(), getThemeBorderColorHex());
 
             int currentY = y + 4;
             EquipmentSlot[] slots = {
@@ -230,7 +254,7 @@ public class HudManager {
                         int textColor = pct > 50 ? 0xFF259457 : pct > 20 ? 0xFFF59E0B : 0xFFEF4444;
                         context.drawTextWithShadow(mc.textRenderer, remaining + "", x + 24, currentY + 4, textColor);
                     } else {
-                        context.drawTextWithShadow(mc.textRenderer, "1", x + 24, currentY + 4, 0xFFFFFFFF);
+                        context.drawTextWithShadow(mc.textRenderer, "1", x + 24, currentY + 4, getThemeColorHex());
                     }
                     currentY += 14;
                 }
@@ -262,9 +286,88 @@ public class HudManager {
             else if (yaw >= 292.5 && yaw < 337.5) dir = "SE";
 
             String heading = String.format("%d° %s", (int)yaw, dir);
-            context.fill(x, y, x + getWidth(), y + getHeight(), 0xAA000000);
-            context.drawBorder(x, y, getWidth(), getHeight(), 0x33FFFFFF);
-            context.drawCenteredTextWithShadow(mc.textRenderer, heading, x + getWidth() / 2, y + 6, 0xFFFFFFFF);
+            int bgColor = (bgOpacity << 24) | 0x000000;
+            context.fill(x, y, x + getWidth(), y + getHeight(), bgColor);
+            context.drawBorder(x, y, getWidth(), getHeight(), getThemeBorderColorHex());
+            context.drawCenteredTextWithShadow(mc.textRenderer, heading, x + getWidth() / 2, y + 6, getThemeColorHex());
+        }
+    }
+
+    private static class CoordsElement extends HudElement {
+        CoordsElement(String id, String name, int defaultX, int defaultY) {
+            super(id, name, defaultX, defaultY, 130, 16);
+        }
+
+        @Override
+        public void render(DrawContext context) {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            if (mc.player == null) return;
+            String coordsText = String.format("XYZ: %.1f / %.1f / %.1f", mc.player.getX(), mc.player.getY(), mc.player.getZ());
+            int bgColor = (bgOpacity << 24) | 0x000000;
+            context.fill(x, y, x + getWidth(), y + getHeight(), bgColor);
+            context.drawBorder(x, y, getWidth(), getHeight(), getThemeBorderColorHex());
+            context.drawTextWithShadow(mc.textRenderer, coordsText, x + 5, y + 4, getThemeColorHex());
+        }
+    }
+
+    private static class PingElement extends HudElement {
+        PingElement(String id, String name, int defaultX, int defaultY) {
+            super(id, name, defaultX, defaultY, 60, 16);
+        }
+
+        @Override
+        public void render(DrawContext context) {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            if (mc.player == null) return;
+            int ping = 0;
+            if (mc.getNetworkHandler() != null) {
+                net.minecraft.client.network.PlayerListEntry entry = mc.getNetworkHandler().getPlayerListEntry(mc.player.getUuid());
+                if (entry != null) {
+                    ping = entry.getLatency();
+                }
+            }
+            String pingText = "Ping: " + ping + "ms";
+            int bgColor = (bgOpacity << 24) | 0x000000;
+            context.fill(x, y, x + getWidth(), y + getHeight(), bgColor);
+            context.drawBorder(x, y, getWidth(), getHeight(), getThemeBorderColorHex());
+            context.drawTextWithShadow(mc.textRenderer, pingText, x + 5, y + 4, getThemeColorHex());
+        }
+    }
+
+    private static class SpeedElement extends HudElement {
+        SpeedElement(String id, String name, int defaultX, int defaultY) {
+            super(id, name, defaultX, defaultY, 90, 16);
+        }
+
+        @Override
+        public void render(DrawContext context) {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            if (mc.player == null) return;
+            net.minecraft.util.math.Vec3d velocity = mc.player.getVelocity();
+            double speed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z) * 20.0;
+            String speedText = String.format("Speed: %.2f B/s", speed);
+            int bgColor = (bgOpacity << 24) | 0x000000;
+            context.fill(x, y, x + getWidth(), y + getHeight(), bgColor);
+            context.drawBorder(x, y, getWidth(), getHeight(), getThemeBorderColorHex());
+            context.drawTextWithShadow(mc.textRenderer, speedText, x + 5, y + 4, getThemeColorHex());
+        }
+    }
+
+    private static class ReplayElement extends HudElement {
+        ReplayElement(String id, String name, int defaultX, int defaultY) {
+            super(id, name, defaultX, defaultY, 50, 16);
+        }
+
+        @Override
+        public void render(DrawContext context) {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            long time = System.currentTimeMillis() / 500 % 2;
+            int dotColor = time == 0 ? 0xFFEF4444 : 0xFF7F1D1D;
+            int bgColor = (bgOpacity << 24) | 0x000000;
+            context.fill(x, y, x + getWidth(), y + getHeight(), bgColor);
+            context.drawBorder(x, y, getWidth(), getHeight(), getThemeBorderColorHex());
+            context.fill(x + 6, y + 5, x + 12, y + 11, dotColor);
+            context.drawTextWithShadow(mc.textRenderer, "REC", x + 16, y + 4, getThemeColorHex());
         }
     }
 }

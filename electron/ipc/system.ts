@@ -73,27 +73,33 @@ ipcMain.handle('validate-directory', async (_event, dirPath: string) => {
   }
 });
 
-ipcMain.handle('get-screenshots', async (_event, gameDir: string) => {
+ipcMain.handle('get-screenshots', async (_event, _gameDir: string) => {
+  const gameDir = resolveGameDir(backendSettings.launcherDir);
   const screenshotsDir = path.join(gameDir, 'screenshots');
   try {
     if (!fs.existsSync(screenshotsDir)) {
       return { success: true, screenshots: [] };
     }
     const files = fs.readdirSync(screenshotsDir)
-      .filter(f => f.endsWith('.png') || f.endsWith('.jpg'))
+      .filter(f => {
+        const lower = f.toLowerCase();
+        return (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg')) && !f.includes('..') && !f.includes('/') && !f.includes('\\');
+      })
       .map(f => {
         const filePath = path.join(screenshotsDir, f);
         const stat = fs.statSync(filePath);
+        const ext = path.extname(f).toLowerCase() === '.jpg' || path.extname(f).toLowerCase() === '.jpeg' ? 'jpeg' : 'png';
+        const base64Data = fs.readFileSync(filePath).toString('base64');
         return {
           name: f,
-          path: filePath,
-          size: stat.size,
-          date: stat.mtime
+          url: `data:image/${ext};base64,${base64Data}`,
+          size: (stat.size / (1024 * 1024)).toFixed(2) + ' MB',
+          date: stat.mtime.toISOString().split('T')[0]
         };
       });
     return { success: true, screenshots: files };
-  } catch {
-    return { success: true, screenshots: [] };
+  } catch (err: any) {
+    return { success: false, error: err.message, screenshots: [] };
   }
 });
 
@@ -201,11 +207,13 @@ ipcMain.handle('system:update-settings', async (_event, settings: {
   smartJvmOpt: boolean;
   discordRpcEnabled: boolean;
   language: 'tr' | 'en';
+  launcherDir: string;
 }) => {
   const oldRpcEnabled = backendSettings.discordRpcEnabled;
   backendSettings.smartJvmOpt = settings.smartJvmOpt;
   backendSettings.discordRpcEnabled = settings.discordRpcEnabled;
   backendSettings.language = settings.language;
+  backendSettings.launcherDir = settings.launcherDir;
 
   console.log('[ipc/system] Settings updated:', backendSettings);
 
@@ -220,4 +228,130 @@ ipcMain.handle('system:update-settings', async (_event, settings: {
   }
 
   return { success: true };
+});
+
+ipcMain.handle('system:download-file', async (_event, url: string, filename: string, projectType: string) => {
+  try {
+    const sanitizedFilename = path.basename(filename);
+    const gameDir = resolveGameDir(backendSettings.launcherDir);
+    let subfolder = 'mods';
+    if (projectType === 'resourcepack') {
+      subfolder = 'resourcepacks';
+    } else if (projectType === 'shader') {
+      subfolder = 'shaderpacks';
+    }
+    const destFolder = path.join(gameDir, subfolder);
+    fs.mkdirSync(destFolder, { recursive: true });
+    const destPath = path.join(destFolder, sanitizedFilename);
+
+    // Download file using axios
+    const response = await axios({
+      method: 'GET',
+      url: url,
+      responseType: 'stream'
+    });
+
+    const writer = fs.createWriteStream(destPath);
+    response.data.pipe(writer);
+
+    await new Promise<void>((resolve, reject) => {
+      writer.on('finish', () => resolve());
+      writer.on('error', reject);
+    });
+
+    return { success: true, path: destPath };
+  } catch (err: any) {
+    console.error('Download failed:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('system:delete-file', async (_event, filename: string, projectType: string) => {
+  try {
+    const sanitizedFilename = path.basename(filename);
+    const gameDir = resolveGameDir(backendSettings.launcherDir);
+    let subfolder = 'mods';
+    if (projectType === 'resourcepack') {
+      subfolder = 'resourcepacks';
+    } else if (projectType === 'shader') {
+      subfolder = 'shaderpacks';
+    }
+    const activePath = path.join(gameDir, subfolder, sanitizedFilename);
+    const disabledPath = activePath + '.disabled';
+
+    if (fs.existsSync(activePath)) {
+      fs.unlinkSync(activePath);
+    }
+    if (fs.existsSync(disabledPath)) {
+      fs.unlinkSync(disabledPath);
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('system:toggle-file', async (_event, filename: string, projectType: string, enabled: boolean) => {
+  try {
+    const sanitizedFilename = path.basename(filename);
+    const gameDir = resolveGameDir(backendSettings.launcherDir);
+    let subfolder = 'mods';
+    if (projectType === 'resourcepack') {
+      subfolder = 'resourcepacks';
+    } else if (projectType === 'shader') {
+      subfolder = 'shaderpacks';
+    }
+    const activePath = path.join(gameDir, subfolder, sanitizedFilename);
+    const disabledPath = activePath + '.disabled';
+
+    if (enabled) {
+      if (fs.existsSync(disabledPath)) {
+        fs.renameSync(disabledPath, activePath);
+      }
+    } else {
+      if (fs.existsSync(activePath)) {
+        fs.renameSync(activePath, disabledPath);
+      }
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('system:open-directory', async (_event, dirPath: string) => {
+  try {
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+    await shell.openPath(dirPath);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('system:upload-skin-file', async (_event, filePath: string) => {
+  try {
+    if (!filePath || typeof filePath !== 'string' || path.extname(filePath).toLowerCase() !== '.png') {
+      throw new Error('Geçersiz dosya türü. Sadece PNG dosyaları yüklenebilir.');
+    }
+    if (!fs.existsSync(filePath)) {
+      throw new Error('Dosya bulunamadı.');
+    }
+    const gameDir = resolveGameDir(backendSettings.launcherDir);
+    const skinsDir = path.join(gameDir, 'skins');
+    fs.mkdirSync(skinsDir, { recursive: true });
+    const destPath = path.join(skinsDir, 'active_skin.png');
+    fs.copyFileSync(filePath, destPath);
+    
+    // Read base64 to return for preview
+    const base64 = fs.readFileSync(destPath).toString('base64');
+    const dataUrl = `data:image/png;base64,${base64}`;
+    
+    return { success: true, path: destPath, dataUrl };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 });

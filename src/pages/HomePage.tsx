@@ -63,6 +63,10 @@ export default function HomePage() {
   const [newsData, setNewsData] = useState<GitHubNewsItem[]>([]);
   const [newsError, setNewsError] = useState(false);
   const [homeServers, setHomeServers] = useState<any[]>([]);
+  const [onlineCountVal, setOnlineCountVal] = useState(247);
+  const [totalPlayTime, setTotalPlayTime] = useState(124);
+  const [lastSessionServer, setLastSessionServer] = useState('-');
+  const [lastSessionTimeAgoText, setLastSessionTimeAgoText] = useState('');
 
   useEffect(() => {
     api.getServerList().then((list) => {
@@ -90,6 +94,29 @@ export default function HomePage() {
     fetchNews();
   }, []);
 
+  useEffect(() => {
+    api.getOnlineCount().then((res) => {
+      if (res && typeof res.total === 'number') {
+        setOnlineCountVal(res.total);
+      }
+    }).catch(err => console.warn('Failed to fetch online count:', err));
+  }, []);
+
+  useEffect(() => {
+    if (!session?.name) return;
+    api.getUserProfile(session.name).then((profile: any) => {
+      setTotalPlayTime(profile.totalPlayTime || 0);
+      if (profile.playSessions && profile.playSessions.length > 0) {
+        const last = profile.playSessions[profile.playSessions.length - 1];
+        setLastSessionServer(last.server || '-');
+        setLastSessionTimeAgoText(last.date || '');
+      } else {
+        setLastSessionServer('-');
+        setLastSessionTimeAgoText('');
+      }
+    }).catch((err: any) => console.warn('Failed to fetch profile in home:', err));
+  }, [session]);
+
   // Friends Panel states
   const [friendsTab, setFriendsTab] = useState<'friends' | 'requests' | 'lobby'>('friends');
   const [friendsSearch, setFriendsSearch] = useState('');
@@ -102,12 +129,7 @@ export default function HomePage() {
     content: string;
     time: string;
   }
-  const INITIAL_LOBBY_MESSAGES: LobbyMessage[] = [
-    { id: 'l1', sender: 'Solmazzz', content: 'MarinMC Towny sunucusunda bugün büyük savaş var beyler!', time: '14:02' },
-    { id: 'l2', sender: 'wtfbro', content: 'Market fiyatları güncellendi mi?', time: '14:05' },
-    { id: 'l3', sender: 'wtfbroimlagging', content: 'Sodium ayarlarıyla ilgili sorusu olan var mı?', time: '14:08' },
-    { id: 'l4', sender: 'Admin', content: 'Etkinlik 1 saat sonra başlayacak, yerlerinizi alın.', time: '14:10' }
-  ];
+  const INITIAL_LOBBY_MESSAGES: LobbyMessage[] = [];
   const [lobbyMessages, setLobbyMessages] = useState<LobbyMessage[]>(INITIAL_LOBBY_MESSAGES);
   const [lobbyInput, setLobbyInput] = useState('');
   const lobbyEndRef = useRef<HTMLDivElement>(null);
@@ -592,7 +614,7 @@ export default function HomePage() {
                 </AnimatePresence>
               </div>
               <p className="text-[10px] text-[#52525B] font-semibold mt-1">
-                {t('home.lastPlayed')}: <span className="text-[#2D7DD2]">{isOnline ? 'Donut SMP' : 'Hypixel'}</span> - {isOnline ? t('home.hoursAgo', { count: 7 }) : t('home.hoursAgo', { count: 16 })} · {t('home.totalPlaytime')}: <span className="text-white/80">{isOnline ? `1,662${t('profile.hour')}` : `1,364${t('profile.hour')}`}</span>
+                {t('home.lastPlayed')}: <span className="text-[#2D7DD2]">{lastSessionServer !== '-' ? lastSessionServer : 'Yok'}</span> {lastSessionTimeAgoText && `(${lastSessionTimeAgoText})`} · {t('home.totalPlaytime')}: <span className="text-white/80">{Math.round(totalPlayTime / 60)} {t('profile.hour')}</span>
               </p>
             </div>
           </div>
@@ -839,7 +861,7 @@ export default function HomePage() {
                   <div className="flex flex-col z-10 pl-2">
                     <span className="text-[8px] text-[#259457] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] w-fit mb-1.5">{t('home.serverStatus')}</span>
                     <h3 className="text-xs font-black text-[#259457] leading-snug uppercase">{t('home.allOnline')}</h3>
-                    <p className="text-[9px] text-[#A1A1AA] mt-1.5 font-medium">{t('home.activePlayers', { count: 247 })}</p>
+                    <p className="text-[9px] text-[#A1A1AA] mt-1.5 font-medium">{t('home.activePlayers', { count: onlineCountVal })}</p>
                   </div>
                   <div className="text-[28px] font-black text-[#259457]/10 select-none absolute right-4 group-hover:scale-110 transition-transform">●</div>
                 </div>

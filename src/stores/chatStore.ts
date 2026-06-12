@@ -96,7 +96,7 @@ export const useChatStore = create<ChatState>((set, get) => {
 
   return {
     conversations: [],
-    activeConversationId: 'solmazzz', // Default active conversation
+    activeConversationId: '', // Default active conversation
 
     initializeChat: async () => {
       const session = useAuthStore.getState().session;

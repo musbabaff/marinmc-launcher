@@ -208,17 +208,7 @@ router.get('/leaderboard', async (req, res) => {
     const dbUsers = await dbAll('SELECT username, total_play_time, last_login, coins FROM users ORDER BY total_play_time DESC LIMIT 10');
     
     // Default legendary mock list of players to ensure a complete leaderboard (10 items)
-    const mockPlayers = [
-      { username: '172px', totalPlayTime: 852, lastLogin: 'Bugün 12:44', coins: 4500, status: 'online', server: 'Survival' },
-      { username: 'daaaavidds', totalPlayTime: 712, lastLogin: 'Bugün 13:10', coins: 3800, status: 'idle', server: 'Towny' },
-      { username: 'masaya46', totalPlayTime: 590, lastLogin: 'Dün 20:15', coins: 2900, status: 'online', server: 'Skyblock' },
-      { username: 'cuvsa', totalPlayTime: 440, lastLogin: '08.06.2026', coins: 1200, status: 'offline', server: '-' },
-      { username: 'zakhbear', totalPlayTime: 384, lastLogin: '07.06.2026', coins: 950, status: 'offline', server: '-' },
-      { username: 'wtfbroimlagging', totalPlayTime: 290, lastLogin: '05.06.2026', coins: 640, status: 'offline', server: '-' },
-      { username: 'wtfbro', totalPlayTime: 210, lastLogin: '04.06.2026', coins: 520, status: 'offline', server: '-' },
-      { username: 'Steve', totalPlayTime: 180, lastLogin: '02.06.2026', coins: 500, status: 'offline', server: '-' },
-      { username: 'Alex', totalPlayTime: 150, lastLogin: '01.06.2026', coins: 500, status: 'offline', server: '-' }
-    ];
+    const mockPlayers = [];
 
     const merged = [];
     const seen = new Set();
@@ -357,11 +347,7 @@ router.get('/chats/:username/contacts', validateUsername, async (req, res) => {
   try {
     const contacts = await dbAll('SELECT * FROM contacts WHERE username = ?', [username]);
     if (contacts.length === 0) {
-      const initial = [
-        { contact_id: 'solmazzz', name: 'Solmazzz', avatar: 'https://minotar.net/avatar/Solmazzz/48', status: 'idle', last_message: "Selam dostum! MarinMC Launcher'ın yeni tasarımı nasıl olmuş?", time: '20:15', type: 'pinned', unread: 1, favorite: 0 },
-        { contact_id: 'support', name: 'MarinMC Destek', avatar: 'https://minotar.net/avatar/MHF_Question/48', status: 'online', last_message: 'Destek kanalımıza hoş geldiniz. Sorularınızı buradan iletebilirsiniz.', time: 'Dün', type: 'dm', unread: 0, favorite: 0 },
-        { contact_id: 'admin', name: 'Admin', avatar: 'https://minotar.net/avatar/MHF_Herobrine/48', status: 'offline', last_message: 'Görsel testler tamamlandı. Her şey harika çalışıyor!', time: '08.06', type: 'dm', unread: 0, favorite: 0 }
-      ];
+      const initial = [];
       for (const c of initial) {
         await dbRun(`
           INSERT INTO contacts (username, contact_id, name, avatar, status, last_message, time, type, unread, favorite)
@@ -439,11 +425,7 @@ router.get('/chats/:username/messages', validateUsername, async (req, res) => {
   try {
     const messages = await dbAll('SELECT * FROM messages WHERE username = ?', [username]);
     if (messages.length === 0) {
-      const initial = {
-        solmazzz: [{ id: 'm1', sender: 'Solmazzz', content: "Selam dostum! MarinMC Launcher'ın yeni tasarımı nasıl olmuş?", time: '20:15', is_self: 0 }],
-        support: [{ id: 'm2', sender: 'MarinMC Destek', content: 'Destek kanalımıza hoş geldiniz. Sorularınızı buradan iletebilirsiniz.', time: 'Dün 18:00', is_self: 0 }],
-        admin: [{ id: 'm3', sender: 'Admin', content: 'Görsel testler tamamlandı. Her şey harika çalışıyor!', time: '08.06.2026 15:30', is_self: 0 }]
-      };
+      const initial = {};
 
       for (const [contactId, msgs] of Object.entries(initial)) {
         for (const m of msgs) {

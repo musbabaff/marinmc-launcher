@@ -155,11 +155,7 @@ export const api = {
       const local = localStorage.getItem('marinmc_chat_contacts');
       if (local) return JSON.parse(local);
       
-      const initial: Contact[] = [
-        { id: 'solmazzz', name: 'Solmazzz', avatar: 'https://minotar.net/avatar/Solmazzz/48', status: 'idle', lastMessage: 'Selam dostum! MarinMC Launcher\'ın yeni tasarımı nasıl olmuş?', time: '20:15', type: 'pinned', unread: 1 },
-        { id: 'support', name: 'MarinMC Destek', avatar: 'https://minotar.net/avatar/MHF_Question/48', status: 'online', lastMessage: 'Destek kanalımıza hoş geldiniz. Sorularınızı buradan iletebilirsiniz.', time: 'Dün', type: 'dm', unread: 0 },
-        { id: 'admin', name: 'Admin', avatar: 'https://minotar.net/avatar/MHF_Herobrine/48', status: 'offline', lastMessage: 'Görsel testler tamamlandı. Her şey harika çalışıyor!', time: '08.06', type: 'dm', unread: 0 }
-      ];
+      const initial: Contact[] = [];
       localStorage.setItem('marinmc_chat_contacts', JSON.stringify(initial));
       return initial;
     }
@@ -183,11 +179,7 @@ export const api = {
       const local = localStorage.getItem('marinmc_chat_messages');
       if (local) return JSON.parse(local);
 
-      const initial: Record<string, ChatMessage[]> = {
-        solmazzz: [{ id: 'm1', sender: 'Solmazzz', content: 'Selam dostum! MarinMC Launcher\'ın yeni tasarımı nasıl olmuş?', time: '20:15', isSelf: false }],
-        support: [{ id: 'm2', sender: 'MarinMC Destek', content: 'Destek kanalımıza hoş geldiniz. Sorularınızı buradan iletebilirsiniz.', time: 'Dün 18:00', isSelf: false }],
-        admin: [{ id: 'm3', sender: 'Admin', content: 'Görsel testler tamamlandı. Her şey harika çalışıyor!', time: '08.06.2026 15:30', isSelf: false }]
-      };
+      const initial: Record<string, ChatMessage[]> = {};
       localStorage.setItem('marinmc_chat_messages', JSON.stringify(initial));
       return initial;
     }

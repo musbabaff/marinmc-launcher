@@ -55,11 +55,7 @@ interface SettingsState {
 
 const DEFAULT_JVM_ARGS = "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch";
 
-const INITIAL_MOCK_RECENT_PROFILES: RecentProfile[] = [
-  { id: 'towny', name: 'MarinMC Towny', version: '1.21', subVersion: '1.21.11', timePlayed: '2 hours ago', mode: 'TOWNY', ip: 'oyna.marinmc.com', port: 25565, artworkUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=800&auto=format&fit=crop&q=60' },
-  { id: 'survival', name: 'MarinMC Survival', version: '1.21', subVersion: '1.21.11', timePlayed: '1 day ago', mode: 'SURVIVAL', ip: 'oyna.marinmc.com', port: 25565, artworkUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=60' },
-  { id: 'creative', name: 'MarinMC Creative', version: '1.20', subVersion: '1.20.4', timePlayed: '3 days ago', mode: 'CREATIVE', ip: 'oyna.marinmc.com', port: 25565, artworkUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=60' }
-];
+const INITIAL_MOCK_RECENT_PROFILES: RecentProfile[] = [];
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   ram: (() => {

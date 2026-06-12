@@ -30,8 +30,8 @@ export const useSocialStore = create<SocialState>((set, get) => {
 
   return {
     friends: [],
-    pendingRequests: 2,
-    pendingNames: ['KillaMc', 'GamerQueen'],
+    pendingRequests: 0,
+    pendingNames: [],
 
     initializeSocial: async () => {
       const session = useAuthStore.getState().session;

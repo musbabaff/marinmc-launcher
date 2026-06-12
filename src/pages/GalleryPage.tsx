@@ -20,11 +20,7 @@ interface Screenshot {
   size: string;
 }
 
-const MOCK_SCREENSHOTS = [
-  { id: '1', url: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=600&auto=format&fit=crop&q=60', title: 'Ev İnşaatı', date: '2026-06-01', server: 'MarinMC Towny', player: 'Solmazzz', size: '2.4 MB' },
-  { id: '2', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=60', title: 'PvP Arenası', date: '2026-05-28', server: 'MarinMC Towny', player: 'Solmazzz', size: '1.8 MB' },
-  { id: '3', url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=60', title: 'Maden Günlüğü', date: '2026-05-25', server: 'MarinMC Survival', player: 'Steve', size: '3.1 MB' }
-];
+const MOCK_SCREENSHOTS: Screenshot[] = [];
 
 export default function GalleryPage() {
   const { t } = useTranslation();

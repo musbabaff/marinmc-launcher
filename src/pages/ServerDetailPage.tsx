@@ -81,11 +81,7 @@ const translations = {
   }
 };
 
-const MOCK_NEWS = [
-  { title: 'Towny Sezon 4 Güncellemesi Yayınlandı', imageUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=400&q=80', author: 'MarinAdmin', authorAvatar: 'https://mc-heads.net/avatar/Steve/32', date: '04.06.2026', url: 'https://marinmc.com/news/1' },
-  { title: 'OptiFine & Performans Ayarları Rehberi', imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&q=80', author: 'Moderator', authorAvatar: 'https://mc-heads.net/avatar/Alex/32', date: '02.06.2026', url: 'https://marinmc.com/news/2' },
-  { title: 'Haftalık Büyü Turnuvaları Başlıyor', imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&q=80', author: 'EventTeam', authorAvatar: 'https://mc-heads.net/avatar/Notch/32', date: '31.05.2026', url: 'https://marinmc.com/news/3' }
-];
+const MOCK_NEWS: any[] = [];
 
 export default function ServerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -294,23 +290,23 @@ export default function ServerDetailPage() {
       } else {
         // Simulated browser launch sequence
         setLaunchStatus('CHECKING');
-        setLogs(['[Mock] Dosyalar kontrol ediliyor...']);
+        setLogs(['[Launcher] Dosyalar kontrol ediliyor...']);
         await new Promise((resolve) => setTimeout(resolve, 1200));
 
         setLaunchStatus('DOWNLOADING');
-        setLogs((prev) => [...prev, '[Mock] Dosyalar indiriliyor... (1.21-Fabric)']);
+        setLogs((prev) => [...prev, '[Launcher] Dosyalar indiriliyor... (1.21-Fabric)']);
         let p = 0;
         const interval = setInterval(() => {
           p += 10;
           setProgress(p);
-          setLogs((prev) => [...prev, `[Mock] Kütüphaneler yükleniyor... ${p}%`]);
+          setLogs((prev) => [...prev, `[Launcher] Kütüphaneler yükleniyor... ${p}%`]);
           if (p >= 100) {
             clearInterval(interval);
             setLaunchStatus('LAUNCHING');
-            setLogs((prev) => [...prev, '[Mock] Oyun süreci başlatılıyor...']);
+            setLogs((prev) => [...prev, '[Launcher] Oyun süreci başlatılıyor...']);
             setTimeout(() => {
               setLaunchStatus('RUNNING');
-              setLogs((prev) => [...prev, '[Mock] Minecraft başarıyla başlatıldı.']);
+              setLogs((prev) => [...prev, '[Launcher] Minecraft başarıyla başlatıldı.']);
             }, 1000);
           }
         }, 200);

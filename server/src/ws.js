@@ -139,29 +139,7 @@ export const initWebSocket = (server) => {
     'Optifine yerine Sodium kullanın, başlatıcıda zaten yüklü geliyor'
   ];
 
-  setInterval(() => {
-    if (clients.size === 0) return;
-    const randomName = LOBBY_BOT_NAMES[Math.floor(Math.random() * LOBBY_BOT_NAMES.length)];
-    const randomMsg = LOBBY_BOT_MESSAGES[Math.floor(Math.random() * LOBBY_BOT_MESSAGES.length)];
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
-    const packet = JSON.stringify({
-      event: 'lobby:message',
-      data: {
-        id: Math.random().toString(36).substr(2, 9),
-        sender: randomName,
-        content: randomMsg,
-        time: timeStr
-      }
-    });
-
-    clients.forEach(wsClient => {
-      if (wsClient.readyState === 1) { // WebSocket.OPEN
-        wsClient.send(packet);
-      }
-    });
-  }, 20000); // Send every 20 seconds
+  // Live Lobby Chat Simulation Interval disabled to avoid mock/simulated traffic
 
   // Handle upgrade request from Express server
   server.on('upgrade', (request, socket, head) => {

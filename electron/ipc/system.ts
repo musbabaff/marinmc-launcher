@@ -203,6 +203,21 @@ ipcMain.handle('system:validate-mojang', async (_event, username: string) => {
   }
 });
 
+ipcMain.handle('system:check-connectivity', async () => {
+  try {
+    const res = await axios.get('https://api.mojang.com/users/profiles/minecraft/Steve', { timeout: 3000 });
+    return res.status === 200;
+  } catch (err) {
+    try {
+      const res = await axios.get('https://server-two-lyart-67.vercel.app/api/stats/online-count', { timeout: 3000 });
+      return res.status === 200;
+    } catch {
+      return false;
+    }
+  }
+});
+
+
 ipcMain.handle('system:update-settings', async (_event, settings: {
   smartJvmOpt: boolean;
   discordRpcEnabled: boolean;

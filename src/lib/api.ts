@@ -410,10 +410,18 @@ export const api = {
 };
 
 export const checkConnectivity = async (): Promise<boolean> => {
+  if (window.electronAPI && window.electronAPI.checkConnectivity) {
+    try {
+      return await window.electronAPI.checkConnectivity();
+    } catch (err) {
+      console.warn('[API] Electron checkConnectivity failed:', err);
+    }
+  }
+  // Browser fallback (e.g. during dev:renderer without Electron wrapper)
   try {
-    await axios.get('https://api.mojang.com', { timeout: 3000 });
-    return true;
+    const res = await axios.get('https://server-two-lyart-67.vercel.app/api/stats/online-count', { timeout: 3000 });
+    return res.status === 200;
   } catch {
-    return false;
+    return window.navigator.onLine;
   }
 };

@@ -36,6 +36,7 @@ export interface IElectronAPI {
   getSystemInfo: () => Promise<{ totalRAM: number; javaPath: string; os: string; defaultGameDir?: string }>;
   updateSettings: (settings: { smartJvmOpt: boolean; discordRpcEnabled: boolean; language: 'tr' | 'en'; launcherDir: string }) => Promise<{ success: boolean }>;
   validateMojangUsername: (username: string) => Promise<{ success: boolean; uuid?: string; name?: string }>;
+  checkConnectivity: () => Promise<boolean>;
   selectDirectory: () => Promise<string | null>;
   validateDirectory: (dirPath: string) => Promise<{ valid: boolean; path?: string; error?: string }>;
   openExternal: (url: string) => Promise<{ success: boolean }>;

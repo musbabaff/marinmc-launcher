@@ -1,12 +1,10 @@
-import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore.ts';
 import MarinLogo from './MarinLogo.tsx';
 import {
   Home, User, Bell, MessageSquare, Layers,
-  Globe, Image, ShoppingCart, Settings, X, ShoppingBag, Package
+  Globe, Image, ShoppingCart, Settings, Package
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface SidebarItem {
   icon: any;
@@ -19,7 +17,6 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const setActivePage = useAppStore((state) => state.setActivePage);
-  const [marketModalOpen, setMarketModalOpen] = useState(false);
 
   const group1: SidebarItem[] = [
     { icon: Home, label: 'Ana Sayfa', path: '/home' },
@@ -36,10 +33,6 @@ export default function Sidebar() {
   ];
 
   const handleNav = (item: SidebarItem) => {
-    if (item.isPlaceholder) {
-      setMarketModalOpen(true);
-      return;
-    }
     setActivePage(item.path);
     navigate(item.path);
   };
@@ -125,17 +118,20 @@ export default function Sidebar() {
           {/* Market / Shop */}
           <div className="relative group w-full flex justify-center">
             <button
-              onClick={() => handleNav({ icon: ShoppingCart, label: 'Market', path: '/store', isPlaceholder: true })}
-              className="p-2.5 rounded-xl transition-all duration-300 text-[#52525B] hover:text-[#d2d2d2] hover:bg-white/5 relative"
+              onClick={() => {
+                setActivePage('/store');
+                navigate('/store');
+              }}
+              className={`p-2.5 rounded-xl transition-all duration-300 relative ${
+                isActive('/store')
+                  ? 'text-white bg-[#2D7DD2]/20 border border-[#2D7DD2]/40 shadow-[0_0_15px_rgba(45,125,210,0.3)]'
+                  : 'text-[#52525B] hover:text-[#d2d2d2] hover:bg-white/5'
+              }`}
             >
               <ShoppingCart className="w-4.5 h-4.5" />
-              {/* Red Notification Badge */}
-              <span className="absolute top-1.5 right-1.5 w-3 h-3 bg-[#ef4444] rounded-full border border-[#060305] text-[7.5px] font-black text-white flex items-center justify-center">
-                0
-              </span>
             </button>
             <div className="absolute left-[65px] top-1/2 -translate-y-1/2 bg-[#060305] border border-[#2A2A2A] text-[#d2d2d2] text-[10px] font-bold px-2.5 py-1.5 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
-              Market <span className="ml-1 text-[8px] text-[#2D7DD2] font-black uppercase">Yakında</span>
+              Market
             </div>
           </div>
 
@@ -160,58 +156,6 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
-
-      {/* ===== Market Coming Soon Modal ===== */}
-      <AnimatePresence>
-        {marketModalOpen && (
-          <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center"
-            onClick={() => setMarketModalOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="bg-[#0A0A0A] border border-white/[0.08] w-[360px] rounded-2xl overflow-hidden shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header gradient */}
-              <div className="h-24 bg-gradient-to-br from-[#2D7DD2]/20 via-[#0A0A0A] to-[#2D7DD2]/5 flex items-center justify-center relative">
-                <div className="w-14 h-14 rounded-2xl bg-[#2D7DD2]/10 border border-[#2D7DD2]/20 flex items-center justify-center">
-                  <ShoppingBag className="w-7 h-7 text-[#2D7DD2]" />
-                </div>
-                <button
-                  onClick={() => setMarketModalOpen(false)}
-                  className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-white/10 text-[#52525B] hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="px-6 pb-6 pt-3 text-center">
-                <h2 className="text-sm font-black text-white uppercase tracking-wider mb-1.5">
-                  MarinMC Market
-                </h2>
-                <p className="text-[11px] text-[#A1A1AA] leading-relaxed mb-1">
-                  Skin, cape ve daha fazlası için market yakında hizmetinizde!
-                </p>
-                <div className="flex items-center justify-center gap-1.5 mb-5">
-                  <span className="text-[8px] bg-[#2D7DD2]/10 text-[#2D7DD2] border border-[#2D7DD2]/20 px-2 py-0.5 rounded-full font-bold uppercase">Yakında</span>
-                </div>
-
-                <button
-                  onClick={() => setMarketModalOpen(false)}
-                  className="w-full py-2.5 rounded-xl bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-[0_5px_15px_rgba(45,125,210,0.25)] hover:scale-[1.02]"
-                >
-                  Tamam
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

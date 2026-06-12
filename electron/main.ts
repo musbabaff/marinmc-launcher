@@ -41,10 +41,10 @@ function createWindow() {
   const splash = createSplash();
 
   mainWindow = new BrowserWindow({
-    width: 1080,
-    height: 680,
-    minWidth: 1080,
-    minHeight: 680,
+    width: 1200,
+    height: 750,
+    minWidth: 1200,
+    minHeight: 750,
     frame: false,
     resizable: true,
     maximizable: false,

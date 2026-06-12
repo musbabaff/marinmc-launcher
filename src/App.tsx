@@ -22,6 +22,7 @@ const CosmeticsPage = lazy(() => import('./pages/CosmeticsPage.tsx'));
 const GalleryPage = lazy(() => import('./pages/GalleryPage.tsx'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage.tsx'));
 const ModManagerPage = lazy(() => import('./pages/ModManagerPage.tsx'));
+const StorePage = lazy(() => import('./pages/StorePage.tsx'));
 
 // Loading fallback
 const PageLoader = () => {
@@ -341,6 +342,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <ModManagerPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/store"
+              element={
+                <ProtectedRoute>
+                  <StorePage />
                 </ProtectedRoute>
               }
             />

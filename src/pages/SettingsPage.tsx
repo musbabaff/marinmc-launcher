@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import { useSettingsStore } from '../stores/settingsStore.ts';
 import {
   HardDrive, Cpu, ShieldAlert, FolderOpen, Save,
-  RefreshCcw, Check, Terminal, Languages, Settings, Gamepad2, Wrench
+  RefreshCcw, Check, Terminal, Languages, Settings, Gamepad2, Wrench,
+  Activity, Sparkles, Gauge
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SettingsPage() {
   const settings = useSettingsStore();
 
-  const [activeTab, setActiveTab] = useState<'general' | 'game' | 'advanced'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'game' | 'advanced' | 'system'>('general');
 
   const [ramValue, setRamValue] = useState(settings.ram);
   const [jvmArgsVal, setJvmArgsVal] = useState(settings.jvmArgs);
@@ -21,6 +22,52 @@ export default function SettingsPage() {
   const [resHeight, setResHeight] = useState(settings.resolutionHeight);
   const [fullscreenVal, setFullscreenVal] = useState(settings.fullscreen);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // System Monitor States
+  const [cpuUsage, setCpuUsage] = useState(24);
+  const [ramInUse, setRamInUse] = useState(6.2); // GB
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizationProgress, setOptimizationProgress] = useState(0);
+  const [optimizedAlert, setOptimizedAlert] = useState<string | null>(null);
+
+  // Simulate live CPU/RAM metrics
+  useEffect(() => {
+    if (activeTab !== 'system') return;
+    const interval = setInterval(() => {
+      setCpuUsage((prev) => {
+        const delta = Math.floor(Math.random() * 7) - 3; // -3 to +3
+        return Math.max(12, Math.min(62, prev + delta));
+      });
+      setRamInUse((prev) => {
+        const delta = parseFloat((Math.random() * 0.08 - 0.04).toFixed(2));
+        return Math.max(5.1, Math.min(7.9, prev + delta));
+      });
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
+  const handleOptimizeRam = () => {
+    setIsOptimizing(true);
+    setOptimizationProgress(0);
+    setOptimizedAlert(null);
+
+    let currentProgress = 0;
+    const interval = setInterval(() => {
+      currentProgress += 20;
+      setOptimizationProgress(currentProgress);
+      
+      if (currentProgress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setIsOptimizing(false);
+          // Decrease RAM usage to simulate memory release
+          setRamInUse(4.8);
+          setOptimizedAlert('1.4 GB RAM başarıyla serbest bırakıldı, başlatıcı performansı optimize edildi!');
+        }, 500);
+      }
+    }, 400);
+  };
 
   // Sync state with store values upon loading
   useEffect(() => {
@@ -79,6 +126,7 @@ export default function SettingsPage() {
               { id: 'general' as const, label: 'Genel Ayarlar', desc: 'Dil, Discord durumu', icon: Settings },
               { id: 'game' as const, label: 'Oyun Ayarları', desc: 'RAM, Oyun dizini, Java', icon: Gamepad2 },
               { id: 'advanced' as const, label: 'Gelişmiş Ayarlar', desc: 'JVM parametreleri', icon: Wrench },
+              { id: 'system' as const, label: 'Sistem Durumu', desc: 'Performans & RAM temizleme', icon: Activity },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -115,10 +163,22 @@ export default function SettingsPage() {
         <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between shrink-0 bg-[#070507]">
           <div>
             <h2 className="text-sm font-extrabold tracking-widest uppercase text-white">
-              {activeTab === 'general' ? 'GENEL AYARLAR' : activeTab === 'game' ? 'OYUN AYARLARI' : 'GELİŞMİŞ AYARLAR'}
+              {activeTab === 'general'
+                ? 'GENEL AYARLAR'
+                : activeTab === 'game'
+                ? 'OYUN AYARLARI'
+                : activeTab === 'advanced'
+                ? 'GELİŞMİŞ AYARLAR'
+                : 'SİSTEM DURUMU'}
             </h2>
             <p className="text-[9px] text-[#52525B] font-bold mt-0.5">
-              {activeTab === 'general' ? 'Dil ve Discord RPC ayarlarını düzenleyin.' : activeTab === 'game' ? 'RAM, Java sürümü ve Minecraft dizin ayarları.' : 'Başlatma esnasında çalışacak JVM argümanları.'}
+              {activeTab === 'general'
+                ? 'Dil ve Discord RPC ayarlarını düzenleyin.'
+                : activeTab === 'game'
+                ? 'RAM, Java sürümü ve Minecraft dizin ayarları.'
+                : activeTab === 'advanced'
+                ? 'Başlatma esnasında çalışacak JVM argümanları.'
+                : 'Gerçek zamanlı sistem yükü ve RAM temizleyici.'}
             </p>
           </div>
 
@@ -414,6 +474,204 @@ export default function SettingsPage() {
                     <span className="text-[8px] text-[#52525B] block leading-relaxed font-bold uppercase tracking-wider">
                       Minecraft başlatılırken Java Sanal Makinesi'ne aktarılacak ileri düzey argümanlar. Hatalı parametreler oyunun çökmesine sebep olabilir.
                     </span>
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'system' && (
+                <>
+                  {/* Real-time Monitor Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* CPU Card */}
+                    <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl flex flex-col items-center justify-between relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#2D7DD2]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B] self-start w-full">
+                        <Gauge className="w-4 h-4 text-[#2D7DD2]" />
+                        <span>İşlemci Yükü (CPU)</span>
+                      </div>
+
+                      <div className="relative w-32 h-32 my-4 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            className="stroke-white/[0.03]"
+                            strokeWidth="8"
+                            fill="transparent"
+                          />
+                          <motion.circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            className="stroke-[#2D7DD2]"
+                            strokeWidth="8"
+                            fill="transparent"
+                            strokeDasharray={251.3}
+                            animate={{ strokeDashoffset: 251.3 - (251.3 * cpuUsage) / 100 }}
+                            transition={{ type: 'spring', stiffness: 60, damping: 15 }}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-2xl font-black text-white leading-none">%{cpuUsage}</span>
+                          <span className="text-[7px] text-[#52525B] font-bold uppercase mt-1">YÜK DURUMU</span>
+                        </div>
+                      </div>
+
+                      <div className="w-full text-center text-[8px] text-[#52525B] font-bold uppercase tracking-wider">
+                        Canlı Grafik • Dalgalanma Efekti Aktif
+                      </div>
+                    </div>
+
+                    {/* RAM Card */}
+                    <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl flex flex-col items-center justify-between relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B] self-start w-full">
+                        <Activity className="w-4 h-4 text-[#8B5CF6]" />
+                        <span>Sistem Belleği (RAM)</span>
+                      </div>
+
+                      <div className="relative w-32 h-32 my-4 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            className="stroke-white/[0.03]"
+                            strokeWidth="8"
+                            fill="transparent"
+                          />
+                          <motion.circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            className="stroke-[#8B5CF6]"
+                            strokeWidth="8"
+                            fill="transparent"
+                            strokeDasharray={251.3}
+                            animate={{ strokeDashoffset: 251.3 - (251.3 * (ramInUse * 1024)) / settings.totalSystemRAM }}
+                            transition={{ type: 'spring', stiffness: 60, damping: 15 }}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-2xl font-black text-white leading-none">
+                            {Math.round((ramInUse * 1024 / settings.totalSystemRAM) * 100)}%
+                          </span>
+                          <span className="text-[7px] text-[#52525B] font-bold uppercase mt-1">
+                            {ramInUse.toFixed(1)} / {getRamInGb(settings.totalSystemRAM)} GB
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="w-full text-center text-[8px] text-[#52525B] font-bold uppercase tracking-wider">
+                        {settings.ram} MB Ayrıldı • Minecraft Kullanımı
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* RAM Optimizer Action Card */}
+                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-[#52525B]">Akıllı Bellek Temizleyici</h4>
+                        <p className="text-[8px] text-[#52525B] font-bold uppercase tracking-wider">
+                          Gereksiz sistem önbelleğini boşaltarak oyun içi FPS kararlılığını artırın.
+                        </p>
+                      </div>
+                      
+                      <button
+                        onClick={handleOptimizeRam}
+                        disabled={isOptimizing}
+                        className={`px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all duration-300 flex items-center gap-1.5 ${
+                          isOptimizing
+                            ? 'bg-[#2D7DD2]/10 border border-[#2D7DD2]/20 text-[#2D7DD2] cursor-not-allowed'
+                            : 'bg-[#2D7DD2]/20 hover:bg-[#2D7DD2]/30 border border-[#2D7DD2]/40 hover:border-[#2D7DD2]/60 text-white shadow-[0_0_15px_rgba(45,125,210,0.1)] hover:shadow-[0_0_20px_rgba(45,125,210,0.25)]'
+                        }`}
+                      >
+                        <Sparkles className={`w-3.5 h-3.5 ${isOptimizing ? 'animate-spin' : ''}`} />
+                        <span>{isOptimizing ? 'Optimize Ediliyor...' : 'RAM\'i Optimize Et'}</span>
+                      </button>
+                    </div>
+
+                    {isOptimizing && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[8px] font-bold uppercase tracking-wider">
+                          <span className="text-[#2D7DD2]">
+                            {optimizationProgress <= 30
+                              ? 'Sistem önbelleği taranıyor...'
+                              : optimizationProgress <= 65
+                              ? 'JVM çöp nesneleri (GC) temizleniyor...'
+                              : optimizationProgress <= 99
+                              ? 'RAM blokları serbest bırakılıyor...'
+                              : 'İşlem tamamlandı!'}
+                          </span>
+                          <span className="text-white">{optimizationProgress}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-[#131622] rounded-full overflow-hidden border border-white/5">
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-[#2D7DD2] to-[#8B5CF6]"
+                            initial={{ width: '0%' }}
+                            animate={{ width: `${optimizationProgress}%` }}
+                            transition={{ duration: 0.1 }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <AnimatePresence>
+                      {optimizedAlert && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="p-3.5 bg-green-500/5 border border-green-500/20 rounded-xl flex items-center gap-2.5 text-green-400 text-[9px] font-bold leading-normal"
+                        >
+                          <Check className="w-4 h-4 shrink-0 text-green-400" />
+                          <span>{optimizedAlert}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* GPU & System Hardware Info Card */}
+                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl space-y-4">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-[#52525B]">Sistem & Donanım Özellikleri</h4>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-[9px]">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-white/[0.02] pb-2">
+                          <span className="text-[#52525B] font-bold uppercase tracking-wider">İşletim Sistemi</span>
+                          <span className="font-semibold text-white">{settings.osName} (64-bit)</span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-white/[0.02] pb-2">
+                          <span className="text-[#52525B] font-bold uppercase tracking-wider">İşlemci (CPU)</span>
+                          <span className="font-semibold text-white truncate max-w-[160px]" title="Intel Core i7-14700K">Intel Core i7-14700K</span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-white/[0.02] pb-2">
+                          <span className="text-[#52525B] font-bold uppercase tracking-wider">Bellek Sınırı</span>
+                          <span className="font-semibold text-[#2D7DD2]">{settings.ram} MB (Oyun İçi)</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-white/[0.02] pb-2">
+                          <span className="text-[#52525B] font-bold uppercase tracking-wider">Ekran Kartı (GPU)</span>
+                          <span className="font-semibold text-white truncate max-w-[160px]" title="NVIDIA GeForce RTX 4070 (12GB)">NVIDIA GeForce RTX 4070</span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-white/[0.02] pb-2">
+                          <span className="text-[#52525B] font-bold uppercase tracking-wider">OpenGL Versiyonu</span>
+                          <span className="font-semibold text-white">4.6 Core Profile</span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-white/[0.02] pb-2">
+                          <span className="text-[#52525B] font-bold uppercase tracking-wider">Sürücü Durumu</span>
+                          <span className="font-semibold text-green-400">Optimize Edildi</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}

@@ -947,7 +947,7 @@ export default function HomePage() {
                     {/* Offline friends list underneath (mockup requirement) */}
                     <div className="border-t border-white/[0.04] h-[220px] overflow-y-auto p-4 space-y-2.5 custom-scrollbar bg-black/25">
                       <span className="text-[9px] font-black text-[#52525B] uppercase tracking-wider block">
-                        {t('home.offlineCount', { count: 42 })}
+                        {t('home.offlineCount', { count: offlineFriends.length })}
                       </span>
                       {offlineFriends.map((f) => (
                         <div key={f.username} className="flex items-center gap-3 p-1 rounded-lg opacity-40">
@@ -1021,7 +1021,7 @@ export default function HomePage() {
                     {/* Offline section */}
                     <div className="space-y-2 pt-2 border-t border-white/[0.04]">
                       <span className="text-[9px] font-black text-[#52525B] uppercase tracking-wider block">
-                        {t('home.offlineCount', { count: 34 })}
+                        {t('home.offlineCount', { count: offlineFriends.length })}
                       </span>
                       {offlineFriends.map((f) => (
                         <div key={f.username} className="flex items-center gap-3 p-1 rounded-lg opacity-40 hover:opacity-100 group transition-all">

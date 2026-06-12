@@ -175,8 +175,8 @@ export const api = {
       const res = await apiInstance.get('/stats/online-count');
       return res.data;
     } catch {
-      // Offline fallback: return a mock count of players online
-      return { total: 412 };
+      // Offline fallback: return sum of local players
+      return { total: 504 };
     }
   },
 
@@ -185,27 +185,61 @@ export const api = {
       const res = await apiInstance.get('/servers');
       return res.data;
     } catch {
-      // Offline fallback: return standard MarinMC servers
+      // Offline fallback: return standard MarinMC servers aligned with backend
       return [
         {
           id: 'towny',
           name: 'MarinMC Towny',
-          description: 'Gelişmiş Towny deneyimi, özel ekonomi ve meslekler.',
-          status: 'online',
-          onlinePlayers: 284,
-          maxPlayers: 1000,
           ip: 'oyna.marinmc.com',
-          port: 25565
+          port: 25565,
+          mode: 'TOWNY',
+          description: 'Gelişmiş Towny deneyimi, özel ekonomi ve meslekler.',
+          playerCount: 284,
+          maxPlayers: 1000,
+          tags: ['ECONOMY', 'JOBS', 'WAR'],
+          themeColor: 'teal',
+          artworkUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=600&auto=format&fit=crop&q=60',
+          bannerUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=800&auto=format&fit=crop&q=80',
+          online: true,
+          players: { online: 284, max: 1000 },
+          version: '1.21.8',
+          ping: 15
         },
         {
           id: 'survival',
           name: 'MarinMC Survival',
-          description: 'Klasik hayatta kalma deneyimi, iddialı zindanlar ve klanlar.',
-          status: 'online',
-          onlinePlayers: 128,
-          maxPlayers: 1000,
           ip: 'oyna.marinmc.com',
-          port: 25565
+          port: 25565,
+          mode: 'SURVIVAL',
+          description: 'Klasik hayatta kalma deneyimi, iddialı zindanlar ve klanlar.',
+          playerCount: 128,
+          maxPlayers: 1000,
+          tags: ['KLAN', 'DUNGEON', 'PVP'],
+          themeColor: 'purple',
+          artworkUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=60',
+          bannerUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80',
+          online: true,
+          players: { online: 128, max: 1000 },
+          version: '1.21.8',
+          ping: 22
+        },
+        {
+          id: 'skyblock',
+          name: 'MarinMC Skyblock',
+          ip: 'oyna.marinmc.com',
+          port: 25565,
+          mode: 'SKYBLOCK',
+          description: 'Gelişmiş ada görevleri, adalar arası ticaret ve özel minyonlar.',
+          playerCount: 92,
+          maxPlayers: 1000,
+          tags: ['SKYBLOCK', 'MINIONS', 'TRADE'],
+          themeColor: 'orange',
+          artworkUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=60',
+          bannerUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80',
+          online: true,
+          players: { online: 92, max: 1000 },
+          version: '1.21.8',
+          ping: 18
         }
       ];
     }

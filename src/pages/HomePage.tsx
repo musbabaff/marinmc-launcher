@@ -606,7 +606,7 @@ export default function HomePage() {
 
                 <div className="flex justify-between items-start">
                   <span className="text-[7.5px] font-black text-white/40 uppercase tracking-widest bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
-                    {srv.id === 'towny' ? 'TOWNY' : 'SURVIVAL'}
+                    {srv.mode || srv.id.toUpperCase()}
                   </span>
                   <div className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#259457] animate-pulse" />
@@ -621,7 +621,7 @@ export default function HomePage() {
 
                 <div className="flex items-center justify-between border-t border-white/[0.03] pt-2">
                   <span className="text-[9px] font-extrabold text-white/70">
-                    {srv.onlinePlayers || 0} <span className="text-[#52525B] font-bold">/ {srv.maxPlayers || 1000}</span>
+                    {srv.playerCount || 0} <span className="text-[#52525B] font-bold">/ {srv.maxPlayers || 1000}</span>
                   </span>
                   <span className="text-[7.5px] text-[#8B5CF6] group-hover:text-[#a78bfa] font-black uppercase tracking-wider flex items-center gap-0.5 transition-colors">
                     Hızlı Bağlan

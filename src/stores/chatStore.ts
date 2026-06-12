@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useAuthStore } from './authStore.ts';
+import { api, Contact } from '../lib/api';
 
 export interface ChatMessage {
   id: string;
@@ -32,75 +33,18 @@ export interface Conversation {
 interface ChatState {
   conversations: Conversation[];
   activeConversationId: string;
-  initializeChat: () => void;
+  initializeChat: () => Promise<void>;
   setActiveConversationId: (id: string) => void;
-  sendMessage: (content: string, imageFile?: { url: string; name: string; size: string }) => void;
-  addReaction: (messageId: string, emoji: string) => void;
-  markAsRead: (conversationId: string) => void;
+  sendMessage: (content: string, imageFile?: { url: string; name: string; size: string }) => Promise<void>;
+  addReaction: (messageId: string, emoji: string) => Promise<void>;
+  markAsRead: (conversationId: string) => Promise<void>;
 }
-
-const getStorageKey = () => {
-  const session = useAuthStore.getState().session;
-  const user = session ? session.name : 'default';
-  return `marinmc_chat_${user.toLowerCase()}`;
-};
-
-// Seed initial conversations list
-const SEED_CONVERSATIONS: Conversation[] = [
-  {
-    id: 'c1',
-    name: 'Towny Ekibi',
-    type: 'group',
-    avatar: 'https://minotar.net/avatar/steve/48',
-    isPinned: true,
-    unreadCount: 1,
-    lastMessageTime: '20:21',
-    messages: [
-      { id: 'm1_1', sender: 'Luser_29', content: 'Selam millet, MarinMC Towny girecek var mı?', timestamp: '20:15', isSelf: false },
-      { id: 'm1_2', sender: 'Steve', content: 'Ben gelirim, 10 dakikaya bilgisayar başındayım.', timestamp: '20:17', isSelf: false },
-      { id: 'm1_3', sender: 'Luser_29', content: 'Harika! Şehrin yanına yeni tarla kurdum onu gösteririm.', timestamp: '20:18', isSelf: false },
-      { id: 'm1_4', sender: 'Luser_29', content: 'Şöyle bir görüntü çektim tarladan:', timestamp: '20:19', isSelf: false, image: { url: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=800&auto=format&fit=crop&q=60', name: 'towny_farm.png', size: '1.24 MB' } }
-    ]
-  },
-  {
-    id: 'c2',
-    name: 'HypixelGod',
-    type: 'dm',
-    avatar: 'https://minotar.net/avatar/HypixelGod/48',
-    isPinned: true,
-    isOnline: true,
-    statusText: 'In-game: MarinMC Survival',
-    unreadCount: 0,
-    lastMessageTime: 'Dün 18:40',
-    messages: [
-      { id: 'm2_1', sender: 'HypixelGod', content: 'MarinMC Survival sunucusu sıfırlandı mı?', timestamp: 'Dün 18:30', isSelf: false },
-      { id: 'm2_2', sender: 'Self', content: 'Evet, dün gece sıfırlandı. Yeni sezon başladı.', timestamp: 'Dün 18:32', isSelf: true },
-      { id: 'm2_3', sender: 'HypixelGod', content: 'Süper, o zaman klan kuralım hemen.', timestamp: 'Dün 18:35', isSelf: false }
-    ]
-  },
-  {
-    id: 'c3',
-    name: 'Notch',
-    type: 'dm',
-    avatar: 'https://minotar.net/avatar/Notch/48',
-    isPinned: true,
-    isOnline: true,
-    statusText: 'Boşta',
-    unreadCount: 0,
-    lastMessageTime: 'Salı 14:20',
-    messages: [
-      { id: 'm3_1', sender: 'Notch', content: 'Merhaba, bugün ne inşa ediyorsunuz?', timestamp: 'Salı 14:10', isSelf: false },
-      { id: 'm3_2', sender: 'Self', content: 'MarinMC için özel bir lobi inşa ediyoruz.', timestamp: 'Salı 14:15', isSelf: true }
-    ]
-  }
-];
 
 const BOT_REPLIES: Record<string, string[]> = {
   merhaba: ['Selam! Naber, MarinMC girecek misin?', 'Merhaba, madendeyim şu an, naber?', 'Selamlar! Lobiye gelsene takılalım.'],
   selam: ['Selam! Sunucuda mısın?', 'Aleykum selam, naber?', 'Selam dostum, gelsene Towny sunucusuna.'],
   towny: ['Ben de şu an Towny sunucusundayım, şehri büyütüyorum.', 'Towny sezonu aşırı iyi olmuş yalnız.', 'Gelsene tarlaları göstereyim sana.'],
-   survival: ['Survival sıfırlandı, klan kurduk çabuk gel!', 'Survivalda elmas buldum az önce.', 'Gelsene kasılalım beraber.'],
-  'ne haber': ['İyidir, sen ne yapıyorsun?', 'Güzel, MarinMC oynamaya hazırlanıyorum.', 'İyi valla, maden kazıyorum.'],
+  survival: ['Survival sıfırlandı, klan kurduk çabuk gel!', 'Survivalda elmas buldum az önce.', 'Gelsene kasılalım beraber.'],
   default: [
     'Harika! Oyunda mısın şu an?',
     'Tamamdır, lobide bekliyorum seni.',
@@ -110,6 +54,41 @@ const BOT_REPLIES: Record<string, string[]> = {
   ]
 };
 
+const persistConversationsToApi = async (username: string, conversations: Conversation[]) => {
+  const contacts: Contact[] = conversations.map(c => ({
+    id: c.id,
+    name: c.name,
+    avatar: c.avatar,
+    status: c.isOnline ? 'online' : 'offline',
+    lastMessage: c.messages.length > 0 ? c.messages[c.messages.length - 1].content : '',
+    time: c.lastMessageTime,
+    type: c.isPinned ? 'pinned' : 'dm',
+    unread: c.unreadCount,
+    favorite: false
+  }));
+
+  const messagesMap: Record<string, any[]> = {};
+  conversations.forEach(c => {
+    messagesMap[c.id] = c.messages.map(m => ({
+      id: m.id,
+      sender: m.sender,
+      content: m.content,
+      time: m.timestamp,
+      isSelf: m.isSelf,
+      fileAttachment: m.image ? {
+        name: m.image.name,
+        size: m.image.size,
+        isImage: true
+      } : undefined
+    }));
+  });
+
+  await Promise.all([
+    api.updateContacts(username, contacts),
+    api.updateChatMessages(username, messagesMap)
+  ]);
+};
+
 export const useChatStore = create<ChatState>((set, get) => {
   useAuthStore.subscribe(() => {
     get().initializeChat();
@@ -117,36 +96,82 @@ export const useChatStore = create<ChatState>((set, get) => {
 
   return {
     conversations: [],
-    activeConversationId: 'c1',
+    activeConversationId: 'solmazzz', // Default active conversation
 
-    initializeChat: () => {
-      const key = getStorageKey();
-      const cached = localStorage.getItem(key);
-      if (cached) {
-        try {
-          set({ conversations: JSON.parse(cached) });
-        } catch {
-          set({ conversations: SEED_CONVERSATIONS });
-        }
-      } else {
-        localStorage.setItem(key, JSON.stringify(SEED_CONVERSATIONS));
-        set({ conversations: SEED_CONVERSATIONS });
+    initializeChat: async () => {
+      const session = useAuthStore.getState().session;
+      if (!session) {
+        set({ conversations: [] });
+        return;
+      }
+      try {
+        const [contacts, messagesMap] = await Promise.all([
+          api.getContacts(session.name),
+          api.getChatMessages(session.name)
+        ]);
+
+        const conversations: Conversation[] = contacts.map(c => {
+          const rawMsgs = messagesMap[c.id] || [];
+          const messages: ChatMessage[] = rawMsgs.map(m => ({
+            id: m.id,
+            sender: m.sender,
+            content: m.content,
+            timestamp: m.time,
+            isSelf: m.isSelf,
+            image: m.fileAttachment ? {
+              url: '',
+              name: m.fileAttachment.name,
+              size: m.fileAttachment.size
+            } : undefined
+          }));
+
+          return {
+            id: c.id,
+            name: c.name,
+            type: c.type === 'pinned' ? 'dm' : (c.type || 'dm'),
+            avatar: c.avatar,
+            isPinned: c.type === 'pinned',
+            isOnline: c.status !== 'offline',
+            statusText: c.status === 'online' ? 'Çevrimiçi' : c.status === 'idle' ? 'Boşta' : 'Çevrimdışı',
+            unreadCount: c.unread || 0,
+            lastMessageTime: c.time || '',
+            messages
+          };
+        });
+
+        // Set default active conversation if previous was not found
+        const currentActive = get().activeConversationId;
+        const exists = conversations.some(c => c.id === currentActive);
+        set({
+          conversations,
+          activeConversationId: exists ? currentActive : (conversations.length > 0 ? conversations[0].id : '')
+        });
+      } catch (err) {
+        console.error('Failed to initialize chat from API:', err);
       }
     },
 
     setActiveConversationId: (id) => {
       set({ activeConversationId: id });
+      const session = useAuthStore.getState().session;
+      if (!session) return;
+
+      let updatedConversations: Conversation[] = [];
       set((state) => {
-        const updated = state.conversations.map((c) =>
+        updatedConversations = state.conversations.map((c) =>
           c.id === id ? { ...c, unreadCount: 0 } : c
         );
-        localStorage.setItem(getStorageKey(), JSON.stringify(updated));
-        return { conversations: updated };
+        return { conversations: updatedConversations };
       });
+
+      persistConversationsToApi(session.name, updatedConversations).catch(console.error);
     },
 
-    sendMessage: (content, imageFile) => {
+    sendMessage: async (content, imageFile) => {
       const activeId = get().activeConversationId;
+      const session = useAuthStore.getState().session;
+      if (!session) return;
+
       const now = new Date();
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       
@@ -159,8 +184,9 @@ export const useChatStore = create<ChatState>((set, get) => {
         image: imageFile
       };
 
+      let updatedConversations: Conversation[] = [];
       set((state) => {
-        const updated = state.conversations.map((c) => {
+        updatedConversations = state.conversations.map((c) => {
           if (c.id === activeId) {
             return {
               ...c,
@@ -170,16 +196,20 @@ export const useChatStore = create<ChatState>((set, get) => {
           }
           return c;
         });
-        localStorage.setItem(getStorageKey(), JSON.stringify(updated));
-        return { conversations: updated };
+        return { conversations: updatedConversations };
       });
 
+      try {
+        await persistConversationsToApi(session.name, updatedConversations);
+      } catch (err) {
+        console.error('Failed to persist sent message:', err);
+      }
+
       // Simulated Auto-Reply Chatbot
-      setTimeout(() => {
+      setTimeout(async () => {
         const activeConv = get().conversations.find((c) => c.id === activeId);
         if (!activeConv) return;
 
-        // Choose reply based on keywords
         const lowerMsg = content.toLowerCase();
         let replyPool = BOT_REPLIES.default;
         
@@ -187,11 +217,9 @@ export const useChatStore = create<ChatState>((set, get) => {
         else if (lowerMsg.includes('merhaba')) replyPool = BOT_REPLIES.merhaba;
         else if (lowerMsg.includes('towny')) replyPool = BOT_REPLIES.towny;
         else if (lowerMsg.includes('survival')) replyPool = BOT_REPLIES.survival;
-        else if (lowerMsg.includes('naber') || lowerMsg.includes('ne haber')) replyPool = BOT_REPLIES.premium;
 
         const randomReply = replyPool[Math.floor(Math.random() * replyPool.length)];
         
-        // Choose simulated sender from conversation participants
         const botName = activeConv.type === 'dm' ? activeConv.name : 'Steve';
         const botTime = new Date();
         const botTimeStr = `${String(botTime.getHours()).padStart(2, '0')}:${String(botTime.getMinutes()).padStart(2, '0')}`;
@@ -204,8 +232,9 @@ export const useChatStore = create<ChatState>((set, get) => {
           isSelf: false
         };
 
+        let postBotConversations: Conversation[] = [];
         set((state) => {
-          const updated = state.conversations.map((c) => {
+          postBotConversations = state.conversations.map((c) => {
             if (c.id === activeId) {
               return {
                 ...c,
@@ -216,16 +245,25 @@ export const useChatStore = create<ChatState>((set, get) => {
             }
             return c;
           });
-          localStorage.setItem(getStorageKey(), JSON.stringify(updated));
-          return { conversations: updated };
+          return { conversations: postBotConversations };
         });
+
+        try {
+          await persistConversationsToApi(session.name, postBotConversations);
+        } catch (err) {
+          console.error('Failed to persist bot reply:', err);
+        }
       }, 1500);
     },
 
-    addReaction: (messageId, emoji) => {
+    addReaction: async (messageId, emoji) => {
+      const session = useAuthStore.getState().session;
+      if (!session) return;
+
+      let updatedConversations: Conversation[] = [];
       set((state) => {
         const activeId = state.activeConversationId;
-        const updated = state.conversations.map((c) => {
+        updatedConversations = state.conversations.map((c) => {
           if (c.id === activeId) {
             return {
               ...c,
@@ -260,19 +298,33 @@ export const useChatStore = create<ChatState>((set, get) => {
           }
           return c;
         });
-        localStorage.setItem(getStorageKey(), JSON.stringify(updated));
-        return { conversations: updated };
+        return { conversations: updatedConversations };
       });
+
+      try {
+        await persistConversationsToApi(session.name, updatedConversations);
+      } catch (err) {
+        console.error('Failed to persist reaction:', err);
+      }
     },
 
-    markAsRead: (conversationId) => {
+    markAsRead: async (conversationId) => {
+      const session = useAuthStore.getState().session;
+      if (!session) return;
+
+      let updatedConversations: Conversation[] = [];
       set((state) => {
-        const updated = state.conversations.map((c) =>
+        updatedConversations = state.conversations.map((c) =>
           c.id === conversationId ? { ...c, unreadCount: 0 } : c
         );
-        localStorage.setItem(getStorageKey(), JSON.stringify(updated));
-        return { conversations: updated };
+        return { conversations: updatedConversations };
       });
+
+      try {
+        await persistConversationsToApi(session.name, updatedConversations);
+      } catch (err) {
+        console.error('Failed to persist read mark:', err);
+      }
     }
   };
 });

@@ -3,7 +3,7 @@ import { useAppStore } from '../stores/appStore.ts';
 import MarinLogo from './MarinLogo.tsx';
 import {
   Home, User, Bell, MessageSquare, Layers,
-  Globe, Image, ShoppingCart, Settings, Package
+  Globe, Image, ShoppingCart, Settings, Package, Terminal
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -30,6 +30,7 @@ export default function Sidebar() {
     { icon: Package, label: 'Mod Yöneticisi', path: '/mods' },
     { icon: Globe, label: 'Gardırop', path: '/cosmetics' },
     { icon: Image, label: 'Galeri', path: '/gallery' },
+    { icon: Terminal, label: 'Konsol', path: '/console' },
   ];
 
   const handleNav = (item: SidebarItem) => {

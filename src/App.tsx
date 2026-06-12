@@ -23,6 +23,7 @@ const GalleryPage = lazy(() => import('./pages/GalleryPage.tsx'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage.tsx'));
 const ModManagerPage = lazy(() => import('./pages/ModManagerPage.tsx'));
 const StorePage = lazy(() => import('./pages/StorePage.tsx'));
+const ConsolePage = lazy(() => import('./pages/ConsolePage.tsx'));
 
 // Loading fallback
 const PageLoader = () => {
@@ -119,6 +120,20 @@ export default function App() {
     };
   }, []);
 
+  // Listen for live Minecraft stdout/stderr logs
+  useEffect(() => {
+    let unsubscribeLog: (() => void) | undefined;
+    if (window.electronAPI) {
+      const addGameLog = useAppStore.getState().addGameLog;
+      unsubscribeLog = window.electronAPI.onGameLog((log: string) => {
+        addGameLog(log);
+      });
+    }
+    return () => {
+      if (unsubscribeLog) unsubscribeLog();
+    };
+  }, []);
+
   // Periodically check API connectivity (30s)
   useEffect(() => {
     const check = async () => {
@@ -156,6 +171,7 @@ export default function App() {
 
     if (window.electronAPI) {
       unsubscribeStatus = window.electronAPI.onGameStatus((status) => {
+        useAppStore.getState().setGameStatus(status);
         if (status === 'RUNNING') {
           startTime = Date.now();
         } else if (status === 'IDLE' || status === 'ERROR') {
@@ -350,6 +366,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <StorePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/console"
+              element={
+                <ProtectedRoute>
+                  <ConsolePage />
                 </ProtectedRoute>
               }
             />

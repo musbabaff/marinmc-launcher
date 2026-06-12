@@ -577,20 +577,29 @@ export default function HomePage() {
               </button>
 
               {/* Progress bar inside card if downloading */}
-              {launchStatus === 'DOWNLOADING' && (
-                <div className="w-[230px] mt-3 space-y-1">
-                  <div className="w-full bg-white/[0.04] h-1 rounded-full overflow-hidden border border-white/[0.01]">
-                    <div
-                      className="bg-[#259457] h-full rounded-full transition-all duration-300"
-                      style={{ width: `${progress}%` }}
-                    />
+              {launchStatus === 'DOWNLOADING' && (() => {
+                const details = currentFileDownloading ? currentFileDownloading.match(/(.+?)\s*\((\d+)\/(\d+)\)/) : null;
+                const fileType = details ? details[1].trim().toUpperCase() : 'GEREKSİNİMLER';
+                const currentFile = details ? parseInt(details[2], 10) : 0;
+                const totalFiles = details ? parseInt(details[3], 10) : 100;
+                
+                return (
+                  <div className="w-[230px] mt-3 space-y-1.5 animate-[fadeIn_0.2s_ease-out]">
+                    <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/[0.02] shadow-inner">
+                      <div
+                        className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-300 shadow-[0_0_8px_rgba(52,211,153,0.4)]"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[8px] text-[#A1A1AA] font-bold uppercase tracking-wide">
+                      <span className="truncate max-w-[140px] text-emerald-400">
+                        {fileType}: {currentFile > 0 ? `${currentFile} / ${totalFiles}` : 'KONTROL EDİLİYOR'}
+                      </span>
+                      <span className="text-white/40">%{progress} TAMAM</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-[8px] text-[#52525B] font-bold uppercase tracking-wide">
-                    <span className="truncate max-w-[140px]">{currentFileDownloading || t('details.checking')}</span>
-                    <span>{(progress * 1.125).toFixed(1)} MB / 112.5 MB</span>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
             {/* Server Widgets with Glassmorphic styles and interactive hover effects */}

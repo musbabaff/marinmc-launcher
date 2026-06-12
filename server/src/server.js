@@ -70,6 +70,7 @@ const validateUsername = (req, res, next) => {
 const profileSchema = z.object({
   totalPlayTime: z.number().nonnegative().optional(),
   lastLogin: z.string().max(100).optional(),
+  coins: z.number().nonnegative().optional(),
   playSessions: z.array(z.object({
     id: z.string().max(50).optional(),
     date: z.string().max(100),
@@ -81,7 +82,11 @@ const profileSchema = z.object({
 const cosmeticsSchema = z.object({
   skinType: z.enum(['username', 'file']),
   skinVal: z.string().max(150000).optional(), // Max ~150KB for base64 skin files
-  capeUrl: z.string().max(2048).optional()
+  capeUrl: z.string().max(2048).optional(),
+  purchasedCapes: z.array(z.string()).optional(),
+  modelType: z.enum(['classic', 'slim']).optional(),
+  wingsEnabled: z.boolean().optional(),
+  coins: z.number().nonnegative().optional()
 });
 
 const contactsSchema = z.object({
@@ -124,14 +129,15 @@ router.get('/users/:username/profile', validateUsername, async (req, res) => {
     let user = await dbGet('SELECT * FROM users WHERE username = ?', [username]);
     if (!user) {
       const lastLogin = new Date().toLocaleString('tr-TR');
-      await dbRun('INSERT INTO users (username, total_play_time, last_login) VALUES (?, ?, ?)', [username, 124, lastLogin]);
-      user = { username, total_play_time: 124, last_login: lastLogin };
+      await dbRun('INSERT INTO users (username, total_play_time, last_login, coins) VALUES (?, ?, ?, ?)', [username, 124, lastLogin, 500]);
+      user = { username, total_play_time: 124, last_login: lastLogin, coins: 500 };
     }
     const sessions = await dbAll('SELECT * FROM sessions WHERE username = ?', [username]);
     res.json({
       username: user.username,
       totalPlayTime: user.total_play_time,
       lastLogin: user.last_login,
+      coins: user.coins !== undefined ? user.coins : 500,
       playSessions: sessions.map(s => ({
         id: s.id,
         date: s.date,
@@ -153,19 +159,21 @@ router.put('/users/:username/profile', validateUsername, async (req, res) => {
     return res.status(400).json({ error: 'Geçersiz veri formatı.', details: validation.error.format() });
   }
   
-  const { totalPlayTime, lastLogin, playSessions } = validation.data;
+  const { totalPlayTime, lastLogin, coins, playSessions } = validation.data;
   try {
     let user = await dbGet('SELECT * FROM users WHERE username = ?', [username]);
     if (!user) {
-      await dbRun('INSERT INTO users (username, total_play_time, last_login) VALUES (?, ?, ?)', [
+      await dbRun('INSERT INTO users (username, total_play_time, last_login, coins) VALUES (?, ?, ?, ?)', [
         username,
         totalPlayTime || 0,
-        lastLogin || new Date().toLocaleString('tr-TR')
+        lastLogin || new Date().toLocaleString('tr-TR'),
+        coins !== undefined ? coins : 500
       ]);
     } else {
-      await dbRun('UPDATE users SET total_play_time = ?, last_login = ? WHERE username = ?', [
+      await dbRun('UPDATE users SET total_play_time = ?, last_login = ?, coins = ? WHERE username = ?', [
         totalPlayTime !== undefined ? totalPlayTime : user.total_play_time,
         lastLogin !== undefined ? lastLogin : user.last_login,
+        coins !== undefined ? coins : (user.coins !== undefined ? user.coins : 500),
         username
       ]);
     }
@@ -189,22 +197,94 @@ router.put('/users/:username/profile', validateUsername, async (req, res) => {
   }
 });
 
+router.get('/leaderboard', async (req, res) => {
+  try {
+    const dbUsers = await dbAll('SELECT username, total_play_time, last_login, coins FROM users ORDER BY total_play_time DESC LIMIT 10');
+    
+    // Default legendary mock list of players to ensure a complete leaderboard (10 items)
+    const mockPlayers = [
+      { username: '172px', totalPlayTime: 852, lastLogin: 'Bugün 12:44', coins: 4500, status: 'online', server: 'Survival' },
+      { username: 'daaaavidds', totalPlayTime: 712, lastLogin: 'Bugün 13:10', coins: 3800, status: 'idle', server: 'Towny' },
+      { username: 'masaya46', totalPlayTime: 590, lastLogin: 'Dün 20:15', coins: 2900, status: 'online', server: 'Skyblock' },
+      { username: 'cuvsa', totalPlayTime: 440, lastLogin: '08.06.2026', coins: 1200, status: 'offline', server: '-' },
+      { username: 'zakhbear', totalPlayTime: 384, lastLogin: '07.06.2026', coins: 950, status: 'offline', server: '-' },
+      { username: 'wtfbroimlagging', totalPlayTime: 290, lastLogin: '05.06.2026', coins: 640, status: 'offline', server: '-' },
+      { username: 'wtfbro', totalPlayTime: 210, lastLogin: '04.06.2026', coins: 520, status: 'offline', server: '-' },
+      { username: 'Steve', totalPlayTime: 180, lastLogin: '02.06.2026', coins: 500, status: 'offline', server: '-' },
+      { username: 'Alex', totalPlayTime: 150, lastLogin: '01.06.2026', coins: 500, status: 'offline', server: '-' }
+    ];
+
+    const merged = [];
+    const seen = new Set();
+
+    dbUsers.forEach((u) => {
+      seen.add(u.username.toLowerCase());
+      merged.push({
+        username: u.username,
+        totalPlayTime: u.total_play_time,
+        lastLogin: u.last_login || 'Bugün',
+        coins: u.coins !== undefined ? u.coins : 500,
+        status: 'offline',
+        server: '-'
+      });
+    });
+
+    mockPlayers.forEach((p) => {
+      if (!seen.has(p.username.toLowerCase())) {
+        merged.push(p);
+      }
+    });
+
+    merged.sort((a, b) => b.totalPlayTime - a.totalPlayTime);
+    const result = merged.slice(0, 10).map((p, index) => ({
+      rank: index + 1,
+      ...p
+    }));
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- COSMETICS ---
 router.get('/users/:username/cosmetics', validateUsername, async (req, res) => {
   const username = req.params.username;
   try {
-    const cos = await dbGet('SELECT * FROM cosmetics WHERE username = ?', [username]);
+    const [cos, user] = await Promise.all([
+      dbGet('SELECT * FROM cosmetics WHERE username = ?', [username]),
+      dbGet('SELECT coins FROM users WHERE username = ?', [username])
+    ]);
+    
+    const coins = user ? (user.coins !== undefined ? user.coins : 500) : 500;
+    
     if (!cos) {
       res.json({
         skinType: 'username',
         skinVal: username,
-        capeUrl: ''
+        capeUrl: '',
+        purchasedCapes: [],
+        modelType: 'classic',
+        wingsEnabled: true,
+        coins
       });
     } else {
+      let purchasedCapes = [];
+      try {
+        if (cos.purchased_capes) {
+          purchasedCapes = JSON.parse(cos.purchased_capes);
+        }
+      } catch (e) {
+        console.error('Failed to parse purchased_capes:', e);
+      }
       res.json({
         skinType: cos.skin_type,
         skinVal: cos.skin_val,
-        capeUrl: cos.cape_url
+        capeUrl: cos.cape_url,
+        purchasedCapes,
+        modelType: cos.model_type || 'classic',
+        wingsEnabled: cos.wings_enabled !== 0,
+        coins
       });
     }
   } catch (err) {
@@ -221,21 +301,41 @@ router.put('/users/:username/cosmetics', validateUsername, async (req, res) => {
     return res.status(400).json({ error: 'Geçersiz veri formatı.', details: validation.error.format() });
   }
 
-  const { skinType, skinVal, capeUrl } = validation.data;
+  const { skinType, skinVal, capeUrl, purchasedCapes, modelType, wingsEnabled, coins } = validation.data;
   try {
+    if (coins !== undefined) {
+      await dbRun('UPDATE users SET coins = ? WHERE username = ?', [coins, username]);
+    }
+    
     const cos = await dbGet('SELECT * FROM cosmetics WHERE username = ?', [username]);
+    const purchasedStr = purchasedCapes ? JSON.stringify(purchasedCapes) : null;
+    const wingsVal = wingsEnabled !== undefined ? (wingsEnabled ? 1 : 0) : null;
+    
     if (!cos) {
-      await dbRun('INSERT INTO cosmetics (username, skin_type, skin_val, cape_url) VALUES (?, ?, ?, ?)', [
+      await dbRun(`
+        INSERT INTO cosmetics (username, skin_type, skin_val, cape_url, purchased_capes, model_type, wings_enabled)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [
         username,
         skinType || 'username',
         skinVal || username,
-        capeUrl || ''
+        capeUrl || '',
+        purchasedStr || '[]',
+        modelType || 'classic',
+        wingsVal !== null ? wingsVal : 1
       ]);
     } else {
-      await dbRun('UPDATE cosmetics SET skin_type = ?, skin_val = ?, cape_url = ? WHERE username = ?', [
+      await dbRun(`
+        UPDATE cosmetics
+        SET skin_type = ?, skin_val = ?, cape_url = ?, purchased_capes = ?, model_type = ?, wings_enabled = ?
+        WHERE username = ?
+      `, [
         skinType || cos.skin_type,
         skinVal || cos.skin_val,
-        capeUrl || cos.cape_url,
+        capeUrl !== undefined ? capeUrl : cos.cape_url,
+        purchasedStr !== null ? purchasedStr : cos.purchased_capes,
+        modelType || cos.model_type,
+        wingsVal !== null ? wingsVal : cos.wings_enabled,
         username
       ]);
     }

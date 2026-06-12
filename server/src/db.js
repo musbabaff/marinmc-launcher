@@ -153,6 +153,21 @@ export const initDb = async () => {
     )
   `);
 
+  // Column Migrations for Advanced Features
+  const addColumnSafe = async (tableName, columnName, definition) => {
+    try {
+      await dbRun(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+      console.log(`[DB] Column ${columnName} added to table ${tableName}`);
+    } catch (err) {
+      // Ignore if column already exists
+    }
+  };
+
+  await addColumnSafe('users', 'coins', 'INTEGER DEFAULT 500');
+  await addColumnSafe('cosmetics', 'purchased_capes', "TEXT DEFAULT '[]'");
+  await addColumnSafe('cosmetics', 'model_type', "VARCHAR(50) DEFAULT 'classic'");
+  await addColumnSafe('cosmetics', 'wings_enabled', 'INTEGER DEFAULT 1');
+
   console.log('[DB] Database tables successfully initialized.');
 };
 

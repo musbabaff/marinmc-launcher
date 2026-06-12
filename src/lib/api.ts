@@ -57,6 +57,10 @@ export interface CosmeticsData {
   skinType: 'username' | 'file';
   skinVal?: string;
   capeUrl: string;
+  purchasedCapes?: string[];
+  modelType?: 'classic' | 'slim';
+  wingsEnabled?: boolean;
+  coins?: number;
 }
 
 export const api = {
@@ -71,18 +75,20 @@ export const api = {
         username,
         totalPlayTime: parseInt(localStorage.getItem('marinmc_total_play_time') || '124', 10),
         lastLogin: localStorage.getItem('marinmc_last_login_time') || 'Bugün 20:15',
+        coins: parseInt(localStorage.getItem('marinmc_coins') || '500', 10),
         playSessions: JSON.parse(localStorage.getItem('marinmc_play_sessions') || '[]')
       };
     }
   },
 
-  updateUserProfile: async (username: string, data: { totalPlayTime?: number; lastLogin?: string; playSessions?: any[] }) => {
+  updateUserProfile: async (username: string, data: { totalPlayTime?: number; lastLogin?: string; coins?: number; playSessions?: any[] }) => {
     try {
       await apiInstance.put(`/users/${username}/profile`, data);
     } catch (err) {
       console.warn('[API] updateProfile failed, updating locally.');
       if (data.totalPlayTime !== undefined) localStorage.setItem('marinmc_total_play_time', data.totalPlayTime.toString());
       if (data.lastLogin !== undefined) localStorage.setItem('marinmc_last_login_time', data.lastLogin);
+      if (data.coins !== undefined) localStorage.setItem('marinmc_coins', data.coins.toString());
       if (data.playSessions !== undefined) localStorage.setItem('marinmc_play_sessions', JSON.stringify(data.playSessions));
     }
   },
@@ -241,6 +247,26 @@ export const api = {
           version: '1.21.8',
           ping: 18
         }
+      ];
+    }
+  },
+
+  getLeaderboard: async () => {
+    try {
+      const res = await apiInstance.get('/leaderboard');
+      return res.data;
+    } catch (err) {
+      console.warn('[API] getLeaderboard failed, returning fallback.');
+      return [
+        { rank: 1, username: '172px', totalPlayTime: 852, lastLogin: 'Bugün 12:44', coins: 4500, status: 'online', server: 'Survival' },
+        { rank: 2, username: 'daaaavidds', totalPlayTime: 712, lastLogin: 'Bugün 13:10', coins: 3800, status: 'idle', server: 'Towny' },
+        { rank: 3, username: 'masaya46', totalPlayTime: 590, lastLogin: 'Dün 20:15', coins: 2900, status: 'online', server: 'Skyblock' },
+        { rank: 4, username: 'cuvsa', totalPlayTime: 440, lastLogin: '08.06.2026', coins: 1200, status: 'offline', server: '-' },
+        { rank: 5, username: 'zakhbear', totalPlayTime: 384, lastLogin: '07.06.2026', coins: 950, status: 'offline', server: '-' },
+        { rank: 6, username: 'wtfbroimlagging', totalPlayTime: 290, lastLogin: '05.06.2026', coins: 640, status: 'offline', server: '-' },
+        { rank: 7, username: 'wtfbro', totalPlayTime: 210, lastLogin: '04.06.2026', coins: 520, status: 'offline', server: '-' },
+        { rank: 8, username: 'Steve', totalPlayTime: 180, lastLogin: '02.06.2026', coins: 500, status: 'offline', server: '-' },
+        { rank: 9, username: 'Alex', totalPlayTime: 150, lastLogin: '01.06.2026', coins: 500, status: 'offline', server: '-' }
       ];
     }
   }

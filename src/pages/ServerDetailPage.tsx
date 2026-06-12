@@ -108,6 +108,7 @@ export default function ServerDetailPage() {
 
   const [launchStatus, setLaunchStatus] = useState<'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'LAUNCHING' | 'RUNNING' | 'ERROR'>('IDLE');
   const [progress, setProgress] = useState(0);
+  const [currentFileDownloading, setCurrentFileDownloading] = useState('');
   const [logs, setLogs] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [news, setNews] = useState<any[]>([]);
@@ -173,6 +174,12 @@ export default function ServerDetailPage() {
     if (window.electronAPI) {
       unsubscribeLog = window.electronAPI.onGameLog((logLine: string) => {
         setLogs((prev) => [...prev.slice(-150), logLine]); // Limit array length
+        if (logLine.includes('İndiriliyor:')) {
+          const match = logLine.match(/İndiriliyor:\s*(.+)/);
+          if (match && match[1]) {
+            setCurrentFileDownloading(match[1]);
+          }
+        }
       });
 
       unsubscribeProgress = window.electronAPI.onDownloadProgress((percent: number) => {
@@ -533,20 +540,29 @@ export default function ServerDetailPage() {
               {/* Action Button Section */}
               <div className="w-48">
                 {/* Simulated downloading progress bar */}
-                {launchStatus === 'DOWNLOADING' && (
-                  <div className="w-full mb-2 space-y-1">
-                    <div className="flex justify-between text-[9px] text-gray-400 font-bold px-0.5">
-                      <span className="truncate max-w-[120px]">{t.downloading}</span>
-                      <span>{progress}%</span>
+                {launchStatus === 'DOWNLOADING' && (() => {
+                  const details = currentFileDownloading ? currentFileDownloading.match(/(.+?)\s*\((\d+)\/(\d+)\)/) : null;
+                  const fileType = details ? details[1].trim().toUpperCase() : 'GEREKSİNİMLER';
+                  const currentFile = details ? parseInt(details[2], 10) : 0;
+                  const totalFiles = details ? parseInt(details[3], 10) : 100;
+                  
+                  return (
+                    <div className="w-full mb-2.5 space-y-1 animate-[fadeIn_0.2s_ease-out]">
+                      <div className="flex justify-between text-[8px] text-gray-400 font-bold px-0.5 uppercase tracking-wide">
+                        <span className="truncate max-w-[120px] text-emerald-400">
+                          {fileType}: {currentFile > 0 ? `${currentFile}/${totalFiles}` : 'KONTROL EDİLİYOR'}
+                        </span>
+                        <span>%{progress}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                        <div 
+                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300 shadow-[0_0_6px_rgba(52,211,153,0.3)]" 
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                      <div 
-                        className="h-full bg-gradient-to-r from-teal-400 to-blue-500 transition-all duration-300" 
-                        style={{ width: `${progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
                 {getPlayButtonContent()}
               </div>
             </div>

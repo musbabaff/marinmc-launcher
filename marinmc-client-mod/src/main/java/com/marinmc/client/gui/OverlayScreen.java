@@ -44,11 +44,14 @@ public class OverlayScreen extends Screen {
         configStates.put("ping", true);
         configStates.put("speed", true);
         configStates.put("replay", true);
+        configStates.put("potion_status", true);
+        configStates.put("crosshair", false);
         
         configStates.put("toggle_sneak", false);
         configStates.put("zoom", true);
         configStates.put("visuals_1_7", false);
         configStates.put("block_outline", true);
+        configStates.put("item_physics", true);
         
         loadConfigStatic();
     }
@@ -101,10 +104,13 @@ public class OverlayScreen extends Screen {
         modCards.add(new ModCard("Ping Counter", "ping", "Displays current player ping", "SERVER", "P", 0xFF009688));
         modCards.add(new ModCard("Speedometer", "speed", "Displays velocity in blocks/sec", "HUD", "S", 0xFFFFC107));
         modCards.add(new ModCard("Replay Status", "replay", "Displays recording indicator", "NEW", "R", 0xFFF44336));
+        modCards.add(new ModCard("Potion Status", "potion_status", "Displays active potion status effects", "HUD", "P", 0xFF9C27B0));
+        modCards.add(new ModCard("Crosshair", "crosshair", "Customizes the crosshair design", "HUD", "C", 0xFFE91E63));
         modCards.add(new ModCard("Toggle Sneak", "toggle_sneak", "Enables toggle sneak/sprint", "MECHANIC", "T", 0xFF795548));
         modCards.add(new ModCard("Zoom", "zoom", "Cinematic optifine-style zoom", "MECHANIC", "Z", 0xFF607D8B));
         modCards.add(new ModCard("1.7 Visuals", "visuals_1_7", "Enforces 1.7 hit animations", "MECHANIC", "V", 0xFF3F51B5));
         modCards.add(new ModCard("Block Outline", "block_outline", "Custom color block selection highlight", "MECHANIC", "B", 0xFF9E9E9E));
+        modCards.add(new ModCard("Item Physics", "item_physics", "Flat lying 3D item drops on the ground", "MECHANIC", "I", 0xFF4CAF50));
     }
 
     @Override

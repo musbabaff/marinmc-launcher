@@ -30,9 +30,19 @@ public class HeldItemRendererMixin {
     ) {
         // If main hand is a sword and player is using/blocking, force 1.7 block-hit matrix adjustments
         if (hand == Hand.MAIN_HAND && player.isUsingItem() && item.isIn(ItemTags.SWORDS)) {
-            matrices.translate(0.05F, 0.05F, -0.05F);
-            matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(-15F));
-            matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(-15F));
+            // Translate sword to center-blocking position
+            matrices.translate(0.1F, -0.05F, -0.15F);
+            
+            // Apply blocking rotation (tilted across the view)
+            matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(-35F));
+            matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(-45F));
+            matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Z.rotationDegrees(-45F));
+            
+            // Apply swing progress scaling and custom rotation
+            float swing = net.minecraft.util.math.MathHelper.sin(net.minecraft.util.math.MathHelper.sqrt(swingProgress) * (float)Math.PI);
+            matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(swing * 30.0F));
+            matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(-swing * 20.0F));
+            matrices.translate(-0.1F, 0.1F, 0.0F);
         }
     }
 }

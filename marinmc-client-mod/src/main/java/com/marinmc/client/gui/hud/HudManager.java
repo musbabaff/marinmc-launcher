@@ -45,6 +45,8 @@ public class HudManager {
         elements.add(new PingElement("ping", "Ping Counter", 100, 50));
         elements.add(new SpeedElement("speed", "Speedometer", 100, 70));
         elements.add(new ReplayElement("replay", "Replay Status", 100, 90));
+        elements.add(new PotionStatusElement("potion_status", "Potion Status", 200, 10));
+        elements.add(new CrosshairElement("crosshair", "Crosshair Customizer", 0, 0));
         
         loadConfig();
     }
@@ -368,6 +370,170 @@ public class HudManager {
             context.drawBorder(x, y, getWidth(), getHeight(), getThemeBorderColorHex());
             context.fill(x + 6, y + 5, x + 12, y + 11, dotColor);
             context.drawTextWithShadow(mc.textRenderer, "REC", x + 16, y + 4, getThemeColorHex());
+        }
+    }
+
+    public static class PotionStatusElement extends HudElement {
+        public PotionStatusElement(String id, String name, int defaultX, int defaultY) {
+            super(id, name, defaultX, defaultY, 120, 40);
+        }
+
+        private String getRoman(int number) {
+            if (number == 1) return "I";
+            if (number == 2) return "II";
+            if (number == 3) return "III";
+            if (number == 4) return "IV";
+            if (number == 5) return "V";
+            return String.valueOf(number);
+        }
+
+        @Override
+        public void render(DrawContext context) {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            if (mc.player == null) return;
+
+            java.util.Collection<net.minecraft.entity.effect.StatusEffectInstance> effects = mc.player.getActiveStatusEffects().values();
+            if (effects.isEmpty()) return;
+
+            // Dynamically set height depending on number of effects
+            this.height = Math.max(16, effects.size() * 12 + 8);
+
+            int bgColor = (bgOpacity << 24) | 0x000000;
+            context.fill(x, y, x + getWidth(), y + getHeight(), bgColor);
+            context.drawBorder(x, y, getWidth(), getHeight(), getThemeBorderColorHex());
+
+            int currentY = y + 4;
+            for (net.minecraft.entity.effect.StatusEffectInstance effect : effects) {
+                net.minecraft.registry.entry.RegistryEntry<net.minecraft.entity.effect.StatusEffect> type = effect.getEffectType();
+                int color = type.value().getColor();
+                String name = type.value().getName().getString();
+                int level = effect.getAmplifier() + 1;
+                String nameText = name + (level > 1 ? " " + getRoman(level) : "");
+                
+                String timeText;
+                if (effect.isInfinite() || effect.getDuration() > 32767) {
+                    timeText = "**:**";
+                } else {
+                    int sec = effect.getDuration() / 20;
+                    timeText = String.format("%02d:%02d", sec / 60, sec % 60);
+                }
+                
+                // Draw color dot
+                context.fill(x + 6, currentY + 2, x + 12, currentY + 8, color | 0xFF000000);
+                
+                // Draw text
+                context.drawTextWithShadow(mc.textRenderer, nameText, x + 16, currentY, getThemeColorHex());
+                context.drawTextWithShadow(mc.textRenderer, timeText, x + getWidth() - mc.textRenderer.getWidth(timeText) - 6, currentY, 0xFFA1A1AA);
+                
+                currentY += 12;
+            }
+        }
+
+        @Override
+        public void renderDummy(DrawContext context) {
+            super.renderDummy(context);
+            // Draw sample dummy effects
+            MinecraftClient mc = MinecraftClient.getInstance();
+            int currentY = y + 16;
+            
+            // Speed II dummy
+            context.fill(x + 6, currentY + 2, x + 12, currentY + 8, 0xFF3B82F6);
+            context.drawTextWithShadow(mc.textRenderer, "Speed II", x + 16, currentY, getThemeColorHex());
+            context.drawTextWithShadow(mc.textRenderer, "01:30", x + getWidth() - mc.textRenderer.getWidth("01:30") - 6, currentY, 0xFFA1A1AA);
+            
+            currentY += 12;
+            // Strength dummy
+            context.fill(x + 6, currentY + 2, x + 12, currentY + 8, 0xFFEF4444);
+            context.drawTextWithShadow(mc.textRenderer, "Strength", x + 16, currentY, getThemeColorHex());
+            context.drawTextWithShadow(mc.textRenderer, "00:45", x + getWidth() - mc.textRenderer.getWidth("00:45") - 6, currentY, 0xFFA1A1AA);
+        }
+    }
+
+    public static class CrosshairElement extends HudElement {
+        public CrosshairElement(String id, String name, int defaultX, int defaultY) {
+            super(id, name, defaultX, defaultY, 16, 16);
+            this.enabled = false; // Disabled by default
+        }
+
+        @Override
+        public int getX() {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            return mc.getWindow().getScaledWidth() / 2 - getWidth() / 2;
+        }
+
+        @Override
+        public int getY() {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            return mc.getWindow().getScaledHeight() / 2 - getHeight() / 2;
+        }
+
+        @Override
+        public void setX(int x) {}
+
+        @Override
+        public void setY(int y) {}
+
+        @Override
+        public void render(DrawContext context) {
+            // Drawn in InGameHudMixin.renderCrosshair
+        }
+
+        @Override
+        public void renderDummy(DrawContext context) {
+            // Draw dummy box in HUD Editor so user can right click it
+            int cx = getX() + getWidth() / 2;
+            int cy = getY() + getHeight() / 2;
+            drawCrosshair(context, cx, cy);
+            
+            // Also draw a dashed border so the user can easily see and right click it in editor
+            context.drawBorder(getX(), getY(), getWidth(), getHeight(), getThemeColorHex());
+        }
+
+        public void drawCrosshair(DrawContext context, int centerX, int centerY) {
+            int color = getThemeColorHex();
+            int alpha = bgOpacity == 0 ? 255 : bgOpacity;
+            int finalColor = (color & 0x00FFFFFF) | (alpha << 24);
+            
+            if ("red".equalsIgnoreCase(colorTheme)) {
+                // Red Dot
+                int r = Math.max(1, (int)(2 * scale));
+                context.fill(centerX - r, centerY - r, centerX + r + 1, centerY + r + 1, finalColor);
+            } else if ("green".equalsIgnoreCase(colorTheme)) {
+                // Green Circle
+                int r = Math.max(2, (int)(4 * scale));
+                context.fill(centerX - r, centerY - r, centerX + r + 1, centerY - r + 1, finalColor); // top
+                context.fill(centerX - r, centerY + r, centerX + r + 1, centerY + r + 1, finalColor); // bottom
+                context.fill(centerX - r, centerY - r + 1, centerX - r + 1, centerY + r, finalColor); // left
+                context.fill(centerX + r, centerY - r + 1, centerX + r + 1, centerY + r, finalColor); // right
+            } else if ("blue".equalsIgnoreCase(colorTheme)) {
+                // Blue Cross with Dot
+                int len = Math.max(2, (int)(5 * scale));
+                context.fill(centerX - len, centerY, centerX - 1, centerY + 1, finalColor);
+                context.fill(centerX + 2, centerY, centerX + len + 1, centerY + 1, finalColor);
+                context.fill(centerX, centerY - len, centerX + 1, centerY - 1, finalColor);
+                context.fill(centerX, centerY + 2, centerX + 1, centerY + len + 1, finalColor);
+                context.fill(centerX - 1, centerY - 1, centerX + 2, centerY + 2, 0xFFFFFFFF);
+            } else if ("purple".equalsIgnoreCase(colorTheme)) {
+                // Purple Circle with Dot
+                int r = Math.max(2, (int)(4 * scale));
+                context.fill(centerX - r, centerY - r, centerX + r + 1, centerY - r + 1, finalColor); // top
+                context.fill(centerX - r, centerY + r, centerX + r + 1, centerY + r + 1, finalColor); // bottom
+                context.fill(centerX - r, centerY - r + 1, centerX - r + 1, centerY + r, finalColor); // left
+                context.fill(centerX + r, centerY - r + 1, centerX + r + 1, centerY + r, finalColor); // right
+                context.fill(centerX - 1, centerY - 1, centerX + 2, centerY + 2, 0xFFFFFFFF);
+            } else if ("orange".equalsIgnoreCase(colorTheme)) {
+                // Orange Cross
+                int len = Math.max(2, (int)(5 * scale));
+                context.fill(centerX - len, centerY, centerX + len + 1, centerY + 1, finalColor);
+                context.fill(centerX, centerY - len, centerX + 1, centerY + len + 1, finalColor);
+            } else {
+                // White Classic Cross
+                int len = Math.max(2, (int)(4 * scale));
+                context.fill(centerX - len, centerY, centerX - 2, centerY + 1, finalColor);
+                context.fill(centerX + 3, centerY, centerX + len + 1, centerY + 1, finalColor);
+                context.fill(centerX, centerY - len, centerX + 1, centerY - 2, finalColor);
+                context.fill(centerX, centerY + 3, centerX + 1, centerY + len + 1, finalColor);
+            }
         }
     }
 }

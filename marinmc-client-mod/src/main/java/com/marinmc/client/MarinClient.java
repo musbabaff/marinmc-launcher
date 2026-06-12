@@ -15,6 +15,8 @@ public class MarinClient implements ClientModInitializer {
     public static KeyBinding fullbrightKeyBinding;
     public static KeyBinding ramCleanKeyBinding;
     public static boolean fullbrightEnabled = false;
+    public static boolean toggledSprint = false;
+    public static boolean toggledSneak = false;
     private static double originalGamma = 1.0;
 
     @Override

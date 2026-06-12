@@ -22,7 +22,8 @@ public class ItemEntityRendererMixin {
         CallbackInfo ci
     ) {
         // Lies items flat on the ground
-        if (itemEntity.isOnGround()) {
+        boolean physicsEnabled = com.marinmc.client.gui.OverlayScreen.configStates.getOrDefault("item_physics", true);
+        if (physicsEnabled && itemEntity.isOnGround()) {
             matrixStack.translate(0.0d, -0.15d, 0.0d);
             // Rotate flat
             matrixStack.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(90F));

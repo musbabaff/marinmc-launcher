@@ -10,7 +10,10 @@
     "GameMenuScreenMixin",
     "TitleScreenMixin",
     "BlockOutlineMixin",
-    "AbstractClientPlayerEntityMixin"
+    "AbstractClientPlayerEntityMixin",
+    "ClientPlayerEntityMixin",
+    "LivingEntityRendererMixin",
+    "ItemEntityRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

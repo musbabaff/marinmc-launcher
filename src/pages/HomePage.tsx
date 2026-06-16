@@ -9,23 +9,68 @@ import { sanitizeUrl, sanitizeParam } from '../lib/security.ts';
 import { api } from '../lib/api.ts';
 import VersionModal from '../components/VersionModal.tsx';
 import ProfileSettingsModal from '../components/ProfileSettingsModal.tsx';
-import MarinLogo from '../components/MarinLogo.tsx';
 import {
   ChevronDown, LogOut, Search,
   MessageSquare, UserPlus, X, AlertTriangle,
-  Trophy, CheckCircle2, WifiOff, ExternalLink, RefreshCw,
+  Trophy, CheckCircle2, WifiOff, ExternalLink,
   Pause, Plus, Trash2, Send,
-  Gamepad2, Users,
-  Settings, Image, Package, ShoppingBag,
-  Zap, TrendingUp, Activity,
-  Globe, BarChart3, Sparkles, User
+  Settings, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { wsManager } from '../lib/websocket';
 
 import heroBg from '../../assets/home-hero-bg.png';
-import astronautImg from '../../assets/minecraft-astronaut.png';
-import rocketImg from '../../assets/minecraft-rocket.png';
+
+const defaultNews = [
+  {
+    category: 'GÜNCELLEME',
+    tagColor: 'text-[#8B5CF6] border-[#8B5CF6]/30 bg-[#8B5CF6]/10',
+    title: 'MarinMC Client v1.0.8 Yayınlandı!',
+    description: 'Yeni 1.21.8 optimizasyonları, 1.7 vuruş animasyonları, Toggle Sneak ve eşya fizik özellikleri eklendi.',
+    date: '16 Haziran 2026',
+    imageUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=400'
+  },
+  {
+    category: 'DUYURU',
+    tagColor: 'text-[#259457] border-[#259457]/30 bg-[#259457]/10',
+    title: 'Minecraft 1.21.8 Sürüm Desteği Hazır',
+    description: 'MarinMC artık en son sürümü ve Fabric mod altyapısını tam uyumlu ve yüksek FPS ile destekliyor.',
+    date: '15 Haziran 2026',
+    imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400'
+  },
+  {
+    category: 'ETKİNLİK',
+    tagColor: 'text-[#F59E0B] border-[#F59E0B]/30 bg-[#F59E0B]/10',
+    title: 'Haftalık Survival Turnuvası Başlıyor',
+    description: 'Bu Pazar günü düzenlenecek olan Survival turnuvasına katılarak özel pelerin ve kozmetik ödülleri kazanın.',
+    date: '14 Haziran 2026',
+    imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400'
+  },
+  {
+    category: 'MAĞAZA',
+    tagColor: 'text-[#EC4899] border-[#EC4899]/30 bg-[#EC4899]/10',
+    title: 'Özel Pelerin ve Kanatlar Satışta!',
+    description: 'Karakterinize özel pelerinler, 3D kanatlar ve şapkalarla oyun içi görünümünüzü özelleştirin.',
+    date: '12 Haziran 2026',
+    imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400'
+  },
+  {
+    category: 'SİSTEM',
+    tagColor: 'text-[#06B6D4] border-[#06B6D4]/30 bg-[#06B6D4]/10',
+    title: 'Gelişmiş Performans ve FPS Optimizasyonu',
+    description: 'Oyun içi lag ve donmaları azaltan yeni performans modları ve bellek temizleyici modüller eklendi.',
+    date: '10 Haziran 2026',
+    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400'
+  },
+  {
+    category: 'TOPLULUK',
+    tagColor: 'text-[#3B82F6] border-[#3B82F6]/30 bg-[#3B82F6]/10',
+    title: 'Resmi Discord Sunucumuza Katılın',
+    description: 'Discord topluluğumuza katılarak diğer oyuncularla iletişim kurun, lobi sohbetini ve güncellemeleri anlık takip edin.',
+    date: '08 Haziran 2026',
+    imageUrl: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400'
+  }
+];
 
 export default function HomePage() {
   const { t } = useTranslation();
@@ -72,34 +117,38 @@ export default function HomePage() {
   }
   const [newsData, setNewsData] = useState<GitHubNewsItem[]>([]);
   const [newsError, setNewsError] = useState(false);
-  const [homeServers, setHomeServers] = useState<any[]>([]);
-  const [onlineCountVal, setOnlineCountVal] = useState(247);
-  const [lastSessionServer, setLastSessionServer] = useState('-');
-  const [lastSessionTimeAgoText, setLastSessionTimeAgoText] = useState('');
 
-  // === NEW: Weekly activity chart data ===
-  const weeklyData = useMemo(() => {
-    const days = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-    const today = new Date().getDay();
-    // Rotate array so today is last
-    const adjusted = today === 0 ? 6 : today - 1;
-    return days.map((day, i) => {
-      // Generate deterministic-looking data from stored play sessions
-      const stored = JSON.parse(localStorage.getItem('marinmc_weekly_activity') || '[]');
-      const val = stored[i] || Math.floor(Math.random() * 4);
-      return {
-        day,
-        hours: val,
-        isToday: i === adjusted,
-      };
-    });
-  }, []);
 
-  useEffect(() => {
-    api.getServerList().then((list) => {
-      setHomeServers(list);
-    });
-  }, []);
+  const displayNews = useMemo(() => {
+    let list = [...defaultNews];
+    if (newsData && newsData.length > 0 && !newsError) {
+      const mapped = newsData.map((item, idx) => {
+        const categories = ['GÜNCELLEME', 'DUYURU', 'ETKİNLİK', 'MAĞAZA', 'SİSTEM', 'TOPLULUK'];
+        const tagColors = [
+          'text-[#8B5CF6] border-[#8B5CF6]/30 bg-[#8B5CF6]/10',
+          'text-[#259457] border-[#259457]/30 bg-[#259457]/10',
+          'text-[#F59E0B] border-[#F59E0B]/30 bg-[#F59E0B]/10',
+          'text-[#EC4899] border-[#EC4899]/30 bg-[#EC4899]/10',
+          'text-[#06B6D4] border-[#06B6D4]/30 bg-[#06B6D4]/10',
+          'text-[#3B82F6] border-[#3B82F6]/30 bg-[#3B82F6]/10'
+        ];
+        return {
+          category: categories[idx % categories.length],
+          tagColor: tagColors[idx % tagColors.length],
+          title: item.title,
+          description: (item as any).description || 'Yeni Minecraft sürüm güncellemeleri, hata düzeltmeleri ve performans iyileştirmeleri hakkında detaylı bilgi.',
+          date: item.date,
+          imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=400'
+        };
+      });
+      const combined = [...mapped, ...defaultNews];
+      const unique = combined.filter((item, index, self) =>
+        self.findIndex(t => t.title === item.title) === index
+      );
+      list = unique.slice(0, 6);
+    }
+    return list;
+  }, [newsData, newsError]);
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -120,28 +169,6 @@ export default function HomePage() {
     };
     fetchNews();
   }, []);
-
-  useEffect(() => {
-    api.getOnlineCount().then((res) => {
-      if (res && typeof res.total === 'number') {
-        setOnlineCountVal(res.total);
-      }
-    }).catch(err => console.warn('Failed to fetch online count:', err));
-  }, []);
-
-  useEffect(() => {
-    if (!session?.name) return;
-    api.getUserProfile(session.name).then((profile: any) => {
-      if (profile.playSessions && profile.playSessions.length > 0) {
-        const last = profile.playSessions[profile.playSessions.length - 1];
-        setLastSessionServer(last.server || '-');
-        setLastSessionTimeAgoText(last.date || '');
-      } else {
-        setLastSessionServer('-');
-        setLastSessionTimeAgoText('');
-      }
-    }).catch((err: any) => console.warn('Failed to fetch profile in home:', err));
-  }, [session]);
 
   // Friends Panel states
   const [friendsTab, setFriendsTab] = useState<'friends' | 'requests' | 'lobby'>('friends');
@@ -703,33 +730,24 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Redesigned 1:1 Lunar Client style Hero Card */}
-          <div className="w-full h-[300px] rounded-3xl bg-gradient-to-r from-[#0d0a11] via-[#08060a] to-[#0d0a11] border border-white/[0.05] relative overflow-hidden flex items-center justify-between px-12 shadow-[0_25px_60px_rgba(0,0,0,0.7)] group">
+          {/* Redesigned Sleek Lunar-style Launch Panel */}
+          <div className="w-full rounded-2xl bg-gradient-to-r from-[#0d0a11] via-[#08060a] to-[#0d0a11] border border-white/[0.05] relative overflow-hidden flex flex-col items-center justify-center py-6 px-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] group">
             {/* Background particles and radial gradient */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.06),transparent_60%)] pointer-events-none" />
             <div className="absolute -top-12 -left-12 w-36 h-36 bg-[#2D7DD2]/5 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-12 -right-12 w-36 h-36 bg-[#8B5CF6]/5 rounded-full blur-3xl pointer-events-none" />
 
-            {/* Left side: Floating Voxel Astronaut */}
-            <div className="hidden md:block w-36 h-36 relative select-none pointer-events-none z-10 shrink-0">
-              <img
-                src={astronautImg}
-                alt="Astronaut"
-                className="w-full h-full object-contain animate-float"
-              />
-            </div>
-
-            {/* Center: Massive Launch Button and Change Version */}
-            <div className="flex-1 flex flex-col items-center justify-center z-10 min-w-0 px-4">
+            {/* Launch components */}
+            <div className="w-full flex flex-col items-center z-10">
               <div className="flex items-center gap-3 w-full max-w-[340px]">
                 {launchStatus === 'DOWNLOADING' ? (
                   // Downloading Green Button
                   <button
                     onClick={handleLaunch}
-                    className="flex-1 h-[58px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.25)] flex flex-col items-center justify-center gap-0.5"
+                    className="flex-1 h-[54px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.25)] flex flex-col items-center justify-center gap-0.5"
                   >
-                    <span className="font-black text-[13px] tracking-widest uppercase">{t('home.downloading')}</span>
-                    <div className="flex items-center gap-1.5 text-[9px] text-white/80 font-bold">
+                    <span className="font-black text-[12px] tracking-widest uppercase">{t('home.downloading')}</span>
+                    <div className="flex items-center gap-1.5 text-[8.5px] text-white/80 font-bold">
                       <span>Fabric {settings.selectedSubVersion || '1.21.0'}</span>
                       <span className="text-white/40">|</span>
                       <Pause className="w-2.5 h-2.5 fill-current" />
@@ -740,11 +758,11 @@ export default function HomePage() {
                   <button
                     onClick={handleLaunch}
                     disabled={launchStatus === 'CHECKING' || launchStatus === 'LAUNCHING'}
-                    className="flex-1 h-[58px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] disabled:opacity-50 text-white rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.3)] flex items-center justify-between px-6 cursor-pointer"
+                    className="flex-1 h-[54px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] disabled:opacity-50 text-white rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.3)] flex items-center justify-between px-6 cursor-pointer"
                   >
                     <div className="flex flex-col items-start text-left">
-                      <span className="font-black text-sm tracking-widest uppercase">{t('home.launch')}</span>
-                      <span className="text-[9px] text-white/80 font-bold uppercase tracking-wider mt-0.5">
+                      <span className="font-black text-xs tracking-widest uppercase">{t('home.launch')}</span>
+                      <span className="text-[8.5px] text-white/80 font-bold uppercase tracking-wider mt-0.5">
                         MarinMC {settings.selectedSubVersion || '1.21.3'}
                       </span>
                     </div>
@@ -757,20 +775,20 @@ export default function HomePage() {
                 {/* Settings cog wheel next to it */}
                 <button
                   onClick={() => setProfileSettingsOpen(true)}
-                  className="w-[58px] h-[58px] bg-white/5 hover:bg-white/10 active:scale-[0.96] border border-white/[0.06] rounded-xl flex items-center justify-center transition-all duration-200"
+                  className="w-[54px] h-[54px] bg-white/5 hover:bg-white/10 active:scale-[0.96] border border-white/[0.06] rounded-xl flex items-center justify-center transition-all duration-200"
                   title={t('home.settings')}
                 >
-                  <Settings className="w-5 h-5 text-white/60 hover:text-white transition-colors" />
+                  <Settings className="w-4.5 h-4.5 text-white/60 hover:text-white transition-colors" />
                 </button>
               </div>
 
               {/* Version Selector Link under Button */}
               <button
                 onClick={() => navigate('/versions')}
-                className="mt-3 text-[9px] font-black text-[#52525B] hover:text-[#A1A1AA] uppercase tracking-widest transition-colors flex items-center gap-1"
+                className="mt-2.5 text-[8.5px] font-black text-[#52525B] hover:text-[#A1A1AA] uppercase tracking-widest transition-colors flex items-center gap-1"
               >
                 <span>{t('home.changeVersion')}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-[#52525B]" />
+                <ChevronDown className="w-3 h-3 text-[#52525B]" />
               </button>
 
               {/* Progress bar inside card if downloading */}
@@ -781,14 +799,14 @@ export default function HomePage() {
                 const totalFiles = details ? parseInt(details[3], 10) : 100;
                 
                 return (
-                  <div className="w-full max-w-[340px] mt-3 space-y-1.5 animate-[fadeIn_0.2s_ease-out]">
-                    <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/[0.02] shadow-inner">
+                  <div className="w-full max-w-[340px] mt-2.5 space-y-1 animate-[fadeIn_0.2s_ease-out]">
+                    <div className="w-full bg-white/[0.04] h-1 rounded-full overflow-hidden border border-white/[0.02] shadow-inner">
                       <div
                         className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-300 shadow-[0_0_8px_rgba(52,211,153,0.4)]"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-[8px] text-[#A1A1AA] font-bold uppercase tracking-wide">
+                    <div className="flex justify-between text-[7.5px] text-[#A1A1AA] font-bold uppercase tracking-wide">
                       <span className="truncate max-w-[190px] text-emerald-400">
                         {fileType}: {currentFile > 0 ? `${currentFile} / ${totalFiles}` : 'KONTROL EDİLİYOR'}
                       </span>
@@ -798,319 +816,71 @@ export default function HomePage() {
                 );
               })()}
             </div>
-
-            {/* Right side: Floating Voxel Rocket */}
-            <div className="hidden md:block w-36 h-36 relative select-none pointer-events-none z-10 shrink-0">
-              <img
-                src={rocketImg}
-                alt="Rocket"
-                className="w-full h-full object-contain animate-float-delayed"
-              />
-            </div>
           </div>
 
-          {/* Sunucu Listesi Yatay Şeridi (Server List Horizontal Bar) */}
-          <div className="space-y-2">
-            <span className="text-[9.5px] font-black text-[#52525B] uppercase tracking-widest block">Önerilen Sunucular</span>
-            <div className="flex flex-wrap gap-3 items-center bg-[#09070a] border border-white/[0.04] p-3 rounded-2xl">
-              {homeServers.map((srv, idx) => {
-                const getSrvLetter = (name: string) => name ? name.charAt(0).toUpperCase() : 'S';
-                const srvColors = [
-                  'text-[#34D399] bg-[#34D399]/10 border-[#34D399]/20 hover:border-[#34D399]/50 hover:shadow-[0_0_12px_rgba(52,211,83,0.2)]',
-                  'text-[#60A5FA] bg-[#60A5FA]/10 border-[#60A5FA]/20 hover:border-[#60A5FA]/50 hover:shadow-[0_0_12px_rgba(96,165,250,0.2)]',
-                  'text-[#FBBF24] bg-[#FBBF24]/10 border-[#FBBF24]/20 hover:border-[#FBBF24]/50 hover:shadow-[0_0_12px_rgba(251,191,36,0.2)]'
-                ];
-                const srvColor = srvColors[idx % srvColors.length];
-                
-                return (
-                  <div
-                    key={srv.id}
-                    onClick={() => navigate(`/versions?launch=true`)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-xs cursor-pointer transition-all duration-300 border relative group ${srvColor}`}
-                  >
-                    <span>{getSrvLetter(srv.name)}</span>
-                    
-                    {/* Server Info Tooltip */}
-                    <div className="absolute bottom-[48px] left-1/2 -translate-x-1/2 bg-[#060305] border border-white/[0.08] text-[#d2d2d2] p-2.5 rounded-xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-2xl flex flex-col items-center">
-                      <span className="text-[10px] font-black uppercase text-white leading-none mb-1">{srv.name}</span>
-                      <span className="text-[8px] font-bold text-[#A1A1AA] leading-none mb-1.5">{srv.description}</span>
-                      <div className="flex items-center gap-1 leading-none text-[8.5px] font-extrabold text-emerald-400">
-                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                        <span>{srv.playerCount || 0} / {srv.maxPlayers || 1000} Oyuncu</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          {/* News Feed Header */}
+          <div className="space-y-1.5 pt-4">
+            <span className="text-[10px] font-black text-[#8B5CF6] uppercase tracking-wider">MARINMC HABERLERİ</span>
+            <h2 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#8B5CF6] animate-pulse" />
+              <span>Gelişmeler & Güncellemeler</span>
+            </h2>
+            <p className="text-[9.5px] text-[#52525B] font-semibold font-bold">MarinMC Client ile ilgili en son haberler, duyurular ve sürüm notları.</p>
           </div>
 
-          {/* News Section */}
-          <div className="space-y-2">
-            <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest block">{t('home.newsFeed')}</span>
-            
-            {/* If Offline */}
-            {!isOnline ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="h-28 bg-[#060305] border border-white/[0.04] rounded-xl flex items-center justify-center flex-col text-center p-4 relative group">
-                  <WifiOff className="w-6 h-6 text-[#52525B] mb-1.5" />
-                  <span className="text-[10px] font-bold text-[#52525B]">{t('home.newsServiceError')}</span>
-                  <button className="absolute bottom-2.5 right-2.5 p-1 rounded bg-white/5 text-white/40 hover:text-white transition-colors">
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="h-28 bg-[#060305] border border-white/[0.04] rounded-xl flex items-center justify-center flex-col text-center p-4 relative group">
-                  <WifiOff className="w-6 h-6 text-[#52525B] mb-1.5" />
-                  <span className="text-[10px] font-bold text-[#52525B]">{t('home.newsServiceError')}</span>
-                  <button className="absolute bottom-2.5 right-2.5 p-1 rounded bg-white/5 text-white/40 hover:text-white transition-colors">
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+          {/* News Feed Grid */}
+          {!isOnline ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="h-[280px] bg-[#0c080e]/40 border border-white/[0.04] rounded-2xl flex items-center justify-center flex-col text-center p-6 relative group">
+                <WifiOff className="w-8 h-8 text-[#52525B] mb-2" />
+                <span className="text-[10px] font-bold text-[#52525B]">{t('home.newsServiceError')}</span>
               </div>
-            ) : (
-              /* If Online: Show Beautiful Mock News Cards Matching Screenshots */
-              <div className="grid grid-cols-2 gap-4">
-                {/* Changelog News Card */}
-                <div className="relative rounded-xl overflow-hidden h-28 border border-white/[0.04] bg-[#111111]/45 flex p-3.5 justify-between items-center group cursor-pointer">
-                  <div className="flex flex-col justify-between h-full z-10 max-w-[140px]">
-                    <div>
-                      <span className="text-[8px] text-[#2D7DD2] font-black uppercase tracking-widest">MARINMC CLIENT</span>
-                      <h3 className="text-[11px] font-black text-white leading-tight uppercase mt-1 tracking-wide">{t('home.changelog')}</h3>
-                      <p className="text-[8.5px] text-[#A1A1AA] mt-1 leading-normal font-semibold">{t('home.changelogDesc')}</p>
-                    </div>
-                    <button className="bg-white text-black font-extrabold text-[8px] uppercase tracking-wider py-1 px-3.5 rounded-lg w-max mt-2">
-                      {t('home.readMore')}
-                    </button>
-                  </div>
-                  <div className="w-16 h-16 flex items-center justify-center text-white/10 group-hover:scale-105 transition-transform duration-300">
-                    <MarinLogo glyphOnly size={56} className="opacity-10" />
-                  </div>
-                </div>
-
-                {/* 26.1 Version News Card */}
-                <div className="relative rounded-xl overflow-hidden h-28 border border-white/[0.04] bg-gradient-to-br from-[#1b2b1a]/85 to-[#0b0c0a]/95 flex p-3.5 justify-between items-center group cursor-pointer">
-                  <div className="flex flex-col justify-between h-full z-10">
-                    <div>
-                      <span className="text-[8px] text-[#259457] font-black uppercase tracking-widest">{t('home.newVersionAlert')}</span>
-                      <h3 className="text-xl font-black text-[#259457] leading-none mt-1">26.1</h3>
-                      <p className="text-[9px] text-[#A1A1AA] mt-1 font-semibold">{t('home.readyIn', { client: 'MarinMC' })}</p>
-                    </div>
-                  </div>
-                  <div className="text-[34px] font-black text-[#259457]/15 select-none absolute right-4 group-hover:scale-105 transition-transform duration-300">
-                    26.1
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Additional News Cards */}
-          {/* Additional News Cards */}
-          <div className="grid grid-cols-3 gap-3">
-            {newsData.length === 3 && !newsError ? (
-              newsData.map((item, idx) => {
-                const colors = [
-                  { from: 'from-[#1a1535]/80', to: 'to-[#0b0a0d]/95', tagColor: 'text-[#8B5CF6]', tag: t('home.community') },
-                  { from: 'from-[#0a1f15]/80', to: 'to-[#0b0c0a]/95', tagColor: 'text-[#259457]', tag: t('home.serverStatus') },
-                  { from: 'from-[#111111]/80', to: 'to-[#0b0c0a]/95', tagColor: 'text-[#F59E0B]', tag: t('home.tip') }
-                ];
-                const c = colors[idx];
-                return (
-                  <div
-                    key={idx}
-                    className={`relative rounded-2xl overflow-hidden h-28 border border-white/[0.04] hover:border-white/20 bg-[#111111]/40 flex p-4 items-center group cursor-pointer transition-all duration-300 hover:shadow-[0_0_20px_rgba(139,92,246,0.15)]`}
-                  >
-                    {/* Blurred background image that unblurs and scales up on hover */}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {displayNews.map((item, idx) => (
+                <motion.div
+                  key={idx}
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  className="relative rounded-2xl overflow-hidden border border-white/[0.04] bg-[#0c080e]/60 hover:bg-[#120c15]/80 hover:border-white/10 transition-all duration-300 flex flex-col h-[280px] group shadow-xl"
+                >
+                  {/* Card Image Cover with zoom effect */}
+                  <div className="h-[130px] overflow-hidden relative shrink-0">
                     <div
-                      className="absolute inset-0 bg-cover bg-center blur-[12px] group-hover:blur-0 scale-110 group-hover:scale-100 opacity-20 group-hover:opacity-40 transition-all duration-500 pointer-events-none"
-                      style={{ backgroundImage: `url(${item.imageUrl || 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=400'})` }}
+                      className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
+                      style={{ backgroundImage: `url(${item.imageUrl})` }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0c080e] via-transparent to-black/30 pointer-events-none" />
                     
-                    {/* Left glowing neon indicator stripe */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-[4px] rounded-r-md transition-all duration-300 opacity-50 group-hover:opacity-100 ${
-                      idx === 0 ? 'bg-[#8B5CF6] group-hover:shadow-[0_0_12px_#8B5CF6]' : idx === 1 ? 'bg-[#259457] group-hover:shadow-[0_0_12px_#259457]' : 'bg-[#F59E0B] group-hover:shadow-[0_0_12px_#F59E0B]'
-                    }`} />
-                    
-                    <div className="flex flex-col z-10 pr-2 pl-2">
-                      <span className={`text-[8px] ${c.tagColor} font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] w-fit mb-1.5`}>
-                        {c.tag}
-                      </span>
-                      <h3 className="text-xs font-black text-white leading-snug uppercase line-clamp-2 transition-colors group-hover:text-white">
+                    {/* Category tag on top of image */}
+                    <span className={`absolute top-3 left-3 text-[7.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded border backdrop-blur-md ${item.tagColor}`}>
+                      {item.category}
+                    </span>
+                  </div>
+
+                  {/* Card Body */}
+                  <div className="p-4 flex flex-col justify-between flex-grow min-h-0 relative z-10">
+                    <div className="space-y-1">
+                      <h3 className="text-[10.5px] font-black text-white leading-snug uppercase line-clamp-2 tracking-wide group-hover:text-[#2D7DD2] transition-colors">
                         {item.title}
                       </h3>
-                      <p className="text-[9px] text-[#A1A1AA] mt-1.5 font-bold flex items-center gap-1 font-mono">
-                        <span>{item.date}</span>
+                      <p className="text-[8.5px] text-[#A1A1AA] leading-normal line-clamp-3 font-semibold">
+                        {item.description}
                       </p>
                     </div>
+                    
+                    {/* Card Footer */}
+                    <div className="flex justify-between items-center pt-2 border-t border-white/[0.03] mt-2 shrink-0">
+                      <span className="text-[7.5px] text-[#52525B] font-bold font-mono uppercase tracking-wider">{item.date}</span>
+                      <span className="text-[7.5px] text-[#2D7DD2] font-black uppercase tracking-widest group-hover:underline flex items-center gap-0.5">
+                        DEVAMINI OKU ➔
+                      </span>
+                    </div>
                   </div>
-                );
-              })
-            ) : (
-              <>
-                {/* Community Event */}
-                <div className="relative rounded-2xl overflow-hidden h-28 border border-white/[0.04] hover:border-white/20 bg-gradient-to-br from-[#1a1535]/80 to-[#0b0a0d]/95 flex p-4 items-center group cursor-pointer transition-all duration-300 hover:shadow-[0_0_20px_rgba(139,92,246,0.15)]">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center blur-[12px] group-hover:blur-0 scale-110 group-hover:scale-100 opacity-20 group-hover:opacity-40 transition-all duration-500 pointer-events-none"
-                    style={{ backgroundImage: `url(https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=400)` }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
-                  <div className="absolute left-0 top-0 bottom-0 w-[4px] rounded-r-md bg-[#8B5CF6] group-hover:shadow-[0_0_12px_#8B5CF6] transition-all opacity-50 group-hover:opacity-100" />
-                  <div className="flex flex-col z-10 pl-2">
-                    <span className="text-[8px] text-[#8B5CF6] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] w-fit mb-1.5">{t('home.community')}</span>
-                    <h3 className="text-xs font-black text-white leading-snug uppercase">{t('home.survivalEvent')}</h3>
-                    <p className="text-[9px] text-[#A1A1AA] mt-1.5 font-medium">{t('home.eventDesc')}</p>
-                  </div>
-                  <div className="text-[28px] font-black text-[#8B5CF6]/10 select-none absolute right-4 group-hover:scale-110 transition-transform">🎮</div>
-                </div>
-
-                {/* Server Status */}
-                <div className="relative rounded-2xl overflow-hidden h-28 border border-white/[0.04] hover:border-white/20 bg-gradient-to-br from-[#0a1f15]/80 to-[#0b0c0a]/95 flex p-4 items-center group cursor-pointer transition-all duration-300 hover:shadow-[0_0_20px_rgba(37,148,87,0.15)]">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center blur-[12px] group-hover:blur-0 scale-110 group-hover:scale-100 opacity-20 group-hover:opacity-40 transition-all duration-500 pointer-events-none"
-                    style={{ backgroundImage: `url(https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400)` }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
-                  <div className="absolute left-0 top-0 bottom-0 w-[4px] rounded-r-md bg-[#259457] group-hover:shadow-[0_0_12px_#259457] transition-all opacity-50 group-hover:opacity-100" />
-                  <div className="flex flex-col z-10 pl-2">
-                    <span className="text-[8px] text-[#259457] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] w-fit mb-1.5">{t('home.serverStatus')}</span>
-                    <h3 className="text-xs font-black text-[#259457] leading-snug uppercase">{t('home.allOnline')}</h3>
-                    <p className="text-[9px] text-[#A1A1AA] mt-1.5 font-medium">{t('home.activePlayers', { count: onlineCountVal })}</p>
-                  </div>
-                  <div className="text-[28px] font-black text-[#259457]/10 select-none absolute right-4 group-hover:scale-110 transition-transform">●</div>
-                </div>
-
-                {/* Tips */}
-                <div className="relative rounded-2xl overflow-hidden h-28 border border-white/[0.04] hover:border-white/20 bg-[#111111]/45 flex p-4 items-center group cursor-pointer transition-all duration-300 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center blur-[12px] group-hover:blur-0 scale-110 group-hover:scale-100 opacity-20 group-hover:opacity-40 transition-all duration-500 pointer-events-none"
-                    style={{ backgroundImage: `url(https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400)` }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
-                  <div className="absolute left-0 top-0 bottom-0 w-[4px] rounded-r-md bg-[#F59E0B] group-hover:shadow-[0_0_12px_#F59E0B] transition-all opacity-50 group-hover:opacity-100" />
-                  <div className="flex flex-col z-10 pl-2">
-                    <span className="text-[8px] text-[#F59E0B] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] w-fit mb-1.5">{t('home.tip')}</span>
-                    <h3 className="text-xs font-black text-white leading-snug uppercase">{t('home.performance')}</h3>
-                    <p className="text-[9px] text-[#A1A1AA] mt-1.5 font-medium">{t('home.fpsTip')}</p>
-                  </div>
-                  <div className="text-[28px] font-black text-[#F59E0B]/10 select-none absolute right-4 group-hover:scale-110 transition-transform">⚡</div>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* === NEW: Quick Access Shortcuts === */}
-          <div className="space-y-2">
-            <span className="text-[9px] font-bold text-[#52525B] uppercase tracking-widest block">Hızlı Erişim</span>
-            <div className="flex gap-2">
-              {[
-                { icon: Package, label: 'Modlar', path: '/mods', color: '#8B5CF6', bg: '#8B5CF6' },
-                { icon: ShoppingBag, label: 'Mağaza', path: '/store', color: '#F59E0B', bg: '#F59E0B' },
-                { icon: Image, label: 'Galeri', path: '/gallery', color: '#2D7DD2', bg: '#2D7DD2' },
-                { icon: User, label: 'Profil', path: '/profile', color: '#06B6D4', bg: '#06B6D4' },
-                { icon: Settings, label: 'Ayarlar', path: '/settings', color: '#A1A1AA', bg: '#A1A1AA' },
-                { icon: Sparkles, label: 'Kozmetik', path: '/cosmetics', color: '#EC4899', bg: '#EC4899' },
-              ].map((item) => (
-                <motion.button
-                  key={item.label}
-                  whileHover={{ y: -3, scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate(item.path)}
-                  className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-opacity-30 transition-all duration-300 group"
-                  style={{ ['--accent' as string]: item.color }}
-                >
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:shadow-lg"
-                    style={{
-                      backgroundColor: `${item.bg}10`,
-                      borderColor: `${item.bg}20`,
-                      borderWidth: '1px',
-                    }}
-                  >
-                    <item.icon className="w-3.5 h-3.5 transition-colors" style={{ color: item.color }} />
-                  </div>
-                  <span className="text-[8px] font-black uppercase tracking-wider text-[#52525B] group-hover:text-white/70 transition-colors">{item.label}</span>
-                </motion.button>
+                </motion.div>
               ))}
             </div>
-          </div>
-
-          {/* === NEW: Weekly Activity Chart + Recent Activity === */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Weekly Activity Mini Chart */}
-            <div className="rounded-xl p-4 bg-white/[0.02] border border-white/[0.04] space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-3.5 h-3.5 text-[#2D7DD2]" />
-                  <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest">Haftalık Aktivite</span>
-                </div>
-                <span className="text-[7.5px] font-bold text-[#2D7DD2]/60">Bu Hafta</span>
-              </div>
-              <div className="flex items-end gap-1.5 h-16">
-                {weeklyData.map((d, i) => {
-                  const maxH = Math.max(...weeklyData.map(x => x.hours), 1);
-                  const height = d.hours > 0 ? Math.max((d.hours / maxH) * 100, 12) : 6;
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: `${height}%` }}
-                        transition={{ duration: 0.6, delay: i * 0.08, ease: 'easeOut' }}
-                        className={`w-full rounded-sm transition-colors ${
-                          d.isToday
-                            ? 'bg-[#2D7DD2] shadow-[0_0_8px_rgba(45,125,210,0.3)]'
-                            : d.hours > 0 ? 'bg-white/10' : 'bg-white/[0.03]'
-                        }`}
-                      />
-                      <span className={`text-[7px] font-bold uppercase ${
-                        d.isToday ? 'text-[#2D7DD2]' : 'text-[#52525B]'
-                      }`}>{d.day}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t border-white/[0.03]">
-                <span className="text-[8px] font-bold text-[#52525B]">Toplam: <span className="text-white/60">{weeklyData.reduce((a, b) => a + b.hours, 0)} saat</span></span>
-                <TrendingUp className="w-3 h-3 text-[#259457]" />
-              </div>
-            </div>
-
-            {/* Recent Activity Timeline */}
-            <div className="rounded-xl p-4 bg-white/[0.02] border border-white/[0.04] space-y-3">
-              <div className="flex items-center gap-2">
-                <Activity className="w-3.5 h-3.5 text-[#8B5CF6]" />
-                <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest">Son Aktiviteler</span>
-              </div>
-              <div className="space-y-2.5">
-                {[
-                  { icon: Gamepad2, text: 'Oyun oturumu başlatıldı', detail: lastSessionServer !== '-' ? lastSessionServer : 'MarinMC', time: lastSessionTimeAgoText || 'Bugün', color: '#259457' },
-                  { icon: Users, text: `${social.friends.length} arkadaş listenizde`, detail: `${social.friends.filter(f => f.status !== 'offline').length} çevrimiçi`, time: 'Şimdi', color: '#8B5CF6' },
-                  { icon: Globe, text: `${homeServers.length} sunucu aktif`, detail: `${onlineCountVal} toplam oyuncu`, time: 'Canlı', color: '#2D7DD2' },
-                  { icon: Zap, text: 'Launcher güncellendi', detail: 'v1.0.8 yüklü', time: 'Güncel', color: '#F59E0B' },
-                ].map((activity, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.1 }}
-                    className="flex items-center gap-2.5 group"
-                  >
-                    <div
-                      className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: `${activity.color}15`, border: `1px solid ${activity.color}25` }}
-                    >
-                      <activity.icon className="w-2.5 h-2.5" style={{ color: activity.color }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-bold text-white/70 truncate">{activity.text}</p>
-                      <p className="text-[7.5px] text-[#52525B] font-semibold truncate">{activity.detail}</p>
-                    </div>
-                    <span className="text-[7px] font-bold text-[#52525B] uppercase tracking-wider shrink-0">{activity.time}</span>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </div>
+          )}
 
         </div>
 

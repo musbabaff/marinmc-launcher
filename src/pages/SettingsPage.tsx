@@ -23,6 +23,16 @@ export default function SettingsPage() {
   const [fullscreenVal, setFullscreenVal] = useState(settings.fullscreen);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // New settings states
+  const [launcherBehaviorVal, setLauncherBehaviorVal] = useState<"minimize" | "close" | "nothing">(settings.launcherBehavior);
+  const [autoUpdateVal, setAutoUpdateVal] = useState(settings.autoUpdate);
+  const [hwAccVal, setHwAccVal] = useState(true);
+  const [runStartupVal, setRunStartupVal] = useState(false);
+  const [showConsoleVal, setShowConsoleVal] = useState(false);
+  const [autoCleanRamVal, setAutoCleanRamVal] = useState(false);
+  const [showBetaVal, setShowBetaVal] = useState(false);
+  const [soundEffectsVal, setSoundEffectsVal] = useState(true);
+
   // System Monitor States
   const [cpuUsage, setCpuUsage] = useState(24);
   const [ramInUse, setRamInUse] = useState(6.2); // GB
@@ -80,7 +90,17 @@ export default function SettingsPage() {
     setResWidth(settings.resolutionWidth);
     setResHeight(settings.resolutionHeight);
     setFullscreenVal(settings.fullscreen);
-  }, [settings.ram, settings.jvmArgs, settings.launcherDir, settings.javaPath, settings.smartJvmOpt, settings.discordRpcEnabled, settings.resolutionWidth, settings.resolutionHeight, settings.fullscreen]);
+    setLauncherBehaviorVal(settings.launcherBehavior);
+    setAutoUpdateVal(settings.autoUpdate);
+
+    // Custom local settings
+    setHwAccVal(localStorage.getItem('marinmc_setting_hardwareAcc') !== 'false');
+    setRunStartupVal(localStorage.getItem('marinmc_setting_runOnStartup') === 'true');
+    setShowConsoleVal(localStorage.getItem('marinmc_setting_showConsole') === 'true');
+    setAutoCleanRamVal(localStorage.getItem('marinmc_setting_autoCleanRam') === 'true');
+    setShowBetaVal(localStorage.getItem('marinmc_setting_showBeta') === 'true');
+    setSoundEffectsVal(localStorage.getItem('marinmc_setting_soundEffects') !== 'false');
+  }, [settings]);
 
   const handleSave = () => {
     settings.saveSettings({
@@ -90,9 +110,21 @@ export default function SettingsPage() {
       javaPath: javaPathVal,
       smartJvmOpt: smartJvmValue,
       discordRpcEnabled: discordRpcValue,
+      launcherBehavior: launcherBehaviorVal,
     });
     settings.setResolution(resWidth, resHeight);
     settings.setFullscreen(fullscreenVal);
+    settings.setLauncherBehavior(launcherBehaviorVal);
+    settings.setAutoUpdate(autoUpdateVal);
+
+    // Save custom local settings
+    localStorage.setItem('marinmc_setting_hardwareAcc', hwAccVal.toString());
+    localStorage.setItem('marinmc_setting_runOnStartup', runStartupVal.toString());
+    localStorage.setItem('marinmc_setting_showConsole', showConsoleVal.toString());
+    localStorage.setItem('marinmc_setting_autoCleanRam', autoCleanRamVal.toString());
+    localStorage.setItem('marinmc_setting_showBeta', showBetaVal.toString());
+    localStorage.setItem('marinmc_setting_soundEffects', soundEffectsVal.toString());
+
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
   };
@@ -106,6 +138,14 @@ export default function SettingsPage() {
     setResWidth(1280);
     setResHeight(720);
     setFullscreenVal(false);
+    setLauncherBehaviorVal('minimize');
+    setAutoUpdateVal(true);
+    setHwAccVal(true);
+    setRunStartupVal(false);
+    setShowConsoleVal(false);
+    setAutoCleanRamVal(false);
+    setShowBetaVal(false);
+    setSoundEffectsVal(true);
   };
 
   const getRamInGb = (mb: number) => {
@@ -285,6 +325,89 @@ export default function SettingsPage() {
                         }`}
                       />
                     </button>
+                  </div>
+
+                  {/* Launcher Behavior Card */}
+                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl flex items-center justify-between">
+                    <div className="space-y-1.5 pr-4 min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B]">
+                        <Settings className="w-4 h-4 text-[#2D7DD2]" />
+                        <span>Başlatıcı Kapanış Davranışı</span>
+                      </div>
+                      <span className="text-[9px] text-[#52525B] block leading-relaxed font-bold">
+                        Oyun başladıktan sonra başlatıcının ne yapacağını seçin.
+                      </span>
+                    </div>
+                    <select
+                      value={launcherBehaviorVal}
+                      onChange={(e) => setLauncherBehaviorVal(e.target.value as any)}
+                      className="bg-[#0e0c0f] border border-white/[0.08] text-[#d2d2d2] text-[10px] font-bold px-3 py-2 rounded-xl focus:outline-none focus:border-[#2D7DD2] cursor-pointer"
+                    >
+                      <option value="minimize">Simge Durumuna Küçült</option>
+                      <option value="close">Başlatıcıyı Kapat</option>
+                      <option value="nothing">Açık Tut</option>
+                    </select>
+                  </div>
+
+                  {/* Toggle Options Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      {
+                        title: 'Otomatik Güncellemeler',
+                        desc: 'Başlangıçta yeni güncellemeleri otomatik olarak denetler.',
+                        val: autoUpdateVal,
+                        set: setAutoUpdateVal,
+                      },
+                      {
+                        title: 'Donanım Hızlandırma',
+                        desc: 'Başlatıcı arayüzünde GPU donanım hızlandırmayı kullanır.',
+                        val: hwAccVal,
+                        set: setHwAccVal,
+                      },
+                      {
+                        title: 'Konsol Günlüğünü Göster',
+                        desc: 'Oyun başladığında log konsol penceresini otomatik açar.',
+                        val: showConsoleVal,
+                        set: setShowConsoleVal,
+                      },
+                      {
+                        title: 'Bellek Otomatik Temizleme',
+                        desc: 'Oyun başlamadan önce sistem bellek temizliği gerçekleştirir.',
+                        val: autoCleanRamVal,
+                        set: setAutoCleanRamVal,
+                      },
+                      {
+                        title: 'BETA Sürümleri Göster',
+                        desc: 'Sürüm seçici ekranlarında beta sürümleri de listeler.',
+                        val: showBetaVal,
+                        set: setShowBetaVal,
+                      },
+                      {
+                        title: 'Başlatıcı Ses Efektleri',
+                        desc: 'Başlatıcı içi tıklamalarda ses efekti çalar.',
+                        val: soundEffectsVal,
+                        set: setSoundEffectsVal,
+                      },
+                    ].map((opt, i) => (
+                      <div key={i} className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl flex items-center justify-between">
+                        <div className="space-y-1.5 pr-4 min-w-0">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-[#d2d2d2] block">{opt.title}</span>
+                          <span className="text-[8.5px] text-[#52525B] font-bold block leading-snug">{opt.desc}</span>
+                        </div>
+                        <button
+                          onClick={() => opt.set(!opt.val)}
+                          className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none shrink-0 ${
+                            opt.val ? 'bg-[#2D7DD2]' : 'bg-[#131622] border border-white/5'
+                          }`}
+                        >
+                          <div
+                            className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
+                              opt.val ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </>
               )}

@@ -1,13 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../stores/appStore.ts';
-import { Minus, Square, X } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore.ts';
+import { useNotificationStore } from '../stores/notificationStore.ts';
+import { Minus, Square, X, Bell, LogIn, ExternalLink } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import MarinLogo from './MarinLogo.tsx';
+import InboxPopover from './InboxPopover.tsx';
+import { useNavigate } from 'react-router-dom';
 
 export default function TitleBar() {
   const isOnline = useAppStore((state) => state.isOnline);
+  const activePage = useAppStore((state) => state.activePage);
+  const gameStatus = useAppStore((state) => state.gameStatus);
+  const setActivePage = useAppStore((state) => state.setActivePage);
+  
+  const { session } = useAuthStore();
+  const { notifications } = useNotificationStore();
+  
   const [onlineCount, setOnlineCount] = useState<number | null>(null);
   const [version, setVersion] = useState('');
+  const [inboxOpen, setInboxOpen] = useState(false);
+  
+  const inboxRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  const unreadCount = notifications.filter(n => n.unread).length;
 
   useEffect(() => {
     if (window.electronAPI && window.electronAPI.getVersion) {
@@ -20,77 +37,205 @@ export default function TitleBar() {
       if (res && res.total !== undefined) {
         setOnlineCount(res.total);
       }
-    });
+    }).catch(err => console.warn('Failed to fetch online count:', err));
+    
     const interval = setInterval(() => {
       api.getOnlineCount().then((res) => {
         if (res && res.total !== undefined) {
           setOnlineCount(res.total);
         }
-      });
+      }).catch(err => console.warn('Failed to fetch online count:', err));
     }, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Close popover when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (inboxRef.current && !inboxRef.current.contains(event.target as Node)) {
+        setInboxOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', event => handleClickOutside(event));
+    return () => document.removeEventListener('mousedown', event => handleClickOutside(event));
   }, []);
 
   const handleMinimize = () => {
     if (window.electronAPI) window.electronAPI.minimize();
   };
 
-
   const handleClose = () => {
     if (window.electronAPI) window.electronAPI.close();
   };
 
+  const getPageTitle = () => {
+    switch (activePage) {
+      case '/home': return 'Launchpad';
+      case '/profile': return 'Profil';
+      case '/notifications': return 'Bildirimler';
+      case '/chat': return 'Relay Sohbet';
+      case '/versions': return 'Sürümler';
+      case '/mods': return 'Mod Yöneticisi';
+      case '/cosmetics': return 'Gardırop';
+      case '/gallery': return 'Galeri';
+      case '/console': return 'Konsol';
+      case '/store': return 'Market';
+      case '/settings': return 'Ayarlar';
+      default: return 'Launchpad';
+    }
+  };
+
+  const handleLoginClick = () => {
+    setActivePage('/login');
+    navigate('/login');
+  };
+
+  const handleProfileClick = () => {
+    setActivePage('/profile');
+    navigate('/profile');
+  };
+
+  const handleRunningClick = () => {
+    setActivePage('/console');
+    navigate('/console');
+  };
+
+  const isRunning = gameStatus === 'RUNNING';
+
   return (
-    <div className="h-[40px] w-full drag-region bg-[#060305] flex items-center justify-between px-6 select-none text-[11px] text-[#A1A1AA] font-semibold z-50 shrink-0">
-      {/* Brand */}
+    <div className="h-[40px] w-full drag-region bg-[#060305] flex items-center justify-between px-6 select-none text-[11px] text-[#A1A1AA] font-semibold z-50 shrink-0 border-b border-white/[0.02]">
+      {/* Left side: Brand Logo + Online Count + Active Tab */}
       <div className="flex items-center space-x-3 text-[10px] tracking-wide font-normal">
         <MarinLogo glyphOnly size={14} className="text-white" />
-        <span className="text-white hover:text-white/80 transition-colors font-bold tracking-wider">MarinMC Client</span>
+        <span className="text-white hover:text-white/80 transition-colors font-bold tracking-wider cursor-pointer" onClick={() => { setActivePage('/home'); navigate('/home'); }}>
+          MarinMC Client
+        </span>
         <span className="text-[#52525B] font-mono text-[9px] bg-white/5 px-2 py-0.5 rounded border border-white/[0.03]">
           {version ? `v${version}` : 'v1.0.8'}
         </span>
-        <div className="flex items-center space-x-1.5">
+
+        {/* Vertical divider */}
+        <div className="w-[1px] h-3 bg-white/[0.08]" />
+
+        {/* Online Count */}
+        <div className="flex items-center space-x-1.5 bg-white/[0.02] border border-white/[0.04] px-2 py-0.5 rounded-lg">
           <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#259457] animate-pulse' : 'bg-[#EF4444]'}`} />
-          <span className={`${isOnline ? 'text-[#259457]' : 'text-[#EF4444]'} font-bold`}>
+          <span className={`${isOnline ? 'text-white/80' : 'text-[#EF4444]'} font-bold`}>
             {isOnline ? (
               onlineCount !== null ? (
-                `${onlineCount} Aktif`
+                `${onlineCount.toLocaleString('tr-TR')} Çevrimiçi`
               ) : (
-                <span className="text-gray-500 animate-pulse font-medium">Bağlanıyor...</span>
+                'Bağlanıyor...'
               )
             ) : 'Çevrimdışı'}
           </span>
         </div>
+
+        {/* Vertical divider */}
+        <div className="w-[1px] h-3 bg-white/[0.08]" />
+
+        {/* Active Page Name */}
+        <span className="text-white font-extrabold uppercase tracking-widest text-[9.5px]">
+          {getPageTitle()}
+        </span>
       </div>
 
-      {/* Window Controls */}
-      <div className="flex items-center space-x-1 no-drag">
-        {/* Minimize */}
-        <button
-          onClick={handleMinimize}
-          className="w-8 h-7 flex items-center justify-center rounded hover:bg-white/5 text-[#d2d2d2] transition-all duration-150"
-          title="Minimize"
+      {/* Right side: Inbox, User/Login button, Instance counter, Window controls */}
+      <div className="flex items-center space-x-4 no-drag">
+        {/* Instances Running */}
+        <button 
+          onClick={handleRunningClick}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all text-[9.5px] font-extrabold uppercase ${
+            isRunning 
+              ? 'bg-[#259457]/15 border-[#259457]/30 text-[#259457] shadow-[0_0_10px_rgba(37,148,87,0.15)] hover:bg-[#259457]/25' 
+              : 'bg-white/5 border-white/[0.05] text-[#A1A1AA] hover:bg-white/10 hover:text-white'
+          }`}
+          title={isRunning ? 'Konsolu Aç' : 'Çalışan Oyun Yok'}
         >
-          <Minus className="w-3.5 h-3.5" />
+          <span>{isRunning ? '1' : '0'} Çalışan Örnek</span>
+          <ExternalLink className="w-3 h-3" />
         </button>
 
-        {/* Maximize */}
-        <button
-          className="w-8 h-7 flex items-center justify-center rounded text-[#52525B]/20 cursor-not-allowed"
-          title="Maximize (Disabled)"
-          disabled
-        >
-          <Square className="w-3.5 h-3.5" />
-        </button>
+        {/* Inbox Bell Container */}
+        <div className="relative" ref={inboxRef}>
+          <button 
+            onClick={() => setInboxOpen(!inboxOpen)}
+            className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all relative ${
+              inboxOpen 
+                ? 'bg-[#8B5CF6]/15 border-[#8B5CF6]/30 text-white' 
+                : 'bg-white/5 border-white/[0.05] text-[#A1A1AA] hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <Bell className="w-3.5 h-3.5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#8B5CF6] rounded-full border-2 border-[#060305] shadow-[0_0_6px_#8B5CF6]" />
+            )}
+          </button>
+          
+          {inboxOpen && (
+            <InboxPopover onClose={() => setInboxOpen(false)} />
+          )}
+        </div>
 
-        {/* Close */}
-        <button
-          onClick={handleClose}
-          className="w-8 h-7 flex items-center justify-center rounded hover:bg-[#EF4444] text-[#d2d2d2] hover:text-white transition-all duration-150"
-          title="Close"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
+        {/* Login or User profile */}
+        {session ? (
+          <button 
+            onClick={handleProfileClick}
+            className="flex items-center gap-2 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/[0.05] rounded-lg transition-all"
+            title="Profil Sayfasına Git"
+          >
+            <img 
+              src={session.avatar} 
+              alt="" 
+              className="w-4 h-4 rounded bg-black/20 shrink-0"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
+              }}
+            />
+            <span className="text-white font-extrabold text-[9.5px] max-w-[80px] truncate">{session.name}</span>
+          </button>
+        ) : (
+          <button 
+            onClick={handleLoginClick}
+            className="flex items-center gap-1.5 px-3 py-1 bg-[#2D7DD2]/10 hover:bg-[#2D7DD2]/20 border border-[#2D7DD2]/30 rounded-lg text-white font-extrabold text-[9.5px] uppercase transition-all"
+          >
+            <LogIn className="w-3 h-3 text-[#2D7DD2]" />
+            <span>Giriş Yap</span>
+          </button>
+        )}
+
+        {/* Window controls separator */}
+        <div className="w-[1px] h-3 bg-white/[0.08]" />
+
+        {/* Window Controls */}
+        <div className="flex items-center space-x-0.5">
+          {/* Minimize */}
+          <button
+            onClick={handleMinimize}
+            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/5 text-[#A1A1AA] hover:text-white transition-all duration-150"
+            title="Minimize"
+          >
+            <Minus className="w-3 h-3" />
+          </button>
+
+          {/* Maximize */}
+          <button
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-[#52525B]/20 cursor-not-allowed"
+            title="Maximize (Disabled)"
+            disabled
+          >
+            <Square className="w-3 h-3" />
+          </button>
+
+          {/* Close */}
+          <button
+            onClick={handleClose}
+            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#EF4444] text-[#A1A1AA] hover:text-white transition-all duration-150"
+            title="Close"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
       </div>
     </div>
   );

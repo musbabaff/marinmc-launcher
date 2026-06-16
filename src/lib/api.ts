@@ -2,7 +2,8 @@ import axios from 'axios';
 
 // API base URL configuration (can be changed via settings/localStorage)
 export const getApiBaseUrl = (): string => {
-  return localStorage.getItem('marinmc_api_url') || 'https://server-two-lyart-67.vercel.app/api';
+  return localStorage.getItem('marinmc_api_url') ||
+    (import.meta.env.DEV ? 'http://localhost:3000/api' : 'https://server-two-lyart-67.vercel.app/api');
 };
 
 // Create Axios Instance
@@ -61,6 +62,7 @@ export interface CosmeticsData {
   modelType?: 'classic' | 'slim';
   wingsEnabled?: boolean;
   coins?: number;
+  wingStyle?: string;
 }
 
 export interface CommunityScreenshot {
@@ -154,7 +156,7 @@ export const api = {
       console.warn('[API] getContacts failed, returning fallback.');
       const local = localStorage.getItem('marinmc_chat_contacts');
       if (local) return JSON.parse(local);
-      
+
       const initial: Contact[] = [];
       localStorage.setItem('marinmc_chat_contacts', JSON.stringify(initial));
       return initial;
@@ -200,7 +202,7 @@ export const api = {
       return res.data;
     } catch {
       // Offline fallback: return sum of local players
-      return { total: 504 };
+      return { total: 0 };
     }
   },
 
@@ -376,7 +378,7 @@ export const api = {
         if (quest && !quest.claimed && quest.progress >= quest.target) {
           quest.claimed = true;
           localStorage.setItem(`marinmc_quests_${username}`, JSON.stringify(list));
-          
+
           const currentCoins = parseInt(localStorage.getItem('marinmc_coins') || '500', 10);
           const nextCoins = currentCoins + quest.coins;
           localStorage.setItem('marinmc_coins', nextCoins.toString());
@@ -396,12 +398,11 @@ export const api = {
       console.warn('[API] getAchievements failed, returning fallback.');
       const local = localStorage.getItem(`marinmc_achievements_${username}`);
       if (local) return JSON.parse(local);
-      
-      const coins = parseInt(localStorage.getItem('marinmc_coins') || '500', 10);
+
       const initial: Achievement[] = [
         { id: 'a1', title: 'İlk Adım', description: 'Yeni tasarımlı launcher\'a ilk kez giriş yap.', completed: true, date: new Date().toLocaleDateString('tr-TR') },
         { id: 'a2', title: 'Mod Meraklısı', description: 'Mod Yöneticisinden ilk modunu indir.', completed: false, date: '-' },
-        { id: 'a3', title: 'Jeton Avcısı', description: 'Cüzdanında 1,000 veya daha fazla Jeton barındır.', completed: coins >= 1000, date: coins >= 1000 ? new Date().toLocaleDateString('tr-TR') : '-' }
+        { id: 'a3', title: 'Sosyal Keşif', description: 'Arkadaş listene ilk arkadaşını ekle.', completed: false, date: '-' }
       ];
       localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(initial));
       return initial;

@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import hpp from 'hpp';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { ensureDbInitialized, dbGet, dbRun, dbAll } from './db.js';
 import { initWebSocket } from './ws.js';
 
@@ -128,8 +129,236 @@ const messagesSchema = z.object({
   )
 });
 
+const authSchema = z.object({
+  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/),
+  password: z.string().min(6).max(100)
+});
+
+const microsoftAuthSchema = z.object({
+  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/),
+  uuid: z.string().min(3).max(100),
+  token: z.string().min(3).max(1000)
+});
+
+// --- AUTHENTICATION & SECURITY HELPERS ---
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, storedHash) {
+  if (!storedHash) return false;
+  const [salt, hash] = storedHash.split(':');
+  const testHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  return hash === testHash;
+}
+
+const authenticateToken = async (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Erişim engellendi. Token eksik.' });
+  }
+
+  try {
+    const user = await dbGet('SELECT * FROM users WHERE token = ?', [token]);
+    if (!user) {
+      return res.status(403).json({ error: 'Geçersiz veya süresi dolmuş oturum.' });
+    }
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(500).json({ error: 'Kimlik doğrulama hatası.' });
+  }
+};
+
+const authorizeUser = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Kimlik doğrulanmadı.' });
+  }
+  const paramUsername = req.params.username;
+  if (paramUsername && paramUsername.toLowerCase() !== req.user.username.toLowerCase()) {
+    return res.status(403).json({ error: 'Bu işlem için yetkiniz yok.' });
+  }
+  next();
+};
+
+// --- AUTHENTICATION ROUTES ---
+
+router.post('/auth/register', async (req, res) => {
+  const validation = authSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Geçersiz veri formatı. Kullanıcı adı 3-30 harf/rakam/alt çizgi olmalı, şifre en az 6 karakter olmalıdır.', details: validation.error.format() });
+  }
+
+  const { username, password } = validation.data;
+  const lowerUsername = username.toLowerCase();
+
+  try {
+    const existingUser = await dbGet('SELECT * FROM users WHERE LOWER(username) = ?', [lowerUsername]);
+    
+    if (existingUser) {
+      if (existingUser.password_hash) {
+        return res.status(400).json({ error: 'Bu kullanıcı adı zaten kayıtlı.' });
+      }
+      
+      // Upgrade legacy user
+      const passwordHash = hashPassword(password);
+      const token = crypto.randomBytes(32).toString('hex');
+      const lastLogin = new Date().toLocaleString('tr-TR');
+      
+      await dbRun('UPDATE users SET password_hash = ?, token = ?, last_login = ? WHERE LOWER(username) = ?', [
+        passwordHash,
+        token,
+        lastLogin,
+        lowerUsername
+      ]);
+      
+      return res.json({
+        success: true,
+        token,
+        session: {
+          id: `offline-${lowerUsername}`,
+          name: existingUser.username,
+          token,
+          type: 'cracked',
+          avatar: `https://mc-heads.net/avatar/${existingUser.username}/64`
+        }
+      });
+    }
+
+    const passwordHash = hashPassword(password);
+    const token = crypto.randomBytes(32).toString('hex');
+    const lastLogin = new Date().toLocaleString('tr-TR');
+
+    await dbRun('INSERT INTO users (username, total_play_time, last_login, coins, password_hash, token) VALUES (?, ?, ?, ?, ?, ?)', [
+      username,
+      124,
+      lastLogin,
+      500,
+      passwordHash,
+      token
+    ]);
+
+    res.json({
+      success: true,
+      token,
+      session: {
+        id: `offline-${lowerUsername}`,
+        name: username,
+        token,
+        type: 'cracked',
+        avatar: `https://mc-heads.net/avatar/${username}/64`
+      }
+    });
+  } catch (err) {
+    console.error('[Auth] Register error:', err);
+    res.status(500).json({ error: 'Kayıt sırasında bir hata oluştu.' });
+  }
+});
+
+router.post('/auth/login', async (req, res) => {
+  const validation = authSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Geçersiz veri formatı.', details: validation.error.format() });
+  }
+
+  const { username, password } = validation.data;
+  const lowerUsername = username.toLowerCase();
+
+  try {
+    const user = await dbGet('SELECT * FROM users WHERE LOWER(username) = ?', [lowerUsername]);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı. Lütfen önce Kayıt Ol sekmesini kullanarak kayıt olun.' });
+    }
+
+    if (!user.password_hash) {
+      return res.status(400).json({ error: 'Bu hesap henüz güvenceye alınmamış. Lütfen önce Kayıt Ol sekmesini kullanarak şifre belirleyin.' });
+    }
+
+    if (!verifyPassword(password, user.password_hash)) {
+      return res.status(401).json({ error: 'Hatalı şifre. Lütfen tekrar deneyiniz.' });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const lastLogin = new Date().toLocaleString('tr-TR');
+
+    await dbRun('UPDATE users SET token = ?, last_login = ? WHERE LOWER(username) = ?', [
+      token,
+      lastLogin,
+      lowerUsername
+    ]);
+
+    res.json({
+      success: true,
+      token,
+      session: {
+        id: `offline-${lowerUsername}`,
+        name: user.username,
+        token,
+        type: 'cracked',
+        avatar: `https://mc-heads.net/avatar/${user.username}/64`
+      }
+    });
+  } catch (err) {
+    console.error('[Auth] Login error:', err);
+    res.status(500).json({ error: 'Giriş sırasında bir hata oluştu.' });
+  }
+});
+
+router.post('/auth/microsoft-login', async (req, res) => {
+  const validation = microsoftAuthSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Geçersiz veri formatı.', details: validation.error.format() });
+  }
+
+  const { username, uuid, token: msToken } = validation.data;
+  const lowerUsername = username.toLowerCase();
+
+  try {
+    let user = await dbGet('SELECT * FROM users WHERE LOWER(username) = ?', [lowerUsername]);
+    const serverToken = crypto.randomBytes(32).toString('hex');
+    const lastLogin = new Date().toLocaleString('tr-TR');
+
+    if (!user) {
+      await dbRun('INSERT INTO users (username, total_play_time, last_login, coins, token) VALUES (?, ?, ?, ?, ?)', [
+        username,
+        124,
+        lastLogin,
+        500,
+        serverToken
+      ]);
+    } else {
+      await dbRun('UPDATE users SET token = ?, last_login = ? WHERE LOWER(username) = ?', [
+        serverToken,
+        lastLogin,
+        lowerUsername
+      ]);
+    }
+
+    res.json({
+      success: true,
+      token: serverToken,
+      session: {
+        id: uuid,
+        name: username,
+        token: serverToken,
+        type: 'ms',
+        avatar: `https://mc-heads.net/avatar/${username}/64`
+      }
+    });
+  } catch (err) {
+    console.error('[Auth] Microsoft login error:', err);
+    res.status(500).json({ error: 'Microsoft girişi sırasında bir hata oluştu.' });
+  }
+});
+
 // --- USER PROFILE & STATS ---
-router.get('/users/:username/profile', validateUsername, async (req, res) => {
+router.get('/users/:username/profile', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   try {
     let user = await dbGet('SELECT * FROM users WHERE username = ?', [username]);
@@ -156,7 +385,7 @@ router.get('/users/:username/profile', validateUsername, async (req, res) => {
   }
 });
 
-router.put('/users/:username/profile', validateUsername, async (req, res) => {
+router.put('/users/:username/profile', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   
   // Zod validation
@@ -244,7 +473,7 @@ router.get('/leaderboard', async (req, res) => {
 });
 
 // --- COSMETICS ---
-router.get('/users/:username/cosmetics', validateUsername, async (req, res) => {
+router.get('/users/:username/cosmetics', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   try {
     const [cos, user] = await Promise.all([
@@ -288,7 +517,7 @@ router.get('/users/:username/cosmetics', validateUsername, async (req, res) => {
   }
 });
 
-router.put('/users/:username/cosmetics', validateUsername, async (req, res) => {
+router.put('/users/:username/cosmetics', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   
   // Zod validation
@@ -342,7 +571,7 @@ router.put('/users/:username/cosmetics', validateUsername, async (req, res) => {
 });
 
 // --- CHATS & FRIENDS ---
-router.get('/chats/:username/contacts', validateUsername, async (req, res) => {
+router.get('/chats/:username/contacts', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   try {
     const contacts = await dbAll('SELECT * FROM contacts WHERE username = ?', [username]);
@@ -383,7 +612,7 @@ router.get('/chats/:username/contacts', validateUsername, async (req, res) => {
   }
 });
 
-router.put('/chats/:username/contacts', validateUsername, async (req, res) => {
+router.put('/chats/:username/contacts', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   
   // Zod validation
@@ -420,7 +649,7 @@ router.put('/chats/:username/contacts', validateUsername, async (req, res) => {
   }
 });
 
-router.get('/chats/:username/messages', validateUsername, async (req, res) => {
+router.get('/chats/:username/messages', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   try {
     const messages = await dbAll('SELECT * FROM messages WHERE username = ?', [username]);
@@ -474,7 +703,7 @@ router.get('/chats/:username/messages', validateUsername, async (req, res) => {
   }
 });
 
-router.put('/chats/:username/messages', validateUsername, async (req, res) => {
+router.put('/chats/:username/messages', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   
   // Zod validation
@@ -531,12 +760,15 @@ router.get('/gallery/community', async (req, res) => {
   }
 });
 
-router.post('/gallery/community', async (req, res) => {
+router.post('/gallery/community', authenticateToken, async (req, res) => {
   const validation = screenshotSchema.safeParse(req.body);
   if (!validation.success) {
     return res.status(400).json({ error: 'Geçersiz veri formatı.', details: validation.error.format() });
   }
   const { title, url, username } = validation.data;
+  if (username.toLowerCase() !== req.user.username.toLowerCase()) {
+    return res.status(403).json({ error: 'Bu işlem için yetkiniz yok.' });
+  }
   try {
     const id = Math.random().toString(36).substring(2, 11);
     const dateStr = new Date().toLocaleDateString('tr-TR');
@@ -566,7 +798,7 @@ router.post('/gallery/community/:id/like', async (req, res) => {
 });
 
 // --- QUESTS & ACHIEVEMENTS ---
-router.get('/users/:username/quests', validateUsername, async (req, res) => {
+router.get('/users/:username/quests', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   try {
     let list = await dbAll('SELECT * FROM quests WHERE username = ?', [username]);
@@ -613,7 +845,7 @@ router.get('/users/:username/quests', validateUsername, async (req, res) => {
   }
 });
 
-router.post('/users/:username/quests/:id/claim', validateUsername, async (req, res) => {
+router.post('/users/:username/quests/:id/claim', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const { username, id } = req.params;
   try {
     const quest = await dbGet('SELECT * FROM quests WHERE username = ? AND id = ?', [username, id]);
@@ -639,7 +871,7 @@ router.post('/users/:username/quests/:id/claim', validateUsername, async (req, r
   }
 });
 
-router.get('/users/:username/achievements', validateUsername, async (req, res) => {
+router.get('/users/:username/achievements', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   try {
     let list = await dbAll('SELECT * FROM achievements WHERE username = ?', [username]);

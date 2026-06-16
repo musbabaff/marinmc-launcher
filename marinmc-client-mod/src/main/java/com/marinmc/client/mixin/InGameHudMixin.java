@@ -3,6 +3,7 @@ package com.marinmc.client.mixin;
 import com.marinmc.client.gui.hud.HudManager;
 import com.marinmc.client.gui.hud.HudElement;
 import com.marinmc.client.gui.OverlayScreen;
+import com.marinmc.client.features.FreelookHandler;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.InGameHud;
@@ -23,18 +24,31 @@ public class InGameHudMixin {
         // Render all HUD elements
         HudManager.getInstance().renderAll(context);
 
+        int currentY = mc.getWindow().getScaledHeight() - 40; // Above chat
+        int x = 10;
+
         // Draw Toggle Sneak/Sprint status
         boolean modEnabled = OverlayScreen.configStates.getOrDefault("toggle_sneak", false);
         if (modEnabled) {
-            int currentY = mc.getWindow().getScaledHeight() - 40; // Above chat
-            int x = 10;
             if (com.marinmc.client.MarinClient.toggledSneak) {
                 context.drawTextWithShadow(mc.textRenderer, "[Sneak: Toggled]", x, currentY, 0xFF22C55E);
                 currentY -= 12;
             }
             if (com.marinmc.client.MarinClient.toggledSprint) {
                 context.drawTextWithShadow(mc.textRenderer, "[Sprint: Toggled]", x, currentY, 0xFF22C55E);
+                currentY -= 12;
             }
+        }
+
+        // Draw Freelook status indicator
+        if (FreelookHandler.getInstance().isActive()) {
+            context.drawTextWithShadow(mc.textRenderer, "[Freelook Active]", x, currentY, 0xFF3B82F6);
+            currentY -= 12;
+        }
+
+        // Draw Fullbright status indicator
+        if (com.marinmc.client.MarinClient.fullbrightEnabled) {
+            context.drawTextWithShadow(mc.textRenderer, "[Fullbright]", x, currentY, 0xFFFFC107);
         }
     }
 

@@ -781,7 +781,14 @@ export default function ChatPage() {
                     onClick={() => handleNewChat(friend.username)}
                     className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all text-left"
                   >
-                    <img src={`https://minotar.net/avatar/${friend.username}/24`} alt="" className="w-6 h-6 rounded" />
+                    <img 
+                      src={`https://minotar.net/avatar/${friend.username}/24`} 
+                      alt="" 
+                      className="w-6 h-6 rounded" 
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/24';
+                      }}
+                    />
                     <span className="text-[10px] font-bold text-white">{friend.username}</span>
                   </button>
                 ))

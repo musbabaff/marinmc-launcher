@@ -8,21 +8,24 @@ import { useAppStore } from '../stores/appStore.ts';
 import { sanitizeUrl, sanitizeParam } from '../lib/security.ts';
 import { api } from '../lib/api.ts';
 import VersionModal from '../components/VersionModal.tsx';
+import ProfileSettingsModal from '../components/ProfileSettingsModal.tsx';
 import MarinLogo from '../components/MarinLogo.tsx';
 import {
   ChevronDown, LogOut, Search,
   MessageSquare, UserPlus, X, AlertTriangle,
   Trophy, CheckCircle2, WifiOff, ExternalLink, RefreshCw,
   Pause, Plus, Trash2, Send,
-  Clock, Gamepad2, Users,
+  Gamepad2, Users,
   Settings, Image, Package, ShoppingBag,
-  Lightbulb, Zap, TrendingUp, Activity,
+  Zap, TrendingUp, Activity,
   Globe, BarChart3, Sparkles, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { wsManager } from '../lib/websocket';
 
 import heroBg from '../../assets/home-hero-bg.png';
+import astronautImg from '../../assets/minecraft-astronaut.png';
+import rocketImg from '../../assets/minecraft-rocket.png';
 
 export default function HomePage() {
   const { t } = useTranslation();
@@ -34,9 +37,12 @@ export default function HomePage() {
   const location = useLocation();
 
   const [versionModalOpen, setVersionModalOpen] = useState(false);
+  const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [offlineAddOpen, setOfflineAddOpen] = useState(false);
   const [newOfflineName, setNewOfflineName] = useState('');
+  const [newOfflinePassword, setNewOfflinePassword] = useState('');
+  const [isDropdownRegister, setIsDropdownRegister] = useState(false);
   const [profileAddError, setProfileAddError] = useState<string | null>(null);
   const [profileAddSuccess, setProfileAddSuccess] = useState<string | null>(null);
 
@@ -68,49 +74,8 @@ export default function HomePage() {
   const [newsError, setNewsError] = useState(false);
   const [homeServers, setHomeServers] = useState<any[]>([]);
   const [onlineCountVal, setOnlineCountVal] = useState(247);
-  const [totalPlayTime, setTotalPlayTime] = useState(124);
   const [lastSessionServer, setLastSessionServer] = useState('-');
   const [lastSessionTimeAgoText, setLastSessionTimeAgoText] = useState('');
-
-  // === NEW: Rotating Tips ===
-  const TIPS = useMemo(() => [
-    { icon: '💡', text: 'Shift tuşu ile kenarlardan düşmezsiniz!' },
-    { icon: '⚡', text: 'F3+G ile chunk sınırlarını görebilirsiniz.' },
-    { icon: '🎯', text: 'Ayarlar > JVM Args ile performansınızı optimize edin.' },
-    { icon: '🛡️', text: 'Kalkan ile Creeper patlamalarından korunabilirsiniz.' },
-    { icon: '🔥', text: 'Netherite eşyalar lavda yanmaz!' },
-    { icon: '🌙', text: 'Phantomlar 3 gün uyumazsanız ortaya çıkar.' },
-    { icon: '⛏️', text: 'Fortune III ile elmas madenciliği veriminizi 3x artırın.' },
-    { icon: '🎮', text: 'Launcher > Modlar sayfasından tek tıkla mod ekleyebilirsiniz.' },
-    { icon: '🏠', text: 'Pusula ile spawn noktanıza dönüş yolunu bulun.' },
-    { icon: '🚀', text: 'Smart JVM ile otomatik RAM optimizasyonu yapılır.' },
-  ], []);
-  const [tipIndex, setTipIndex] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTipIndex(prev => (prev + 1) % TIPS.length);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [TIPS.length]);
-
-  // === NEW: Animated counter for stats ===
-  const [animatedPlaytime, setAnimatedPlaytime] = useState(0);
-  const [animatedOnline, setAnimatedOnline] = useState(0);
-  useEffect(() => {
-    const targetPt = Math.round(totalPlayTime / 60);
-    const targetOn = onlineCountVal;
-    let frame = 0;
-    const totalFrames = 40;
-    const step = () => {
-      frame++;
-      const progress = Math.min(frame / totalFrames, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setAnimatedPlaytime(Math.round(targetPt * eased));
-      setAnimatedOnline(Math.round(targetOn * eased));
-      if (frame < totalFrames) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [totalPlayTime, onlineCountVal]);
 
   // === NEW: Weekly activity chart data ===
   const weeklyData = useMemo(() => {
@@ -167,7 +132,6 @@ export default function HomePage() {
   useEffect(() => {
     if (!session?.name) return;
     api.getUserProfile(session.name).then((profile: any) => {
-      setTotalPlayTime(profile.totalPlayTime || 0);
       if (profile.playSessions && profile.playSessions.length > 0) {
         const last = profile.playSessions[profile.playSessions.length - 1];
         setLastSessionServer(last.server || '-');
@@ -249,6 +213,19 @@ export default function HomePage() {
   const [addFriendOpen, setAddFriendOpen] = useState(false);
   const [newFriendUsername, setNewFriendUsername] = useState('');
   const [addFriendLoading, setAddFriendLoading] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout | undefined;
+    if (toast) {
+      timer = setTimeout(() => {
+        setToast(null);
+      }, 3500);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [toast]);
 
   // Setup game status listeners
   useEffect(() => {
@@ -387,16 +364,24 @@ export default function HomePage() {
 
   const handleAddFriendSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFriendUsername.trim()) return;
+    const targetUsername = newFriendUsername.trim();
+    if (!targetUsername) return;
+
+    if (targetUsername.toLowerCase() === (session?.name || '').toLowerCase()) {
+      setToast({ type: 'error', message: 'Kendi kendinize arkadaşlık isteği gönderemezsiniz!' });
+      return;
+    }
+
     setAddFriendLoading(true);
-    const success = await social.addFriend(newFriendUsername.trim());
+    const success = await social.addFriend(targetUsername);
     setAddFriendLoading(false);
-    setNewFriendUsername('');
-    setAddFriendOpen(false);
+
     if (success) {
-      alert(t('home.requestSent'));
+      setToast({ type: 'success', message: t('home.requestSent') || 'Arkadaşlık isteği gönderildi!' });
+      setNewFriendUsername('');
+      setAddFriendOpen(false);
     } else {
-      alert(t('home.playerNotFound'));
+      setToast({ type: 'error', message: t('home.playerNotFound') || 'Oyuncu bulunamadı veya bir hata oluştu.' });
     }
   };
 
@@ -494,334 +479,298 @@ export default function HomePage() {
         </div>
 
         <div className="p-6 flex flex-col space-y-6 relative z-10">
-          {/* Welcome message header section */}
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="relative">
-                <button
-                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center gap-2 hover:text-white text-white text-base font-extrabold tracking-wide uppercase transition-all"
-                >
-                  <span>{t('home.greeting')}, {session?.name || 'dbrn'}</span>
-                  <ChevronDown className={`w-4 h-4 text-white/50 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
+          {/* Minimal top header with Profile Switcher */}
+          <div className="flex justify-end items-center relative z-20">
+            <div className="relative">
+              <button
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/[0.04] rounded-xl text-white text-[10px] font-bold uppercase transition-all"
+              >
+                <img
+                  src={session?.avatar}
+                  alt="avatar"
+                  className="w-4 h-4 rounded bg-black/20 shrink-0"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
+                  }}
+                />
+                <span>{session?.name || 'dbrn'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-white/50 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-                <AnimatePresence>
-                  {profileDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -5 }}
-                      className="absolute left-0 mt-2 bg-[#060305] border border-white/[0.08] rounded-xl shadow-2xl w-64 py-2.5 z-50 text-[10px] font-black"
-                    >
-                      <div className="px-3.5 pb-2 border-b border-white/[0.05] mb-2 flex items-center justify-between">
-                        <span className="text-[#52525B] uppercase tracking-wider text-[8px] font-black">Hesaplar</span>
-                        <span className="text-[7.5px] bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30 px-1.5 py-0.5 rounded uppercase">Aktif: {session?.type}</span>
-                      </div>
+              <AnimatePresence>
+                {profileDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="absolute right-0 mt-2 bg-[#060305] border border-white/[0.08] rounded-xl shadow-2xl w-64 py-2.5 z-50 text-[10px] font-black"
+                  >
+                    <div className="px-3.5 pb-2 border-b border-white/[0.05] mb-2 flex items-center justify-between">
+                      <span className="text-[#52525B] uppercase tracking-wider text-[8px] font-black">Hesaplar</span>
+                      <span className="text-[7.5px] bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30 px-1.5 py-0.5 rounded uppercase">Aktif: {session?.type}</span>
+                    </div>
 
-                      {/* Display profiles list */}
-                      <div className="max-h-36 overflow-y-auto space-y-1 px-1.5 custom-scrollbar">
-                        {profiles.map((p) => {
-                          const isCurrent = p.id === session?.id;
-                          return (
+                    {/* Display profiles list */}
+                    <div className="max-h-36 overflow-y-auto space-y-1 px-1.5 custom-scrollbar">
+                      {profiles.map((p) => {
+                        const isCurrent = p.id === session?.id;
+                        return (
+                          <div
+                            key={p.id}
+                            className={`flex items-center justify-between p-1.5 rounded-lg transition-colors group ${
+                              isCurrent ? 'bg-[#2D7DD2]/10 border border-[#2D7DD2]/25' : 'hover:bg-white/5 border border-transparent'
+                            }`}
+                          >
                             <div
-                              key={p.id}
-                              className={`flex items-center justify-between p-1.5 rounded-lg transition-colors group ${
-                                isCurrent ? 'bg-[#2D7DD2]/10 border border-[#2D7DD2]/25' : 'hover:bg-white/5 border border-transparent'
+                              onClick={async () => {
+                                if (!isCurrent) {
+                                  setProfileDropdownOpen(false);
+                                  await switchProfile(p.id);
+                                }
+                              }}
+                              className="flex items-center gap-2 cursor-pointer flex-grow min-w-0"
+                            >
+                              <img
+                                src={p.avatar}
+                                alt="avatar"
+                                className="w-5 h-5 rounded bg-black/25 shrink-0"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
+                                }}
+                              />
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-white truncate font-bold text-[9.5px]">{p.name}</span>
+                                <span className="text-[7px] text-[#52525B] uppercase leading-none font-bold">
+                                  {p.type === 'ms' ? 'Microsoft' : 'Cracked'}
+                                </span>
+                              </div>
+                            </div>
+                            {/* Remove profile button */}
+                            {profiles.length > 1 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeProfile(p.id);
+                                }}
+                                className="p-1 rounded text-[#52525B] hover:text-red-400 hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-all"
+                                title="Hesabı Kaldır"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Add account forms/buttons */}
+                    <div className="mt-2 border-t border-white/[0.05] pt-2 px-3 space-y-1.5">
+                      {offlineAddOpen ? (
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (newOfflineName.trim().length < 3) {
+                              setProfileAddError('En az 3 karakter giriniz.');
+                              return;
+                            }
+                            if (newOfflinePassword.length < 6) {
+                              setProfileAddError('Şifre en az 6 karakter olmalıdır.');
+                              return;
+                            }
+                            setProfileAddError(null);
+                            try {
+                              await addOfflineProfile(newOfflineName.trim(), newOfflinePassword, isDropdownRegister);
+                              setOfflineAddOpen(false);
+                              setNewOfflineName('');
+                              setNewOfflinePassword('');
+                              setProfileAddSuccess('Profil başarıyla eklendi.');
+                              setTimeout(() => setProfileAddSuccess(null), 3000);
+                            } catch (err: any) {
+                              setProfileAddError(err.message || 'Profil eklenemedi.');
+                            }
+                          }}
+                          className="space-y-1.5"
+                        >
+                          <div className="flex bg-[#111111]/80 rounded-lg p-0.5 border border-white/5">
+                            <button
+                              type="button"
+                              onClick={() => setIsDropdownRegister(false)}
+                              className={`flex-1 py-0.5 rounded text-[7px] font-bold transition-all uppercase ${
+                                !isDropdownRegister ? 'bg-[#2D7DD2] text-white' : 'text-white/45'
                               }`}
                             >
-                              <div
-                                onClick={async () => {
-                                  if (!isCurrent) {
-                                    setProfileDropdownOpen(false);
-                                    await switchProfile(p.id);
-                                  }
-                                }}
-                                className="flex items-center gap-2 cursor-pointer flex-grow min-w-0"
-                              >
-                                <img
-                                  src={p.avatar}
-                                  alt="avatar"
-                                  className="w-5 h-5 rounded bg-black/25 shrink-0"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
-                                  }}
-                                />
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-white truncate font-bold text-[9.5px]">{p.name}</span>
-                                  <span className="text-[7px] text-[#52525B] uppercase leading-none font-bold">
-                                    {p.type === 'ms' ? 'Microsoft' : 'Cracked'}
-                                  </span>
-                                </div>
-                              </div>
-                              {/* Remove profile button */}
-                              {profiles.length > 1 && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removeProfile(p.id);
-                                  }}
-                                  className="p-1 rounded text-[#52525B] hover:text-red-400 hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-all"
-                                  title="Hesabı Kaldır"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Add account forms/buttons */}
-                      <div className="mt-2 border-t border-white/[0.05] pt-2 px-3 space-y-1.5">
-                        {offlineAddOpen ? (
-                          <form
-                            onSubmit={async (e) => {
-                              e.preventDefault();
-                              if (newOfflineName.trim().length < 3) {
-                                setProfileAddError('En az 3 karakter giriniz.');
-                                return;
-                              }
+                              Giriş
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsDropdownRegister(true)}
+                              className={`flex-1 py-0.5 rounded text-[7px] font-bold transition-all uppercase ${
+                                isDropdownRegister ? 'bg-[#2D7DD2] text-white' : 'text-white/45'
+                              }`}
+                            >
+                              Kayıt
+                            </button>
+                          </div>
+                          <div className="flex items-center bg-[#111111] border border-white/10 rounded-lg px-2 py-1 focus-within:border-[#2D7DD2]/50">
+                            <input
+                              type="text"
+                              placeholder="Kullanıcı Adı"
+                              value={newOfflineName}
+                              onChange={(e) => setNewOfflineName(e.target.value)}
+                              className="bg-transparent border-none outline-none text-[8.5px] w-full text-white placeholder-white/20 font-bold"
+                              autoFocus
+                            />
+                          </div>
+                          <div className="flex items-center bg-[#111111] border border-white/10 rounded-lg px-2 py-1 focus-within:border-[#2D7DD2]/50">
+                            <input
+                              type="password"
+                              placeholder={isDropdownRegister ? "Şifre (En az 6 kar.)" : "Şifre giriniz"}
+                              value={newOfflinePassword}
+                              onChange={(e) => setNewOfflinePassword(e.target.value)}
+                              className="bg-transparent border-none outline-none text-[8.5px] w-full text-white placeholder-white/20 font-bold"
+                            />
+                          </div>
+                          <div className="flex gap-1.5">
+                            <button
+                              type="submit"
+                              className="flex-1 py-1.5 bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white rounded font-bold text-[8px] uppercase tracking-wider transition-colors"
+                            >
+                              Ekle
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setOfflineAddOpen(false); setProfileAddError(null); }}
+                              className="flex-1 py-1.5 bg-white/5 hover:bg-white/10 text-[#A1A1AA] hover:text-white rounded font-bold text-[8px] uppercase tracking-wider transition-colors"
+                            >
+                              İptal
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => { setOfflineAddOpen(true); setProfileAddError(null); }}
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded font-bold text-[7.5px] uppercase tracking-wider transition-all"
+                          >
+                            <UserPlus className="w-2.5 h-2.5" />
+                            <span>Offline Ekle</span>
+                          </button>
+                          <button
+                            onClick={async () => {
                               setProfileAddError(null);
                               try {
-                                await addOfflineProfile(newOfflineName.trim());
-                                setOfflineAddOpen(false);
-                                setNewOfflineName('');
+                                await addMicrosoftProfile();
                                 setProfileAddSuccess('Profil başarıyla eklendi.');
                                 setTimeout(() => setProfileAddSuccess(null), 3000);
                               } catch (err: any) {
                                 setProfileAddError(err.message || 'Profil eklenemedi.');
                               }
                             }}
-                            className="space-y-1.5"
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-[#208390]/20 hover:bg-[#208390]/30 border border-[#208390]/30 text-[#208390] rounded font-bold text-[7.5px] uppercase tracking-wider transition-all"
                           >
-                            <div className="flex items-center bg-[#111111] border border-white/10 rounded-lg px-2 py-1 focus-within:border-[#2D7DD2]/50">
-                              <input
-                                type="text"
-                                placeholder="Offline Kullanıcı Adı"
-                                value={newOfflineName}
-                                onChange={(e) => setNewOfflineName(e.target.value)}
-                                className="bg-transparent border-none outline-none text-[8.5px] w-full text-white placeholder-white/20 font-bold"
-                                autoFocus
-                              />
-                            </div>
-                            <div className="flex gap-1.5">
-                              <button
-                                type="submit"
-                                className="flex-1 py-1 bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white rounded font-bold text-[8px] uppercase tracking-wider transition-colors"
-                              >
-                                Ekle
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => { setOfflineAddOpen(false); setProfileAddError(null); }}
-                                className="flex-1 py-1 bg-white/5 hover:bg-white/10 text-[#A1A1AA] hover:text-white rounded font-bold text-[8px] uppercase tracking-wider transition-colors"
-                              >
-                                İptal
-                              </button>
-                            </div>
-                          </form>
-                        ) : (
-                          <div className="flex gap-1.5">
-                            <button
-                              onClick={() => { setOfflineAddOpen(true); setProfileAddError(null); }}
-                              className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded font-bold text-[7.5px] uppercase tracking-wider transition-all"
-                            >
-                              <UserPlus className="w-2.5 h-2.5" />
-                              <span>Offline Ekle</span>
-                            </button>
-                            <button
-                              onClick={async () => {
-                                setProfileAddError(null);
-                                try {
-                                  await addMicrosoftProfile();
-                                  setProfileAddSuccess('Profil başarıyla eklendi.');
-                                  setTimeout(() => setProfileAddSuccess(null), 3000);
-                                } catch (err: any) {
-                                  setProfileAddError(err.message || 'Profil eklenemedi.');
-                                }
-                              }}
-                              className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-[#208390]/20 hover:bg-[#208390]/30 border border-[#208390]/30 text-[#208390] rounded font-bold text-[7.5px] uppercase tracking-wider transition-all"
-                            >
-                              <Plus className="w-2.5 h-2.5" />
-                              <span>Microsoft Ekle</span>
-                            </button>
-                          </div>
-                        )}
+                            <Plus className="w-2.5 h-2.5" />
+                            <span>Microsoft Ekle</span>
+                          </button>
+                        </div>
+                      )}
 
-                        {profileAddError && (
-                          <div className="text-[7.5px] text-red-400 font-bold text-center mt-1">
-                            {profileAddError}
-                          </div>
-                        )}
-                        {profileAddSuccess && (
-                          <div className="text-[7.5px] text-[#259457] font-bold text-center mt-1 animate-pulse">
-                            {profileAddSuccess}
-                          </div>
-                        )}
-                      </div>
+                      {profileAddError && (
+                        <div className="text-[7.5px] text-red-400 font-bold text-center mt-1">
+                          {profileAddError}
+                        </div>
+                      )}
+                      {profileAddSuccess && (
+                        <div className="text-[7.5px] text-[#259457] font-bold text-center mt-1 animate-pulse">
+                          {profileAddSuccess}
+                        </div>
+                      )}
+                    </div>
 
-                      <button
-                        onClick={async () => {
-                          setProfileDropdownOpen(false);
-                          await logout();
-                        }}
-                        className="w-full flex items-center gap-2 px-3.5 py-2 text-red-400 hover:bg-red-500/10 text-left border-t border-white/[0.05] mt-2.5"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                        <span>{t('servers.logout')}</span>
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              <p className="text-[10px] text-[#52525B] font-semibold mt-1">
-                {t('home.lastPlayed')}: <span className="text-[#2D7DD2]">{lastSessionServer !== '-' ? lastSessionServer : 'Yok'}</span> {lastSessionTimeAgoText && `(${lastSessionTimeAgoText})`} · {t('home.totalPlaytime')}: <span className="text-white/80">{Math.round(totalPlayTime / 60)} {t('profile.hour')}</span>
-              </p>
+                    <button
+                      onClick={async () => {
+                        setProfileDropdownOpen(false);
+                        await logout();
+                      }}
+                      className="w-full flex items-center gap-2 px-3.5 py-2 text-red-400 hover:bg-red-500/10 text-left border-t border-white/[0.05] mt-2.5"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>{t('servers.logout')}</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
-          {/* === NEW: Rotating Tip Banner === */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={tipIndex}
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.4 }}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm"
-            >
-              <span className="text-lg leading-none">{TIPS[tipIndex].icon}</span>
-              <div className="flex-1 min-w-0">
-                <span className="text-[8px] font-black text-[#F59E0B] uppercase tracking-widest">Biliyor muydunuz?</span>
-                <p className="text-[10px] text-white/70 font-semibold mt-0.5 truncate">{TIPS[tipIndex].text}</p>
-              </div>
-              <Lightbulb className="w-3.5 h-3.5 text-[#F59E0B]/30 shrink-0" />
-            </motion.div>
-          </AnimatePresence>
+          {/* Redesigned 1:1 Lunar Client style Hero Card */}
+          <div className="w-full h-[300px] rounded-3xl bg-gradient-to-r from-[#0d0a11] via-[#08060a] to-[#0d0a11] border border-white/[0.05] relative overflow-hidden flex items-center justify-between px-12 shadow-[0_25px_60px_rgba(0,0,0,0.7)] group">
+            {/* Background particles and radial gradient */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.06),transparent_60%)] pointer-events-none" />
+            <div className="absolute -top-12 -left-12 w-36 h-36 bg-[#2D7DD2]/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-12 -right-12 w-36 h-36 bg-[#8B5CF6]/5 rounded-full blur-3xl pointer-events-none" />
 
-          {/* === NEW: Quick Stats Row === */}
-          <div className="grid grid-cols-4 gap-3">
-            {/* Total Playtime */}
-            <motion.div
-              whileHover={{ y: -2, scale: 1.02 }}
-              className="relative rounded-xl p-3.5 bg-white/[0.02] border border-white/[0.04] hover:border-[#2D7DD2]/30 transition-all duration-300 overflow-hidden group cursor-default"
-            >
-              <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#2D7DD2]/5 rounded-full blur-xl pointer-events-none group-hover:bg-[#2D7DD2]/10 transition-all" />
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 rounded-lg bg-[#2D7DD2]/10 border border-[#2D7DD2]/20 flex items-center justify-center">
-                  <Clock className="w-3 h-3 text-[#2D7DD2]" />
-                </div>
-                <span className="text-[7.5px] font-black text-[#52525B] uppercase tracking-widest">Toplam Süre</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-white tabular-nums">{animatedPlaytime}</span>
-                <span className="text-[8px] font-bold text-[#52525B] uppercase">saat</span>
-              </div>
-            </motion.div>
+            {/* Left side: Floating Voxel Astronaut */}
+            <div className="hidden md:block w-36 h-36 relative select-none pointer-events-none z-10 shrink-0">
+              <img
+                src={astronautImg}
+                alt="Astronaut"
+                className="w-full h-full object-contain animate-float"
+              />
+            </div>
 
-            {/* Online Players */}
-            <motion.div
-              whileHover={{ y: -2, scale: 1.02 }}
-              className="relative rounded-xl p-3.5 bg-white/[0.02] border border-white/[0.04] hover:border-[#259457]/30 transition-all duration-300 overflow-hidden group cursor-default"
-            >
-              <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#259457]/5 rounded-full blur-xl pointer-events-none group-hover:bg-[#259457]/10 transition-all" />
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 rounded-lg bg-[#259457]/10 border border-[#259457]/20 flex items-center justify-center">
-                  <Users className="w-3 h-3 text-[#259457]" />
-                </div>
-                <span className="text-[7.5px] font-black text-[#52525B] uppercase tracking-widest">Çevrimiçi</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-[#259457] tabular-nums">{animatedOnline}</span>
-                <span className="text-[8px] font-bold text-[#52525B] uppercase">oyuncu</span>
-              </div>
-              <span className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-[#259457] animate-pulse" />
-            </motion.div>
+            {/* Center: Massive Launch Button and Change Version */}
+            <div className="flex-1 flex flex-col items-center justify-center z-10 min-w-0 px-4">
+              <div className="flex items-center gap-3 w-full max-w-[340px]">
+                {launchStatus === 'DOWNLOADING' ? (
+                  // Downloading Green Button
+                  <button
+                    onClick={handleLaunch}
+                    className="flex-1 h-[58px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.25)] flex flex-col items-center justify-center gap-0.5"
+                  >
+                    <span className="font-black text-[13px] tracking-widest uppercase">{t('home.downloading')}</span>
+                    <div className="flex items-center gap-1.5 text-[9px] text-white/80 font-bold">
+                      <span>Fabric {settings.selectedSubVersion || '1.21.0'}</span>
+                      <span className="text-white/40">|</span>
+                      <Pause className="w-2.5 h-2.5 fill-current" />
+                    </div>
+                  </button>
+                ) : (
+                  // Large Green Launch Game Button matching Screenshot
+                  <button
+                    onClick={handleLaunch}
+                    disabled={launchStatus === 'CHECKING' || launchStatus === 'LAUNCHING'}
+                    className="flex-1 h-[58px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] disabled:opacity-50 text-white rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.3)] flex items-center justify-between px-6 cursor-pointer"
+                  >
+                    <div className="flex flex-col items-start text-left">
+                      <span className="font-black text-sm tracking-widest uppercase">{t('home.launch')}</span>
+                      <span className="text-[9px] text-white/80 font-bold uppercase tracking-wider mt-0.5">
+                        MarinMC {settings.selectedSubVersion || '1.21.3'}
+                      </span>
+                    </div>
+                    <div className="w-5 h-5 rounded bg-black/20 hover:bg-black/30 flex items-center justify-center transition-colors">
+                      <ChevronDown className="w-3.5 h-3.5 text-white/80 rotate-180" />
+                    </div>
+                  </button>
+                )}
 
-            {/* Friends Online */}
-            <motion.div
-              whileHover={{ y: -2, scale: 1.02 }}
-              className="relative rounded-xl p-3.5 bg-white/[0.02] border border-white/[0.04] hover:border-[#8B5CF6]/30 transition-all duration-300 overflow-hidden group cursor-default"
-            >
-              <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#8B5CF6]/5 rounded-full blur-xl pointer-events-none group-hover:bg-[#8B5CF6]/10 transition-all" />
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 flex items-center justify-center">
-                  <Gamepad2 className="w-3 h-3 text-[#8B5CF6]" />
-                </div>
-                <span className="text-[7.5px] font-black text-[#52525B] uppercase tracking-widest">Arkadaşlar</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-[#8B5CF6] tabular-nums">{social.friends.filter(f => f.status !== 'offline').length}</span>
-                <span className="text-[8px] font-bold text-[#52525B] uppercase">/ {social.friends.length} çevrimiçi</span>
-              </div>
-            </motion.div>
-
-            {/* Server Status */}
-            <motion.div
-              whileHover={{ y: -2, scale: 1.02 }}
-              className="relative rounded-xl p-3.5 bg-white/[0.02] border border-white/[0.04] hover:border-[#F59E0B]/30 transition-all duration-300 overflow-hidden group cursor-default"
-            >
-              <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#F59E0B]/5 rounded-full blur-xl pointer-events-none group-hover:bg-[#F59E0B]/10 transition-all" />
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center">
-                  <Globe className="w-3 h-3 text-[#F59E0B]" />
-                </div>
-                <span className="text-[7.5px] font-black text-[#52525B] uppercase tracking-widest">Sunucular</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-[#F59E0B] tabular-nums">{homeServers.length}</span>
-                <span className="text-[8px] font-bold text-[#259457] uppercase flex items-center gap-0.5">
-                  <span className="w-1 h-1 rounded-full bg-[#259457] inline-block" /> aktif
-                </span>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Launch Section & Panels Row */}
-          <div className="flex flex-wrap gap-5 items-start">
-            
-            {/* Launch Card */}
-            <div className={`rounded-2xl p-5 bg-[#060305] border border-white/[0.05] shadow-[0_20px_50px_rgba(0,0,0,0.65)] flex flex-col items-center justify-center shrink-0 w-[270px] relative overflow-hidden transition-all duration-300 ${
-              launchStatus === 'DOWNLOADING' ? 'h-[190px] pt-4 pb-3' : 'h-[150px]'
-            }`}>
-              {/* Blur Overlay Graphic */}
-              <div className="absolute -top-12 -left-12 w-28 h-28 bg-[#2D7DD2]/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="absolute -bottom-12 -right-12 w-28 h-28 bg-[#2D7DD2]/15 rounded-full blur-2xl pointer-events-none" />
-
-              {/* Main Button */}
-              {launchStatus === 'DOWNLOADING' ? (
-                // Downloading Green Button
+                {/* Settings cog wheel next to it */}
                 <button
-                  onClick={handleLaunch}
-                  className="w-[230px] h-[52px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] text-white font-extrabold text-xs tracking-widest rounded-xl transition-all duration-300 shadow-[0_8px_25px_rgba(37,148,87,0.25)] flex flex-col items-center justify-center gap-0.5"
+                  onClick={() => setProfileSettingsOpen(true)}
+                  className="w-[58px] h-[58px] bg-white/5 hover:bg-white/10 active:scale-[0.96] border border-white/[0.06] rounded-xl flex items-center justify-center transition-all duration-200"
+                  title={t('home.settings')}
                 >
-                  <span className="font-black text-[13px]">{t('home.downloading')}</span>
-                  <div className="flex items-center gap-1.5 text-[9px] text-white/80 font-bold">
-                    <span>Fabric {settings.selectedSubVersion || '1.21.0'}</span>
-                    <span className="text-white/40">|</span>
-                    <Pause className="w-2.5 h-2.5 fill-current" />
-                  </div>
+                  <Settings className="w-5 h-5 text-white/60 hover:text-white transition-colors" />
                 </button>
-              ) : (
-                // Launch Teal Button matching the visual
-                <button
-                  onClick={handleLaunch}
-                  disabled={launchStatus === 'CHECKING' || launchStatus === 'LAUNCHING'}
-                  className="w-[230px] h-[52px] bg-[#208390] hover:bg-[#2aa4b5] active:scale-[0.98] disabled:opacity-50 text-white font-extrabold text-xs tracking-widest rounded-xl transition-all duration-300 shadow-[0_8px_25px_rgba(32,131,144,0.25)] flex flex-col items-center justify-center gap-0.5"
-                >
-                  <span className="font-black text-[13px]">{t('home.launch')}</span>
-                  <span className="text-[9px] text-white/80 font-bold">Fabric {settings.selectedSubVersion || '1.21.3'}</span>
-                </button>
-              )}
+              </div>
 
-              {/* Dropdown under Button */}
+              {/* Version Selector Link under Button */}
               <button
                 onClick={() => navigate('/versions')}
-                className="mt-3.5 text-[9px] font-bold text-[#A1A1AA] hover:text-white uppercase tracking-wider transition-colors flex items-center gap-1"
+                className="mt-3 text-[9px] font-black text-[#52525B] hover:text-[#A1A1AA] uppercase tracking-widest transition-colors flex items-center gap-1"
               >
                 <span>{t('home.changeVersion')}</span>
-                <ChevronDown className="w-3 h-3 text-[#A1A1AA]" />
+                <ChevronDown className="w-3.5 h-3.5 text-[#52525B]" />
               </button>
 
               {/* Progress bar inside card if downloading */}
@@ -832,7 +781,7 @@ export default function HomePage() {
                 const totalFiles = details ? parseInt(details[3], 10) : 100;
                 
                 return (
-                  <div className="w-[230px] mt-3 space-y-1.5 animate-[fadeIn_0.2s_ease-out]">
+                  <div className="w-full max-w-[340px] mt-3 space-y-1.5 animate-[fadeIn_0.2s_ease-out]">
                     <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/[0.02] shadow-inner">
                       <div
                         className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-300 shadow-[0_0_8px_rgba(52,211,153,0.4)]"
@@ -840,7 +789,7 @@ export default function HomePage() {
                       />
                     </div>
                     <div className="flex justify-between text-[8px] text-[#A1A1AA] font-bold uppercase tracking-wide">
-                      <span className="truncate max-w-[140px] text-emerald-400">
+                      <span className="truncate max-w-[190px] text-emerald-400">
                         {fileType}: {currentFile > 0 ? `${currentFile} / ${totalFiles}` : 'KONTROL EDİLİYOR'}
                       </span>
                       <span className="text-white/40">%{progress} TAMAM</span>
@@ -850,44 +799,50 @@ export default function HomePage() {
               })()}
             </div>
 
-            {/* Server Widgets with Glassmorphic styles and interactive hover effects */}
-            {homeServers.map((srv) => (
-              <motion.div
-                key={srv.id}
-                whileHover={{ y: -4, scale: 1.01 }}
-                className="w-[205px] h-[150px] rounded-2xl p-4 bg-white/[0.02] border border-white/[0.04] hover:border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/5 hover:shadow-[0_0_25px_rgba(139,92,246,0.12)] backdrop-blur-md flex flex-col justify-between relative overflow-hidden transition-all duration-300 group cursor-pointer shrink-0"
-                onClick={() => navigate(`/versions?launch=true`)}
-              >
-                {/* Background Glow */}
-                <div className="absolute top-0 right-0 w-16 h-16 bg-[#8B5CF6]/5 rounded-full blur-xl pointer-events-none group-hover:bg-[#8B5CF6]/10 transition-all" />
+            {/* Right side: Floating Voxel Rocket */}
+            <div className="hidden md:block w-36 h-36 relative select-none pointer-events-none z-10 shrink-0">
+              <img
+                src={rocketImg}
+                alt="Rocket"
+                className="w-full h-full object-contain animate-float-delayed"
+              />
+            </div>
+          </div>
 
-                <div className="flex justify-between items-start">
-                  <span className="text-[7.5px] font-black text-white/40 uppercase tracking-widest bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
-                    {srv.mode || srv.id.toUpperCase()}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#259457] animate-pulse" />
-                    <span className="text-[7.5px] font-bold text-[#259457] uppercase tracking-wider">AKTİF</span>
+          {/* Sunucu Listesi Yatay Şeridi (Server List Horizontal Bar) */}
+          <div className="space-y-2">
+            <span className="text-[9.5px] font-black text-[#52525B] uppercase tracking-widest block">Önerilen Sunucular</span>
+            <div className="flex flex-wrap gap-3 items-center bg-[#09070a] border border-white/[0.04] p-3 rounded-2xl">
+              {homeServers.map((srv, idx) => {
+                const getSrvLetter = (name: string) => name ? name.charAt(0).toUpperCase() : 'S';
+                const srvColors = [
+                  'text-[#34D399] bg-[#34D399]/10 border-[#34D399]/20 hover:border-[#34D399]/50 hover:shadow-[0_0_12px_rgba(52,211,83,0.2)]',
+                  'text-[#60A5FA] bg-[#60A5FA]/10 border-[#60A5FA]/20 hover:border-[#60A5FA]/50 hover:shadow-[0_0_12px_rgba(96,165,250,0.2)]',
+                  'text-[#FBBF24] bg-[#FBBF24]/10 border-[#FBBF24]/20 hover:border-[#FBBF24]/50 hover:shadow-[0_0_12px_rgba(251,191,36,0.2)]'
+                ];
+                const srvColor = srvColors[idx % srvColors.length];
+                
+                return (
+                  <div
+                    key={srv.id}
+                    onClick={() => navigate(`/versions?launch=true`)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-xs cursor-pointer transition-all duration-300 border relative group ${srvColor}`}
+                  >
+                    <span>{getSrvLetter(srv.name)}</span>
+                    
+                    {/* Server Info Tooltip */}
+                    <div className="absolute bottom-[48px] left-1/2 -translate-x-1/2 bg-[#060305] border border-white/[0.08] text-[#d2d2d2] p-2.5 rounded-xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-2xl flex flex-col items-center">
+                      <span className="text-[10px] font-black uppercase text-white leading-none mb-1">{srv.name}</span>
+                      <span className="text-[8px] font-bold text-[#A1A1AA] leading-none mb-1.5">{srv.description}</span>
+                      <div className="flex items-center gap-1 leading-none text-[8.5px] font-extrabold text-emerald-400">
+                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>{srv.playerCount || 0} / {srv.maxPlayers || 1000} Oyuncu</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <h4 className="text-[11px] font-black text-white group-hover:text-[#a78bfa] transition-colors uppercase tracking-wide">{srv.name}</h4>
-                  <p className="text-[8.5px] text-[#52525B] font-bold mt-0.5 line-clamp-1 leading-normal">{srv.description}</p>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-white/[0.03] pt-2">
-                  <span className="text-[9px] font-extrabold text-white/70">
-                    {srv.playerCount || 0} <span className="text-[#52525B] font-bold">/ {srv.maxPlayers || 1000}</span>
-                  </span>
-                  <span className="text-[7.5px] text-[#8B5CF6] group-hover:text-[#a78bfa] font-black uppercase tracking-wider flex items-center gap-0.5 transition-colors">
-                    Hızlı Bağlan
-                    <ExternalLink className="w-2.5 h-2.5" />
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-
+                );
+              })}
+            </div>
           </div>
 
           {/* News Section */}
@@ -1215,141 +1170,185 @@ export default function HomePage() {
             {/* Content box based on tab */}
             {friendsTab === 'friends' ? (
               <>
-                {/* Search */}
-                <div className="px-4 py-2 border-b border-white/[0.04] flex items-center gap-2.5 bg-black/10">
-                  <Search className="w-3.5 h-3.5 text-[#52525B]" />
-                  <input
-                    type="text"
-                    value={friendsSearch}
-                    onChange={(e) => setFriendsSearch(e.target.value)}
-                    placeholder={t('home.findPlayerPlaceholder')}
-                    className="bg-transparent border-none focus:outline-none text-[10px] text-white placeholder-white/20 w-full font-bold uppercase tracking-wider"
-                  />
-                </div>
-
-                {/* Offline Mode Alert for friends service */}
-                {!isOnline ? (
-                  <div className="flex-1 flex flex-col">
-                    {/* Big Offline Banner */}
-                    <div className="flex-grow flex flex-col items-center justify-center text-center p-6 bg-black/10">
-                      <WifiOff className="w-9 h-9 text-[#52525B] mb-2.5" />
-                      <span className="text-[10px] text-[#52525B] uppercase tracking-widest max-w-[200px] leading-relaxed">
-                        {t('home.friendsServiceError')}
-                      </span>
+                {social.friends.length === 0 ? (
+                  <div className="flex-1 flex flex-col justify-between p-4 bg-black/10">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center px-2 py-8">
+                      <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-4 border border-emerald-500/20">
+                        <MessageSquare className="w-6 h-6 animate-pulse" />
+                      </div>
+                      
+                      <button
+                        onClick={() => navigate('/chat')}
+                        className="text-emerald-400 hover:text-emerald-300 font-black text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5 transition-colors"
+                      >
+                        SATELLITE'I AÇ <span className="text-[10px]">↗</span>
+                      </button>
+                      
+                      <p className="text-[10.5px] text-[#A1A1AA] font-semibold leading-relaxed mb-6 max-w-[200px]">
+                        Satellite üzerinden farklı sürüm ve sunuculardaki arkadaşlarınla mesajlaş.
+                      </p>
+                      
+                      <button
+                        onClick={() => setAddFriendOpen(true)}
+                        className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[11px] uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-500/10 active:scale-95 flex items-center gap-1.5"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        İLK ARKADAŞINI EKLE
+                      </button>
                     </div>
 
-                    {/* Offline friends list underneath (mockup requirement) */}
-                    <div className="border-t border-white/[0.04] h-[220px] overflow-y-auto p-4 space-y-2.5 custom-scrollbar bg-black/25">
-                      <span className="text-[9px] font-black text-[#52525B] uppercase tracking-wider block">
-                        {t('home.offlineCount', { count: offlineFriends.length })}
-                      </span>
-                      {offlineFriends.map((f) => (
-                        <div key={f.username} className="flex items-center gap-3 p-1 rounded-lg opacity-40">
-                          <img
-                            src={sanitizeUrl(`https://minotar.net/avatar/${sanitizeParam(f.username)}/32`)}
-                            alt={f.username}
-                            className="w-7 h-7 rounded-lg grayscale border border-white/5"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-[11px] font-bold text-white leading-none mb-1">{f.username}</h4>
-                            <p className="text-[8px] text-[#A1A1AA] leading-none font-semibold uppercase">{f.lastSeen || t('social.offlineDays', { count: 3 })}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+
                   </div>
                 ) : (
-                  /* Online friends lists */
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                    {/* Online section */}
-                    <div className="space-y-2">
-                      <span className="text-[9px] font-black text-[#52525B] uppercase tracking-wider block">
-                        {t('home.onlineCount', { count: onlineFriends.length })}
-                      </span>
-                      {onlineFriends.map((f) => (
-                        <div key={f.username} className="flex items-center gap-3 p-1 rounded-lg hover:bg-white/[0.01] group transition-all">
-                          <div className="relative">
-                            <img
-                              src={sanitizeUrl(`https://minotar.net/avatar/${sanitizeParam(f.username)}/32`)}
-                              alt={f.username}
-                              className="w-7 h-7 rounded-lg border border-white/5"
-                            />
-                            <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[#0a080a] ${
-                              getStatusColor(f.username, f.status)
-                            }`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <h4 className="text-[11px] font-bold text-white leading-none">{f.username}</h4>
-                              {f.username === '172px' && <Trophy className="w-2.5 h-2.5 text-[#F59E0B]" />}
-                              {f.username === 'cuvsa' && <CheckCircle2 className="w-2.5 h-2.5 text-[#06B6D4]" />}
-                            </div>
-                            <p className="text-[8.5px] text-[#A1A1AA] truncate leading-none font-semibold">
-                              {getStatusText(f)}
-                            </p>
-                          </div>
-                          <div className="relative flex items-center gap-1">
-                            <button
-                              onClick={() => handleOpenChat(f.username)}
-                              className="p-1 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-white transition-colors"
-                              title="Mesaj Gönder"
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => social.removeFriend(f.username)}
-                              className="p-1 rounded bg-red-500/10 border border-red-500/20 text-[#52525B] hover:text-red-400 hover:bg-red-500/20 transition-colors"
-                              title="Arkadaşı Sil"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                            {/* Chat Badge mockup unread dot */}
-                            {(f.username === '172px' || f.username === '3wafyy' || f.username === 'cuvsa') && (
-                              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-[#ef4444] rounded-full" />
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                  <div className="flex-1 flex flex-col min-h-0">
+                    {/* Search */}
+                    <div className="px-4 py-2 border-b border-white/[0.04] flex items-center gap-2.5 bg-black/10">
+                      <Search className="w-3.5 h-3.5 text-[#52525B]" />
+                      <input
+                        type="text"
+                        value={friendsSearch}
+                        onChange={(e) => setFriendsSearch(e.target.value)}
+                        placeholder={t('home.findPlayerPlaceholder')}
+                        className="bg-transparent border-none focus:outline-none text-[10px] text-white placeholder-white/20 w-full font-bold uppercase tracking-wider"
+                      />
                     </div>
 
-                    {/* Offline section */}
-                    <div className="space-y-2 pt-2 border-t border-white/[0.04]">
-                      <span className="text-[9px] font-black text-[#52525B] uppercase tracking-wider block">
-                        {t('home.offlineCount', { count: offlineFriends.length })}
-                      </span>
-                      {offlineFriends.map((f) => (
-                        <div key={f.username} className="flex items-center gap-3 p-1 rounded-lg opacity-40 hover:opacity-100 group transition-all">
-                          <img
-                            src={sanitizeUrl(`https://minotar.net/avatar/${sanitizeParam(f.username)}/32`)}
-                            alt={f.username}
-                            className="w-7 h-7 rounded-lg grayscale border border-white/5"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-[11px] font-bold text-white leading-none mb-1">{f.username}</h4>
-                            <p className="text-[8px] text-[#A1A1AA] leading-none font-semibold uppercase">{f.lastSeen}</p>
-                          </div>
-                          <div className="relative opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                            <button
-                              onClick={() => handleOpenChat(f.username)}
-                              className="p-1 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-white transition-colors"
-                              title="Mesaj Gönder"
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => social.removeFriend(f.username)}
-                              className="p-1 rounded bg-red-500/10 border border-red-500/20 text-[#52525B] hover:text-red-400 hover:bg-red-500/20 transition-colors"
-                              title="Arkadaşı Sil"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                            {f.username === '2fishbowl' && (
-                              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-[#ef4444] rounded-full" />
-                            )}
-                          </div>
+                    {/* Offline Mode Alert for friends service */}
+                    {!isOnline ? (
+                      <div className="flex-grow flex flex-col">
+                        {/* Big Offline Banner */}
+                        <div className="flex-grow flex flex-col items-center justify-center text-center p-6 bg-black/10">
+                          <WifiOff className="w-9 h-9 text-[#52525B] mb-2.5" />
+                          <span className="text-[10px] text-[#52525B] uppercase tracking-widest max-w-[200px] leading-relaxed">
+                            {t('home.friendsServiceError')}
+                          </span>
                         </div>
-                      ))}
-                    </div>
+
+                        {/* Offline friends list underneath (mockup requirement) */}
+                        <div className="border-t border-white/[0.04] h-[220px] overflow-y-auto p-4 space-y-2.5 custom-scrollbar bg-black/25">
+                          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-wider block">
+                            {t('home.offlineCount', { count: offlineFriends.length })}
+                          </span>
+                          {offlineFriends.map((f) => (
+                            <div key={f.username} className="flex items-center gap-3 p-1 rounded-lg opacity-40">
+                              <img
+                                src={sanitizeUrl(`https://minotar.net/avatar/${sanitizeParam(f.username)}/32`)}
+                                alt={f.username}
+                                className="w-7 h-7 rounded-lg grayscale border border-white/5"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/32';
+                                }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-[11px] font-bold text-white leading-none mb-1">{f.username}</h4>
+                                <p className="text-[8px] text-[#A1A1AA] leading-none font-semibold uppercase">{f.lastSeen || t('social.offlineDays', { count: 3 })}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      /* Online friends lists */
+                      <div className="flex-grow overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                        {/* Online section */}
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-wider block">
+                            {t('home.onlineCount', { count: onlineFriends.length })}
+                          </span>
+                          {onlineFriends.map((f) => (
+                            <div key={f.username} className="flex items-center gap-3 p-1 rounded-lg hover:bg-white/[0.01] group transition-all">
+                              <div className="relative">
+                                <img
+                                  src={sanitizeUrl(`https://minotar.net/avatar/${sanitizeParam(f.username)}/32`)}
+                                  alt={f.username}
+                                  className="w-7 h-7 rounded-lg border border-white/5"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/32';
+                                  }}
+                                />
+                                <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[#0a080a] ${
+                                  getStatusColor(f.username, f.status)
+                                }`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1 mb-0.5">
+                                  <h4 className="text-[11px] font-bold text-white leading-none">{f.username}</h4>
+                                  {f.username === '172px' && <Trophy className="w-2.5 h-2.5 text-[#F59E0B]" />}
+                                  {f.username === 'cuvsa' && <CheckCircle2 className="w-2.5 h-2.5 text-[#06B6D4]" />}
+                                </div>
+                                <p className="text-[8.5px] text-[#A1A1AA] truncate leading-none font-semibold">
+                                  {getStatusText(f)}
+                                </p>
+                              </div>
+                              <div className="relative flex items-center gap-1">
+                                <button
+                                  onClick={() => handleOpenChat(f.username)}
+                                  className="p-1 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-white transition-colors"
+                                  title="Mesaj Gönder"
+                                >
+                                  <MessageSquare className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => social.removeFriend(f.username)}
+                                  className="p-1 rounded bg-red-500/10 border border-red-500/20 text-[#52525B] hover:text-red-400 hover:bg-red-500/20 transition-colors"
+                                  title="Arkadaşı Sil"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                                {/* Chat Badge mockup unread dot */}
+                                {(f.username === '172px' || f.username === '3wafyy' || f.username === 'cuvsa') && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-[#ef4444] rounded-full" />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Offline section */}
+                        <div className="space-y-2 pt-2 border-t border-white/[0.04]">
+                          <span className="text-[9px] font-black text-[#52525B] uppercase tracking-wider block">
+                            {t('home.offlineCount', { count: offlineFriends.length })}
+                          </span>
+                          {offlineFriends.map((f) => (
+                            <div key={f.username} className="flex items-center gap-3 p-1 rounded-lg opacity-40 hover:opacity-100 group transition-all">
+                              <img
+                                  src={sanitizeUrl(`https://minotar.net/avatar/${sanitizeParam(f.username)}/32`)}
+                                  alt={f.username}
+                                  className="w-7 h-7 rounded-lg grayscale border border-white/5"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/32';
+                                  }}
+                                />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-[11px] font-bold text-white leading-none mb-1">{f.username}</h4>
+                                <p className="text-[8px] text-[#A1A1AA] leading-none font-semibold uppercase">{f.lastSeen}</p>
+                              </div>
+                              <div className="relative opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                <button
+                                  onClick={() => handleOpenChat(f.username)}
+                                  className="p-1 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-white transition-colors"
+                                  title="Mesaj Gönder"
+                                >
+                                  <MessageSquare className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => social.removeFriend(f.username)}
+                                  className="p-1 rounded bg-red-500/10 border border-red-500/20 text-[#52525B] hover:text-red-400 hover:bg-red-500/20 transition-colors"
+                                  title="Arkadaşı Sil"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                                {f.username === '2fishbowl' && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-[#ef4444] rounded-full" />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+
                   </div>
                 )}
               </>
@@ -1470,6 +1469,7 @@ export default function HomePage() {
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
+
               <form onSubmit={handleAddFriendSubmit} className="space-y-3">
                 <input
                   type="text"
@@ -1499,6 +1499,54 @@ export default function HomePage() {
         onClose={() => setVersionModalOpen(false)}
         onLaunch={handleLaunch}
       />
+
+      {/* Profile Settings Modal */}
+      <ProfileSettingsModal
+        isOpen={profileSettingsOpen}
+        onClose={() => setProfileSettingsOpen(false)}
+      />
+
+      {/* Floating Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, x: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, x: 20, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className={`fixed top-12 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all select-none ${
+              toast.type === 'success'
+                ? 'bg-green-500/10 border-green-500/25 text-green-400 shadow-green-500/5'
+                : 'bg-red-500/10 border-red-500/25 text-red-400 shadow-red-500/5'
+            }`}
+            style={{ minWidth: '280px' }}
+          >
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+              toast.type === 'success' ? 'bg-green-500/15' : 'bg-red-500/15'
+            }`}>
+              {toast.type === 'success' ? (
+                <CheckCircle2 className="w-4.5 h-4.5 text-green-400 animate-bounce" />
+              ) : (
+                <AlertTriangle className="w-4.5 h-4.5 text-red-400 animate-pulse" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[8px] font-black uppercase tracking-widest block text-white/40 mb-0.5">
+                {toast.type === 'success' ? 'BAŞARILI' : 'HATA'}
+              </span>
+              <span className="text-[11px] font-semibold text-white/90 leading-tight block">
+                {toast.message}
+              </span>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="p-1 rounded hover:bg-white/5 text-white/30 hover:text-white transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

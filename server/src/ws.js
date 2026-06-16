@@ -10,17 +10,10 @@ export const initWebSocket = (server) => {
   console.log('[WebSocket] WebSocket Server initialized.');
 
   wss.on('connection', async (ws, request) => {
-    // Parse username from query params: ?username=...
     const url = new URL(request.url, `http://${request.headers.host}`);
     const username = url.searchParams.get('username');
-
-    if (!username) {
-      console.warn('[WebSocket] Connection rejected: No username provided.');
-      ws.close(4001, 'Username is required');
-      return;
-    }
-
     const userId = username.toLowerCase();
+
     clients.set(userId, ws);
     console.log(`[WebSocket] User connected: ${username} (Active count: ${clients.size})`);
 
@@ -142,9 +135,43 @@ export const initWebSocket = (server) => {
   // Live Lobby Chat Simulation Interval disabled to avoid mock/simulated traffic
 
   // Handle upgrade request from Express server
-  server.on('upgrade', (request, socket, head) => {
-    const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
+  server.on('upgrade', async (request, socket, head) => {
+    const host = request.headers.host || 'localhost:3000';
+    const url = new URL(request.url, `http://${host}`);
+    const pathname = url.pathname;
+
+    console.log(`[WebSocket Upgrade] request.url: ${request.url}`);
+    console.log(`[WebSocket Upgrade] parsed pathname: ${pathname}`);
+
     if (pathname === '/ws') {
+      const username = url.searchParams.get('username');
+      const token = url.searchParams.get('token');
+      console.log(`[WebSocket Upgrade] credentials -> username: ${username}, token: ${token}`);
+
+      if (!username || !token) {
+        console.warn('[WebSocket Upgrade] Missing username or token');
+        socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+
+      try {
+        const user = await dbGet('SELECT * FROM users WHERE LOWER(username) = ? AND token = ?', [username.toLowerCase(), token]);
+        console.log('[WebSocket Upgrade] database user lookup:', user);
+        if (!user) {
+          console.warn(`[WebSocket Upgrade] Token mismatch or user not found in DB for: ${username}`);
+          socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
+          socket.destroy();
+          return;
+        }
+      } catch (err) {
+        console.error('[WebSocket Upgrade] DB error during upgrade handshake:', err.message);
+        socket.write('HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+
+      console.log('[WebSocket Upgrade] Upgrading socket connection...');
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });

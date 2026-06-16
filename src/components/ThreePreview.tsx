@@ -6,9 +6,10 @@ interface ThreePreviewProps {
   capeUrl?: string; // Optional Cape Image URL
   wingsEnabled?: boolean; // Toggled by active cosmetics
   modelType?: 'classic' | 'slim'; // Steve vs Alex arm type selection
+  wingStyle?: string;
 }
 
-export default function ThreePreview({ skin, capeUrl, wingsEnabled = true, modelType = 'classic' }: ThreePreviewProps) {
+export default function ThreePreview({ skin, capeUrl, wingsEnabled = true, modelType = 'classic', wingStyle = 'violet' }: ThreePreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,17 +74,55 @@ export default function ThreePreview({ skin, capeUrl, wingsEnabled = true, model
       if (ctx) {
         ctx.clearRect(0, 0, 256, 256);
 
-        // Premium vibrant linear gradient
+        // Premium vibrant linear gradient based on style
         const gradient = ctx.createLinearGradient(0, 0, isLeft ? 0 : 256, 256);
-        gradient.addColorStop(0, 'rgba(139, 92, 246, 0.95)'); // Electric Violet
-        gradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.85)'); // Royal Blue
-        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.95)');  // Cyber Mint/Green
-
-        ctx.fillStyle = gradient;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.lineWidth = 4;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = 'rgba(139, 92, 246, 0.8)';
+        if (wingStyle === 'fire') {
+          gradient.addColorStop(0, 'rgba(239, 68, 68, 0.95)'); // Red
+          gradient.addColorStop(0.5, 'rgba(249, 115, 22, 0.85)'); // Orange
+          gradient.addColorStop(1, 'rgba(234, 179, 8, 0.95)');  // Gold
+          ctx.fillStyle = gradient;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.lineWidth = 4;
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = 'rgba(239, 68, 68, 0.8)';
+        } else if (wingStyle === 'ice') {
+          gradient.addColorStop(0, 'rgba(6, 182, 212, 0.95)'); // Cyan
+          gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.9)'); // White
+          gradient.addColorStop(1, 'rgba(59, 130, 246, 0.95)');  // Blue
+          ctx.fillStyle = gradient;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.lineWidth = 4;
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = 'rgba(6, 182, 212, 0.8)';
+        } else if (wingStyle === 'gold') {
+          gradient.addColorStop(0, 'rgba(234, 179, 8, 0.95)'); // Gold
+          gradient.addColorStop(0.5, 'rgba(251, 191, 36, 0.85)'); // Yellow
+          gradient.addColorStop(1, 'rgba(255, 255, 255, 0.95)');  // White
+          ctx.fillStyle = gradient;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.lineWidth = 4;
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = 'rgba(234, 179, 8, 0.8)';
+        } else if (wingStyle === 'angel') {
+          gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)'); // White
+          gradient.addColorStop(0.5, 'rgba(224, 242, 254, 0.8)'); // Light blue
+          gradient.addColorStop(1, 'rgba(186, 230, 253, 0.6)');  // Transparent blue
+          ctx.fillStyle = gradient;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.lineWidth = 4;
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = 'rgba(224, 242, 254, 0.8)';
+        } else {
+          // Default: Electric Violet
+          gradient.addColorStop(0, 'rgba(139, 92, 246, 0.95)'); // Electric Violet
+          gradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.85)'); // Royal Blue
+          gradient.addColorStop(1, 'rgba(16, 185, 129, 0.95)');  // Cyber Mint/Green
+          ctx.fillStyle = gradient;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.lineWidth = 4;
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = 'rgba(139, 92, 246, 0.8)';
+        }
 
         ctx.beginPath();
         if (isLeft) {
@@ -431,7 +470,7 @@ export default function ThreePreview({ skin, capeUrl, wingsEnabled = true, model
       }
       renderer.dispose();
     };
-  }, [skin, capeUrl, wingsEnabled, modelType]);
+  }, [skin, capeUrl, wingsEnabled, modelType, wingStyle]);
 
   return <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />;
 }

@@ -1,6 +1,7 @@
 package com.marinmc.client;
 
 import com.marinmc.client.gui.OverlayScreen;
+import com.marinmc.client.features.FreelookHandler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -45,6 +46,9 @@ public class MarinClient implements ClientModInitializer {
             "category.marinmc.client"
         ));
 
+        // Register Freelook keybinding (default F key)
+        FreelookHandler.registerKeybinding();
+
         // Register tick event to check for key presses
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (overlayKeyBinding.wasPressed()) {
@@ -78,6 +82,9 @@ public class MarinClient implements ClientModInitializer {
                     client.player.sendMessage(Text.literal("§bMarinMC Client §f» §aBellek Temizlendi! (Özgürleşen: " + Math.max(0, saved) + " MB)"), true);
                 }
             }
+
+            // Tick freelook handler
+            FreelookHandler.getInstance().tick();
         });
     }
 }

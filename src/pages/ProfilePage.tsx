@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore.ts';
-import { Clock, Calendar, Heart, Edit2, Check, Trophy, User, Coins, Loader2, ClipboardList, Award, CheckCircle2, Lock } from 'lucide-react';
-import { api, Quest, Achievement } from '../lib/api';
+import { Clock, Calendar, Heart, Edit2, Check, Trophy, User, Loader2, Award, CheckCircle2, Lock } from 'lucide-react';
+import { api, Achievement } from '../lib/api';
 
 interface PlaySession {
   id: string;
@@ -32,10 +32,9 @@ export default function ProfilePage() {
   const session = useAuthStore((state) => state.session);
   const setSession = useAuthStore((state) => state.setSession);
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'leaderboard' | 'quests' | 'achievements'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'leaderboard' | 'achievements'>('profile');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
-  const [quests, setQuests] = useState<Quest[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   
   const [usernameInput, setUsernameInput] = useState(session?.name || 'Player');
@@ -45,9 +44,7 @@ export default function ProfilePage() {
   
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
-  const [loadingQuests, setLoadingQuests] = useState(false);
   const [loadingAchievements, setLoadingAchievements] = useState(false);
-  const [claimingId, setClaimingId] = useState<string | null>(null);
 
   // Load profile from API
   useEffect(() => {
@@ -75,18 +72,6 @@ export default function ProfilePage() {
     }
   }, [activeTab]);
 
-  // Load quests from API
-  useEffect(() => {
-    if (!session) return;
-    if (activeTab === 'quests') {
-      setLoadingQuests(true);
-      api.getQuests(session.name)
-        .then((data) => setQuests(data))
-        .catch((err) => console.error('Failed to load quests:', err))
-        .finally(() => setLoadingQuests(false));
-    }
-  }, [activeTab, session]);
-
   // Load achievements from API
   useEffect(() => {
     if (!session) return;
@@ -98,29 +83,6 @@ export default function ProfilePage() {
         .finally(() => setLoadingAchievements(false));
     }
   }, [activeTab, session]);
-
-  const handleClaimReward = async (questId: string) => {
-    if (!session) return;
-    setClaimingId(questId);
-    try {
-      const res = await api.claimQuestReward(session.name, questId);
-      if (res.success) {
-        // Update quests state
-        setQuests(prev => prev.map(q => q.id === questId ? { ...q, claimed: true } : q));
-        // Update profile coins state if profile exists
-        if (profile) {
-          setProfile({
-            ...profile,
-            coins: res.coins
-          });
-        }
-      }
-    } catch (err) {
-      console.error('Failed to claim quest reward:', err);
-    } finally {
-      setClaimingId(null);
-    }
-  };
 
   const handleEditToggle = async () => {
     if (editing && session && profile) {
@@ -186,17 +148,7 @@ export default function ProfilePage() {
             <User className="w-3.5 h-3.5" />
             <span>Profilim</span>
           </button>
-          <button
-            onClick={() => setActiveTab('quests')}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-              activeTab === 'quests'
-                ? 'bg-[#8B5CF6] text-white shadow-[0_0_12px_rgba(139,92,246,0.25)]'
-                : 'text-[#52525B] hover:text-white'
-            }`}
-          >
-            <ClipboardList className="w-3.5 h-3.5" />
-            <span>Günlük Görevler</span>
-          </button>
+
           <button
             onClick={() => setActiveTab('achievements')}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
@@ -286,10 +238,6 @@ export default function ProfilePage() {
                     <span className="text-[9px] font-extrabold bg-[#8B5CF6]/15 border border-[#8B5CF6]/20 text-[#8B5CF6] px-2.5 py-0.5 rounded-lg uppercase tracking-wider">
                       {session?.type === 'ms' ? 'Premium Microsoft' : 'Ücretsiz'} Hesap
                     </span>
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-lg">
-                      <Coins className="w-3 h-3" />
-                      <span>{profile?.coins.toLocaleString() || 500} Jeton</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -354,95 +302,7 @@ export default function ProfilePage() {
 
           </div>
         )
-      ) : activeTab === 'quests' ? (
-        loadingQuests ? (
-          <div className="flex-grow flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-[#8B5CF6] animate-spin" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-4 animate-[fadeIn_0.25s_ease-out]">
-            {quests.map((q) => {
-              const progressPercentage = Math.min(100, (q.progress / q.target) * 100);
-              const isCompleted = q.progress >= q.target;
-              return (
-                <div 
-                  key={q.id} 
-                  className={`bg-[#111111] border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 ${
-                    q.claimed 
-                      ? 'border-white/[0.04] opacity-50' 
-                      : isCompleted 
-                        ? 'border-emerald-500/30 bg-gradient-to-br from-[#111111] to-emerald-950/10 shadow-[0_0_15px_rgba(16,185,129,0.05)]' 
-                        : 'border-white/[0.06] hover:border-white/10'
-                  }`}
-                >
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-xs font-black text-white leading-relaxed uppercase tracking-wider">{q.description}</h4>
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/20 shrink-0">
-                        <Coins className="w-3 h-3" />
-                        <span>+{q.coins} Jeton</span>
-                      </div>
-                    </div>
-                    
-                    {/* Progress details */}
-                    <div className="flex justify-between items-center text-[9px] font-bold text-[#52525B] mb-2.5">
-                      <span>İlerleme</span>
-                      <span className={isCompleted ? 'text-emerald-400' : 'text-white'}>
-                        {q.progress} / {q.target}
-                      </span>
-                    </div>
 
-                    {/* Progress bar */}
-                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-5">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          q.claimed 
-                            ? 'bg-white/20' 
-                            : isCompleted 
-                              ? 'bg-emerald-500' 
-                              : 'bg-[#8B5CF6]'
-                        }`}
-                        style={{ width: `${progressPercentage}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    {q.claimed ? (
-                      <button 
-                        disabled 
-                        className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[#52525B] text-[9px] font-bold uppercase tracking-wider flex items-center gap-1.5 w-full justify-center"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Ödül Alındı</span>
-                      </button>
-                    ) : isCompleted ? (
-                      <button 
-                        onClick={() => handleClaimReward(q.id)}
-                        disabled={claimingId === q.id}
-                        className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 w-full justify-center shadow-[0_0_12px_rgba(16,185,129,0.25)] transition-all transform hover:-translate-y-0.5"
-                      >
-                        {claimingId === q.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Coins className="w-3.5 h-3.5" />
-                        )}
-                        <span>Ödülü Al</span>
-                      </button>
-                    ) : (
-                      <button 
-                        disabled 
-                        className="px-4 py-2 rounded-xl bg-white/[0.02] border border-white/[0.04] text-[#52525B] text-[9px] font-bold uppercase tracking-wider w-full text-center"
-                      >
-                        Devam Ediyor
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )
       ) : activeTab === 'achievements' ? (
         loadingAchievements ? (
           <div className="flex-grow flex items-center justify-center">
@@ -525,7 +385,6 @@ export default function ProfilePage() {
                     <th className="py-2.5 pl-3">Sıra</th>
                     <th className="py-2.5">Oyuncu</th>
                     <th className="py-2.5">Toplam Süre</th>
-                    <th className="py-2.5">Jeton</th>
                     <th className="py-2.5">Aktif Durum</th>
                     <th className="py-2.5 pr-3">Oda</th>
                   </tr>
@@ -561,6 +420,9 @@ export default function ProfilePage() {
                               src={`https://minotar.net/avatar/${player.username}/24`}
                               alt={player.username}
                               className="w-5 h-5 rounded-md border border-white/5"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/24';
+                              }}
                             />
                             <span className={player.username.toLowerCase() === session?.name?.toLowerCase() ? 'text-[#a78bfa] font-black' : ''}>
                               {player.username}
@@ -568,12 +430,6 @@ export default function ProfilePage() {
                           </div>
                         </td>
                         <td className="py-3 font-extrabold text-white/95">{player.totalPlayTime} Saat</td>
-                        <td className="py-3">
-                          <div className="flex items-center gap-1 text-[10px] font-bold text-amber-400">
-                            <Coins className="w-3 h-3" />
-                            <span>{player.coins.toLocaleString()}</span>
-                          </div>
-                        </td>
                         <td className="py-3 font-bold">
                           {player.status === 'online' ? (
                             <span className="text-emerald-400 flex items-center gap-1">

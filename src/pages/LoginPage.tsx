@@ -12,6 +12,8 @@ export default function LoginPage() {
   const { t } = useTranslation();
   const [showOfflineForm, setShowOfflineForm] = useState(false);
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isRegister, setIsRegister] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const navigate = useNavigate();
@@ -42,7 +44,15 @@ export default function LoginPage() {
       setLocalError(t('login.validationError'));
       return;
     }
-    await loginWithCracked(username.trim());
+    if (password.length < 6) {
+      setLocalError('Şifre en az 6 karakter olmalıdır.');
+      return;
+    }
+    try {
+      await loginWithCracked(username.trim(), password, isRegister);
+    } catch (err: any) {
+      setLocalError(err.message || 'Giriş/Kayıt başarısız oldu.');
+    }
   };
 
   const hasError = !!error || !!localError;
@@ -144,11 +154,34 @@ export default function LoginPage() {
                 onSubmit={handleOfflineSubmit}
                 className="w-full mt-3 space-y-2.5"
               >
+                {/* Mode Selector Tab */}
+                <div className="flex w-full bg-[#111111]/80 rounded-xl p-1 border border-white/5 mb-1">
+                  <button
+                    type="button"
+                    onClick={() => { setIsRegister(false); setLocalError(null); }}
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${
+                      !isRegister ? 'bg-[#2D7DD2] text-white shadow-sm' : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    Giriş Yap
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsRegister(true); setLocalError(null); }}
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${
+                      isRegister ? 'bg-[#2D7DD2] text-white shadow-sm' : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    Kayıt Ol
+                  </button>
+                </div>
+
+                {/* Username Field */}
                 <div className="flex items-center bg-[#111111] border border-white/10 rounded-xl px-3.5 py-2.5 focus-within:border-[#2D7DD2]/50 transition-all">
                   <img
                     src={`https://mc-heads.net/avatar/${/^[a-zA-Z0-9_]{3,16}$/.test(username.trim()) ? encodeURIComponent(username.trim()) : 'Steve'}/20`}
                     alt="avatar"
-                    className="w-5 h-5 rounded bg-black/25 mr-2.5"
+                    className="w-5 h-5 rounded bg-black/25 mr-2.5 shrink-0"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
                     }}
@@ -163,21 +196,41 @@ export default function LoginPage() {
                     autoFocus
                   />
                 </div>
+
+                {/* Password Field */}
+                <div className="flex items-center bg-[#111111] border border-white/10 rounded-xl px-3.5 py-2.5 focus-within:border-[#2D7DD2]/50 transition-all">
+                  <svg className="w-4 h-4 text-white/30 mr-2.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0110 0v4"></path>
+                  </svg>
+                  <input
+                    type="password"
+                    placeholder={isRegister ? "Şifre belirleyin (En az 6 karakter)" : "Şifrenizi girin"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="bg-transparent border-none outline-none text-xs w-full text-white placeholder-white/25 font-medium"
+                  />
+                </div>
+
+                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-2.5 bg-[#1a1a1a] hover:bg-[#222222] border border-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2.5 bg-[#2D7DD2]/20 hover:bg-[#2D7DD2]/30 border border-[#2D7DD2]/40 text-[#2D7DD2] hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
                 >
                   {isLoading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    t('login.submitButton')
+                    isRegister ? 'Kayıt Ol & Giriş Yap' : 'Giriş Yap'
                   )}
                 </button>
+
+                {/* Back to Microsoft */}
                 <button
                   type="button"
                   onClick={() => { setShowOfflineForm(false); setLocalError(null); }}
-                  className="w-full text-[10px] text-[#52525B] hover:text-[#A1A1AA] font-medium transition-colors"
+                  className="w-full text-[10px] text-[#52525B] hover:text-[#A1A1AA] font-medium transition-colors pt-1"
                 >
                   {t('login.backToMicrosoft')}
                 </button>

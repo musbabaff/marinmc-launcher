@@ -75,6 +75,11 @@ export const useSocialStore = create<SocialState>((set, get) => {
       const session = useAuthStore.getState().session;
       if (!session) return false;
 
+      // Prevent adding oneself as a friend
+      if (trimmed.toLowerCase() === session.name.toLowerCase()) {
+        return false;
+      }
+
       let officialName = trimmed;
       if (window.electronAPI) {
         const valRes = await window.electronAPI.validateMojangUsername(trimmed);

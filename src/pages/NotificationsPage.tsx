@@ -1,33 +1,16 @@
-import { useState } from 'react';
+import { useNotificationStore } from '../stores/notificationStore.ts';
 import { Bell, Info, ShieldAlert, CheckCircle2, Trash2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface Notification {
-  id: string;
-  title: string;
-  description: string;
-  type: 'urgent' | 'info' | 'success';
-  date: string;
-  unread: boolean;
-}
-
-const INITIAL_NOTIFICATIONS: Notification[] = [
-  { id: '1', title: 'Planlı Sunucu Bakımı', description: 'MarinMC Towny sunucusu 5 dakika içinde yedekleme ve bakım için yeniden başlatılacaktır.', type: 'urgent', date: 'Az önce', unread: true },
-  { id: '2', title: 'Arkadaşlık İsteği', description: 'RedstoneGuy size bir arkadaşlık isteği gönderdi.', type: 'info', date: '10 dakika önce', unread: true },
-  { id: '3', title: 'Yeni Sürüm Güncellemesi', description: 'MarinMC Client v1.0.1 güncellemesi indirilmeye hazır. Değişiklik listesini görmek için tıklayın.', type: 'info', date: '2 saat önce', unread: false },
-  { id: '4', title: 'Mod Güncellemesi Mevcut', description: 'Sodium modu için yeni bir v0.6.1 sürümü yayınlandı. Ayarlar penceresinden güncelleyebilirsiniz.', type: 'info', date: '1 gün önce', unread: false },
-  { id: '5', title: 'Ödeme Başarılı', description: 'VIP üyelik siparişiniz başarıyla işlendi. Sunucuya giriş yaptığınızda aktif edilecektir.', type: 'success', date: '3 gün önce', unread: false }
-];
-
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
+  const { notifications, markAllAsRead, deleteNotification } = useNotificationStore();
 
   const handleMarkAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, unread: false })));
+    markAllAsRead();
   };
 
   const handleDelete = (id: string) => {
-    setNotifications(notifications.filter(n => n.id !== id));
+    deleteNotification(id);
   };
 
   const getUnreadCount = () => {

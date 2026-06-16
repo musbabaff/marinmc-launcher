@@ -1,5 +1,7 @@
+import { getApiBaseUrl } from './api.ts';
+
 export const getWsUrl = (): string => {
-  const apiUrl = localStorage.getItem('marinmc_api_url') || 'https://server-two-lyart-67.vercel.app/api';
+  const apiUrl = getApiBaseUrl();
   // Derive ws/wss from http/https
   return apiUrl.replace(/^http/, 'ws').replace('/api', '/ws');
 };
@@ -15,7 +17,19 @@ class WebSocketManager {
 
   public connect(username: string) {
     this.activeUsername = username;
-    const url = `${getWsUrl()}?username=${encodeURIComponent(username)}`;
+    
+    let token = '';
+    try {
+      const stored = localStorage.getItem('marinmc_session');
+      if (stored) {
+        const session = JSON.parse(stored);
+        token = session.token || '';
+      }
+    } catch (e) {
+      console.warn('[WebSocket] Failed to read token from session storage:', e);
+    }
+
+    const url = `${getWsUrl()}?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
 
     if (this.socket) {
       this.socket.close();

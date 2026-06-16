@@ -7,7 +7,7 @@ interface AuthState {
   profiles: UserSession[];
   isLoading: boolean;
   error: string | null;
-  loginWithCracked: (username: string) => Promise<void>;
+  loginWithCracked: (username: string, password: string, isRegister?: boolean) => Promise<void>;
   loginWithMicrosoft: () => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -15,7 +15,7 @@ interface AuthState {
   setSession: (session: UserSession | null) => void;
   switchProfile: (id: string) => Promise<void>;
   removeProfile: (id: string) => void;
-  addOfflineProfile: (username: string) => Promise<void>;
+  addOfflineProfile: (username: string, password: string, isRegister?: boolean) => Promise<void>;
   addMicrosoftProfile: () => Promise<void>;
 }
 
@@ -59,10 +59,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ session, profiles });
   },
 
-  loginWithCracked: async (username) => {
+  loginWithCracked: async (username, password, isRegister = false) => {
     set({ isLoading: true, error: null });
     try {
-      const session = await authService.loginCracked(username);
+      const session = isRegister
+        ? await authService.registerCracked(username, password)
+        : await authService.loginCracked(username, password);
       const currentProfiles = get().profiles;
       const updated = currentProfiles.filter(p => p.id !== session.id);
       updated.push(session);
@@ -70,6 +72,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ session, profiles: updated, isLoading: false });
     } catch (err: any) {
       set({ error: err.message || 'Giriş yapılamadı.', isLoading: false });
+      throw err;
     }
   },
 
@@ -113,10 +116,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ profiles: updated, session: nextSession });
   },
 
-  addOfflineProfile: async (username) => {
+  addOfflineProfile: async (username, password, isRegister = false) => {
     set({ isLoading: true, error: null });
     try {
-      const session = await authService.loginCracked(username);
+      const session = isRegister
+        ? await authService.registerCracked(username, password)
+        : await authService.loginCracked(username, password);
       const currentProfiles = get().profiles;
       const updated = currentProfiles.filter(p => p.id !== session.id);
       updated.push(session);

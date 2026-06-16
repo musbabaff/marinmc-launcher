@@ -13,7 +13,10 @@
     "AbstractClientPlayerEntityMixin",
     "ClientPlayerEntityMixin",
     "LivingEntityRendererMixin",
-    "ItemEntityRendererMixin"
+    "ItemEntityRendererMixin",
+    "TntEntityRendererMixin",
+    "CameraMixin",
+    "MouseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

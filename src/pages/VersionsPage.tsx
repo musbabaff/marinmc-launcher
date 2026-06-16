@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSettingsStore } from '../stores/settingsStore.ts';
 import { ChevronDown, Settings, Tag, Hammer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import VersionModal from '../components/VersionModal.tsx';
+import ProfileSettingsModal from '../components/ProfileSettingsModal.tsx';
 
 import vBg1 from '../../assets/version-bg-1.png';
 import vBg2 from '../../assets/version-bg-2.png';
@@ -255,11 +255,10 @@ export default function VersionsPage() {
         })}
       </div>
 
-      {/* Version Settings Modal Overlay */}
-      <VersionModal
+      {/* Profile Settings Modal Overlay */}
+      <ProfileSettingsModal
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        onLaunch={() => handleLaunchVersion(settings.selectedVersion, settings.selectedSubVersion)}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '../lib/i18n.ts';
 
 export interface RecentProfile {
   id: string;
@@ -204,7 +205,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 
   setLanguage: (lang) => {
     localStorage.setItem('marinmc_setting_language', lang);
-    import('../lib/i18n.ts').then(mod => mod.default.changeLanguage(lang));
+    i18n.changeLanguage(lang);
     set({ language: lang });
 
     if (window.electronAPI) {
@@ -274,7 +275,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       'marinmc_setting_res_width', 'marinmc_setting_res_height', 'marinmc_setting_fullscreen'
     ];
     keys.forEach(k => localStorage.removeItem(k));
-    import('../lib/i18n.ts').then(mod => mod.default.changeLanguage('tr'));
+    i18n.changeLanguage('tr');
     set({
       ram: 4096,
       jvmArgs: DEFAULT_JVM_ARGS,

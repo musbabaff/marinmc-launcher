@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore.ts';
 import { useSocialStore } from '../stores/socialStore.ts';
@@ -8,7 +8,7 @@ import { wsManager } from '../lib/websocket';
 import {
   Search, Edit3, Pin, Users, MessageSquare,
   Image, Smile, FileText, Mic, Send, Heart, Video,
-  Paperclip, X, Trash2
+  Paperclip, X, Trash2, AlertTriangle
 } from 'lucide-react';
 
 interface Contact {
@@ -54,6 +54,7 @@ export default function ChatPage() {
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceTimer, setVoiceTimer] = useState(0);
   const voiceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [deleteConfirmContactId, setDeleteConfirmContactId] = useState<string | null>(null);
 
   // Parse active query param
   useEffect(() => {
@@ -216,10 +217,14 @@ export default function ChatPage() {
     api.updateContacts(username, updated as any);
   };
 
-  const handleDeleteChat = async (contactId: string) => {
-    if (!window.confirm('Bu sohbeti ve tüm mesaj geçmişini tamamen silmek istediğinize emin misiniz?')) {
-      return;
-    }
+  const handleDeleteChat = (contactId: string) => {
+    setDeleteConfirmContactId(contactId);
+  };
+
+  const confirmDeleteChat = async () => {
+    if (!deleteConfirmContactId) return;
+    const contactId = deleteConfirmContactId;
+
     const updatedContacts = contacts.filter(c => c.id !== contactId);
     setContacts(updatedContacts);
     await api.updateContacts(username, updatedContacts as any);
@@ -229,7 +234,10 @@ export default function ChatPage() {
     setChatMessages(updatedMessages);
     await api.updateChatMessages(username, updatedMessages);
 
-    setActiveContact(null);
+    if (activeContact && activeContact.id === contactId) {
+      setActiveContact(null);
+    }
+    setDeleteConfirmContactId(null);
   };
 
 
@@ -947,6 +955,58 @@ export default function ChatPage() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirm Delete Chat Modal */}
+      <AnimatePresence>
+        {deleteConfirmContactId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDeleteConfirmContactId(null)}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            />
+            
+            {/* Modal Box */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="bg-[#0c0a0e] border border-white/[0.06] rounded-2xl w-full max-w-[360px] p-6 relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] flex flex-col items-center text-center overflow-hidden"
+            >
+              {/* Decorative top red light effect */}
+              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-80" />
+
+              <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4 text-red-400">
+                <AlertTriangle className="w-6 h-6 animate-[pulse_2s_infinite]" />
+              </div>
+
+              <h3 className="text-xs font-black text-white uppercase tracking-wider mb-2">Sohbeti Sil</h3>
+              <p className="text-[10px] text-[#A1A1AA] font-semibold leading-relaxed mb-6">
+                Bu sohbeti ve tüm mesaj geçmişini tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+              </p>
+
+              <div className="flex gap-2.5 w-full">
+                <button
+                  onClick={() => setDeleteConfirmContactId(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/[0.04] text-[#A1A1AA] hover:text-white font-extrabold text-[9px] uppercase tracking-wider transition-all"
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={confirmDeleteChat}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-[9px] uppercase tracking-wider transition-all shadow-[0_4px_15px_rgba(239,68,68,0.2)] active:scale-[0.98]"
+                >
+                  Sohbeti Sil
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

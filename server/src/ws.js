@@ -221,21 +221,8 @@ async function updateLastMessage(username, contactId, content, time, incrementUn
         SET last_message = ?, time = ?, unread = ? 
         WHERE username = ? AND contact_id = ?
       `, [content, time, unreadCount, username, contactId]);
-    } else {
-      // Create contact if it doesn't exist
-      await dbRun(`
-        INSERT INTO contacts (username, contact_id, name, avatar, last_message, time, unread)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [
-        username,
-        contactId,
-        contactId.charAt(0).toUpperCase() + contactId.slice(1),
-        `https://minotar.net/avatar/${contactId}/48`,
-        content,
-        time,
-        incrementUnread
-      ]);
     }
+    // If contact doesn't exist (was deleted), do NOT re-create it
   } catch (err) {
     console.error('[WebSocket] Update last message failed:', err.message);
   }

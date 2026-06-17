@@ -121,9 +121,23 @@ export const useSocialStore = create<SocialState>((set, get) => {
       const session = useAuthStore.getState().session;
       if (!session) return;
       try {
+        // Remove contact from contacts list
         const contacts = await api.getContacts(session.name);
         const updated = contacts.filter(c => c.name.toLowerCase() !== username.toLowerCase());
         await api.updateContacts(session.name, updated);
+
+        // Also remove their chat messages
+        try {
+          const allMessages = await api.getChatMessages(session.name);
+          const contactId = username.toLowerCase();
+          if (allMessages[contactId]) {
+            delete allMessages[contactId];
+            await api.updateChatMessages(session.name, allMessages);
+          }
+        } catch (msgErr) {
+          console.error('Failed to remove friend messages:', msgErr);
+        }
+
         await get().initializeSocial();
       } catch (err) {
         console.error('Failed to remove friend from API:', err);

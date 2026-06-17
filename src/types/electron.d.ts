@@ -44,6 +44,9 @@ export interface IElectronAPI {
   uploadSkin: () => Promise<{ success: boolean; path?: string }>;
   openCrashLog: (crashPath: string) => Promise<{ success: boolean; error?: string }>;
   copyCrashLog: (crashPath: string) => Promise<{ success: boolean; error?: string }>;
+  exportProfile: (settingsPayload: any) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+  importProfile: () => Promise<{ success: boolean; settings?: any; error?: string }>;
+  cloneProfile: (sourceDir: string, destDir: string) => Promise<{ success: boolean; error?: string }>;
   loginCracked: (username: string) => Promise<any>;
   loginMicrosoft: () => Promise<any>;
   logout: () => Promise<{ success: boolean }>;

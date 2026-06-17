@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../stores/settingsStore.ts';
 import {
   X, FolderOpen, Settings, Cpu, Layers, Download, Copy,
@@ -13,7 +14,35 @@ interface ProfileSettingsModalProps {
 
 type TabType = 'files' | 'java' | 'versions' | 'export';
 
+const LOADER_VERSIONS = {
+  fabric: [
+    { num: '1.21', sub: '1.21.8' },
+    { num: '26.1', sub: '26.1.1' },
+    { num: '26.1', sub: '26.1.0' },
+    { num: '1.16', sub: '1.16.5' },
+    { num: '1.16', sub: '1.16.4' },
+    { num: '1.16', sub: '1.16.1' }
+  ],
+  forge: [
+    { num: '1.20', sub: '1.20.4' },
+    { num: '1.20', sub: '1.20.2' },
+    { num: '1.20', sub: '1.20.1' },
+    { num: '1.20', sub: '1.20.0' },
+    { num: '1.12', sub: '1.12.2' },
+    { num: '1.12', sub: '1.12.1' },
+    { num: '1.7', sub: '1.7.10' },
+    { num: '1.7', sub: '1.7.2' }
+  ],
+  vanilla: [
+    { num: '1.13', sub: '1.13.2' },
+    { num: '1.13', sub: '1.13.1' },
+    { num: '1.8', sub: '1.8.9' },
+    { num: '1.8', sub: '1.8.8' }
+  ]
+};
+
 export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSettingsModalProps) {
+  const { t } = useTranslation();
   const settings = useSettingsStore();
 
   const [activeTab, setActiveTab] = useState<TabType>('java');
@@ -22,6 +51,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
   const [resH, setResH] = useState(720);
   const [fullscreen, setFullscreen] = useState(false);
   const [loaderType, setLoaderType] = useState<'vanilla' | 'fabric' | 'forge'>('fabric');
+  const [selectedSubVer, setSelectedSubVer] = useState('1.21.8');
   const [gameDir, setGameDir] = useState('');
   
   // Toasts / Messages
@@ -36,11 +66,14 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
       setFullscreen(settings.fullscreen);
       setGameDir(settings.launcherDir);
       
+      const sub = settings.selectedSubVersion || '1.21.8';
+      setSelectedSubVer(sub);
+      
       // Infer loader type based on selected subversion or string
-      const sub = settings.selectedSubVersion?.toLowerCase() || '';
-      if (sub.includes('fabric') || settings.selectedVersion === '1.21' || settings.selectedVersion === '1.21.8') {
+      const subLower = sub.toLowerCase();
+      if (subLower.includes('fabric') || settings.selectedVersion === '1.21' || settings.selectedVersion === '26.1' || settings.selectedVersion === '1.16') {
         setLoaderType('fabric');
-      } else if (sub.includes('forge') || settings.selectedVersion === '1.20' || settings.selectedVersion === '1.12.2') {
+      } else if (subLower.includes('forge') || settings.selectedVersion === '1.20' || settings.selectedVersion === '1.12' || settings.selectedVersion === '1.7') {
         setLoaderType('forge');
       } else {
         setLoaderType('vanilla');
@@ -75,18 +108,11 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
     settings.setFullscreen(fullscreen);
     
     // Save version/loader details based on selection
-    if (loaderType === 'fabric') {
-      settings.setSelectedVersion('1.21');
-      settings.setSelectedSubVersion('1.21.8');
-    } else if (loaderType === 'forge') {
-      settings.setSelectedVersion('1.20');
-      settings.setSelectedSubVersion('1.20.4');
-    } else {
-      settings.setSelectedVersion('1.13');
-      settings.setSelectedSubVersion('1.13.2');
-    }
+    const matchedVer = LOADER_VERSIONS[loaderType].find(v => v.sub === selectedSubVer) || LOADER_VERSIONS[loaderType][0];
+    settings.setSelectedVersion(matchedVer.num);
+    settings.setSelectedSubVersion(matchedVer.sub);
     
-    showToast('Ayarlar başarıyla kaydedildi!');
+    showToast(t('profileSettings.saveSuccess'));
     setTimeout(() => {
       onClose();
     }, 800);
@@ -100,9 +126,9 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
           const validation = await window.electronAPI.validateDirectory(dir);
           if (validation.valid) {
             setGameDir(dir);
-            showToast('Oyun dizini seçildi.');
+            showToast(t('profileSettings.dirSelected'));
           } else {
-            showToast('Geçersiz oyun dizini.');
+            showToast(t('profileSettings.dirInvalid'));
           }
         }
       } catch (err) {
@@ -122,15 +148,85 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
       defaultDir = '/home/default/.marinmc';
     }
     setGameDir(defaultDir);
-    showToast('Oyun dizini varsayılana sıfırlandı.');
+    showToast(t('profileSettings.dirReset'));
   };
 
-  const handleExport = () => {
-    showToast('Profil başarıyla dışa aktarıldı! (marinmc-profile.lcpack)');
+  const handleExport = async () => {
+    if (window.electronAPI) {
+      const settingsPayload = {
+        ram: ramVal * 1024,
+        jvmArgs: settings.jvmArgs,
+        launcherDir: gameDir,
+        javaPath: settings.javaPath,
+        resolutionWidth: resW,
+        resolutionHeight: resH,
+        fullscreen: fullscreen,
+        loaderType: loaderType,
+        selectedVersion: LOADER_VERSIONS[loaderType].find(v => v.sub === selectedSubVer)?.num || '1.21',
+        selectedSubVersion: selectedSubVer
+      };
+      try {
+        const result = await window.electronAPI.exportProfile(settingsPayload);
+        if (result.success) {
+          showToast(t('profileSettings.exportSuccess'));
+        }
+      } catch (err) {
+        console.error('Export error:', err);
+      }
+    }
   };
 
-  const handleClone = () => {
-    showToast('Profil başarıyla klonlandı.');
+  const handleImport = async () => {
+    if (window.electronAPI) {
+      try {
+        const result = await window.electronAPI.importProfile();
+        if (result.success && result.settings) {
+          const s = result.settings;
+          if (s.ram) setRamVal(Math.round(s.ram / 1024));
+          if (s.resolutionWidth) setResW(s.resolutionWidth);
+          if (s.resolutionHeight) setResH(s.resolutionHeight);
+          if (s.fullscreen !== undefined) setFullscreen(s.fullscreen);
+          if (s.launcherDir) setGameDir(s.launcherDir);
+          if (s.loaderType) setLoaderType(s.loaderType);
+          if (s.selectedSubVersion) setSelectedSubVer(s.selectedSubVersion);
+          showToast(t('profileSettings.importSuccess'));
+        }
+      } catch (err) {
+        console.error('Import error:', err);
+      }
+    }
+  };
+
+  const handleClone = async () => {
+    if (window.electronAPI) {
+      try {
+        const destDir = await window.electronAPI.selectDirectory();
+        if (destDir) {
+          const validation = await window.electronAPI.validateDirectory(destDir);
+          if (validation.valid) {
+            const sourceDir = gameDir || settings.launcherDir;
+            showToast(t('profileSettings.cloneProfile') + '...');
+            
+            const result = await window.electronAPI.cloneProfile(sourceDir, destDir);
+            if (result.success) {
+              setGameDir(destDir);
+              showToast(t('profileSettings.cloneSuccess'));
+            } else {
+              showToast(result.error || 'Clone failed.');
+            }
+          } else {
+            showToast(t('profileSettings.dirInvalid'));
+          }
+        }
+      } catch (err) {
+        console.error('Clone error:', err);
+      }
+    }
+  };
+
+  const handleLoaderChange = (type: 'vanilla' | 'fabric' | 'forge') => {
+    setLoaderType(type);
+    setSelectedSubVer(LOADER_VERSIONS[type][0].sub);
   };
 
   const maxRam = Math.max(16, Math.round(settings.totalSystemRAM / 1024));
@@ -151,10 +247,10 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
             <div className="w-[195px] border-r border-white/[0.04] bg-[#040204]/40 p-5 flex flex-col justify-between">
               <div className="space-y-6">
                 <div>
-                  <span className="text-[7.5px] font-black text-[#52525B] tracking-widest uppercase block mb-1">DÜZENLENEN PROFİL</span>
-                  <div className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-2.5 rounded-xl">
+                  <span className="text-[7.5px] font-black text-[#52525B] tracking-widest uppercase block mb-1">{t('profileSettings.editedProfile')}</span>
+                  <div className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5 bg-white/5 border border-white/10 px-3.5 py-2.5 rounded-xl">
                     <Settings className="w-3.5 h-3.5 text-[#2D7DD2]" />
-                    <span>MARINMC 1.21.8</span>
+                    <span>MARINMC {selectedSubVer}</span>
                   </div>
                 </div>
 
@@ -169,7 +265,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                     }`}
                   >
                     <FolderOpen className="w-3.5 h-3.5" />
-                    <span>Dosyalar</span>
+                    <span>{t('profileSettings.tabFiles')}</span>
                   </button>
 
                   <button
@@ -181,7 +277,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                     }`}
                   >
                     <Cpu className="w-3.5 h-3.5" />
-                    <span>Java Ortamı</span>
+                    <span>{t('profileSettings.tabJava')}</span>
                   </button>
 
                   <button
@@ -193,7 +289,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                     }`}
                   >
                     <Layers className="w-3.5 h-3.5" />
-                    <span>Sürümler</span>
+                    <span>{t('profileSettings.tabVersions')}</span>
                   </button>
 
                   <button
@@ -205,7 +301,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                     }`}
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Dışa Aktar</span>
+                    <span>{t('profileSettings.tabExport')}</span>
                   </button>
                 </div>
               </div>
@@ -217,13 +313,13 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                   className="w-full py-2.5 bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-lg shadow-[#259457]/15 flex items-center justify-center gap-1.5"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>KAYDET</span>
+                  <span>{t('profileSettings.save')}</span>
                 </button>
                 <button
                   onClick={onClose}
                   className="w-full py-2.5 bg-white/5 hover:bg-white/10 active:scale-[0.98] border border-white/[0.06] text-[#A1A1AA] hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
                 >
-                  İPTAL
+                  {t('profileSettings.cancel')}
                 </button>
               </div>
             </div>
@@ -233,16 +329,16 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
               <div className="flex justify-between items-center p-5 border-b border-white/[0.04]">
                 <div>
                   <h3 className="text-[11px] font-black text-white uppercase tracking-widest">
-                    {activeTab === 'files' && 'PROFİL DOSYALARI'}
-                    {activeTab === 'java' && 'JAVA ÇEVRE AYARLARI'}
-                    {activeTab === 'versions' && 'MİNECRAFT SÜRÜM AYARLARI'}
-                    {activeTab === 'export' && 'PROFİL YÖNETİMİ'}
+                    {activeTab === 'files' && t('profileSettings.titleFiles')}
+                    {activeTab === 'java' && t('profileSettings.titleJava')}
+                    {activeTab === 'versions' && t('profileSettings.titleVersions')}
+                    {activeTab === 'export' && t('profileSettings.titleExport')}
                   </h3>
                   <p className="text-[9px] text-[#52525B] font-bold uppercase mt-0.5 tracking-wider">
-                    {activeTab === 'files' && 'Dosya yolları ve klasör dizin yapılandırması'}
-                    {activeTab === 'java' && 'Çözünürlük ve RAM bellek tahsisi yönetimi'}
-                    {activeTab === 'versions' && 'Mod yükleyici türü ve oyun versiyonu seçimi'}
-                    {activeTab === 'export' && 'Dosya klonlama veya paketi dışa aktarma'}
+                    {activeTab === 'files' && t('profileSettings.descFiles')}
+                    {activeTab === 'java' && t('profileSettings.descJava')}
+                    {activeTab === 'versions' && t('profileSettings.descVersions')}
+                    {activeTab === 'export' && t('profileSettings.descExport')}
                   </p>
                 </div>
                 <button
@@ -263,15 +359,15 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                       <div>
                         <h4 className="text-[10px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                           <FolderOpen className="w-4 h-4 text-[#2D7DD2]" />
-                          <span>Oyun Çalıştırma Dizini (Game Directory)</span>
+                          <span>{t('profileSettings.gameDirectory')}</span>
                         </h4>
                         <p className="text-[8.5px] text-[#A1A1AA] font-semibold mt-1">
-                          Minecraft dosyalarının kaydedileceği ve okunacağı klasör yolu.
+                          {t('profileSettings.gameDirectoryDesc')}
                         </p>
                       </div>
 
                       <div className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[9.5px] font-semibold text-white/90 break-all select-text font-mono">
-                        {gameDir || 'Varsayılan dizin bulunamadı.'}
+                        {gameDir || t('profileSettings.noDefaultDir')}
                       </div>
 
                       <div className="flex gap-2.5">
@@ -280,13 +376,13 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                           className="px-4 py-2.5 bg-[#2D7DD2]/20 hover:bg-[#2D7DD2]/30 border border-[#2D7DD2]/30 text-[#2D7DD2] rounded-xl text-[9.5px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5"
                         >
                           <FolderOpen className="w-3.5 h-3.5" />
-                          Dizini Değiştir
+                          {t('profileSettings.changeDir')}
                         </button>
                         <button
                           onClick={handleResetDirectory}
                           className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/[0.08] text-[#A1A1AA] hover:text-white rounded-xl text-[9.5px] font-black uppercase tracking-wider transition-all active:scale-95"
                         >
-                          Sıfırla
+                          {t('profileSettings.reset')}
                         </button>
                       </div>
                     </div>
@@ -294,7 +390,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                     <div className="bg-[#F59E0B]/5 border border-[#F59E0B]/20 rounded-xl p-4 flex gap-3 items-start">
                       <AlertTriangle className="w-4 h-4 text-[#F59E0B] shrink-0 mt-0.5" />
                       <div className="text-[8.5px] text-[#F59E0B] font-bold uppercase tracking-wider leading-relaxed">
-                        <span>UYARI: </span>Oyun dizinini değiştirmek, modlarınızın ve dünyalarınızın başka klasörde kalmasına sebep olabilir. Varsayılan klasör önerilir.
+                        {t('profileSettings.dirWarning')}
                       </div>
                     </div>
                   </div>
@@ -308,16 +404,16 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                       <div>
                         <h4 className="text-[10px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                           <Monitor className="w-4 h-4 text-[#2D7DD2]" />
-                          <span>Ekran Çözünürlüğü</span>
+                          <span>{t('profileSettings.resolution')}</span>
                         </h4>
                         <p className="text-[8.5px] text-[#A1A1AA] font-semibold mt-1">
-                          Oyun pencerelenmiş modda başlatıldığında kullanılacak varsayılan boyut.
+                          {t('profileSettings.resolutionDesc')}
                         </p>
                       </div>
 
                       <div className="flex items-center gap-4.5">
                         <div className="flex items-center gap-2 bg-black/40 border border-white/10 px-3.5 py-2 rounded-xl text-[10px] font-black text-white w-28">
-                          <span className="text-white/40">Genişlik</span>
+                          <span className="text-white/40">{t('profileSettings.width')}</span>
                           <input
                             type="number"
                             value={resW}
@@ -326,7 +422,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                           />
                         </div>
                         <div className="flex items-center gap-2 bg-black/40 border border-white/10 px-3.5 py-2 rounded-xl text-[10px] font-black text-white w-28">
-                          <span className="text-white/40">Yükseklik</span>
+                          <span className="text-white/40">{t('profileSettings.height')}</span>
                           <input
                             type="number"
                             value={resH}
@@ -343,7 +439,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                             onChange={(e) => setFullscreen(e.target.checked)}
                             className="rounded border-white/10 bg-black/40 text-[#2D7DD2] focus:ring-0 w-3.5 h-3.5"
                           />
-                          <span>Tam Ekran Başlat</span>
+                          <span>{t('profileSettings.fullscreen')}</span>
                         </label>
                       </div>
                     </div>
@@ -354,10 +450,10 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                         <div>
                           <h4 className="text-[10px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                             <Sliders className="w-4 h-4 text-[#2D7DD2]" />
-                            <span>Bellek Ataması (Allocated RAM)</span>
+                            <span>{t('profileSettings.allocatedRam')}</span>
                           </h4>
                           <p className="text-[8.5px] text-[#A1A1AA] font-semibold mt-1">
-                            Minecraft'ın kullanmasına izin verilecek maksimum sistem belleği.
+                            {t('profileSettings.allocatedRamDesc')}
                           </p>
                         </div>
                         <div className="bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-[10px] font-black text-white">
@@ -386,7 +482,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
 
                       <div className="flex gap-2 items-center text-[8.5px] text-[#52525B] font-bold uppercase tracking-wider">
                         <Info className="w-3.5 h-3.5 text-[#52525B]" />
-                        <span>Önerilen: 4 GB ile 8 GB arası bellek atamasıdır.</span>
+                        <span>{t('profileSettings.recommendedRam')}</span>
                       </div>
                     </div>
                   </div>
@@ -399,57 +495,64 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                       <div>
                         <h4 className="text-[10px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                           <Layers className="w-4 h-4 text-[#2D7DD2]" />
-                          <span>Mod Yükleyici Türü (Mod Loader)</span>
+                          <span>{t('profileSettings.modLoader')}</span>
                         </h4>
                         <p className="text-[8.5px] text-[#A1A1AA] font-semibold mt-1">
-                          Oyunun vanilla olarak mı yoksa mod yükleyiciyle mi açılacağını seçin.
+                          {t('profileSettings.modLoaderDesc')}
                         </p>
                       </div>
 
                       {/* Selector cards */}
                       <div className="grid grid-cols-3 gap-3.5">
                         <button
-                          onClick={() => setLoaderType('vanilla')}
+                          onClick={() => handleLoaderChange('vanilla')}
                           className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
                             loaderType === 'vanilla'
                               ? 'border-[#2D7DD2] bg-[#2D7DD2]/10 text-white'
                               : 'border-white/[0.04] bg-black/40 hover:bg-black/60 text-[#A1A1AA]'
                           }`}
                         >
-                          <span className="text-[13px] font-black mb-1">Vanilla</span>
-                          <span className="text-[7.5px] font-bold uppercase tracking-wider opacity-60">Standart Sürüm</span>
+                          <span className="text-[13px] font-black mb-1">{t('profileSettings.vanilla')}</span>
+                          <span className="text-[7.5px] font-bold uppercase tracking-wider opacity-60">{t('profileSettings.vanillaDesc')}</span>
                         </button>
                         <button
-                          onClick={() => setLoaderType('fabric')}
+                          onClick={() => handleLoaderChange('fabric')}
                           className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
                             loaderType === 'fabric'
                               ? 'border-[#2D7DD2] bg-[#2D7DD2]/10 text-white'
                               : 'border-white/[0.04] bg-black/40 hover:bg-black/60 text-[#A1A1AA]'
                           }`}
                         >
-                          <span className="text-[13px] font-black mb-1">Fabric</span>
-                          <span className="text-[7.5px] font-bold uppercase tracking-wider opacity-60">Önerilen Modlar</span>
+                          <span className="text-[13px] font-black mb-1">{t('profileSettings.fabric')}</span>
+                          <span className="text-[7.5px] font-bold uppercase tracking-wider opacity-60">{t('profileSettings.fabricDesc')}</span>
                         </button>
                         <button
-                          onClick={() => setLoaderType('forge')}
+                          onClick={() => handleLoaderChange('forge')}
                           className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
                             loaderType === 'forge'
                               ? 'border-[#2D7DD2] bg-[#2D7DD2]/10 text-white'
                               : 'border-white/[0.04] bg-black/40 hover:bg-black/60 text-[#A1A1AA]'
                           }`}
                         >
-                          <span className="text-[13px] font-black mb-1">Forge</span>
-                          <span className="text-[7.5px] font-bold uppercase tracking-wider opacity-60">Mod Desteği</span>
+                          <span className="text-[13px] font-black mb-1">{t('profileSettings.forge')}</span>
+                          <span className="text-[7.5px] font-bold uppercase tracking-wider opacity-60">{t('profileSettings.forgeDesc')}</span>
                         </button>
                       </div>
 
                       {/* Dropdown for Subversions */}
                       <div className="pt-2">
-                        <label className="text-[8.5px] font-black text-[#52525B] uppercase tracking-wider block mb-1.5">Sürüm Seçimi</label>
-                        <div className="bg-black/40 border border-white/10 px-3.5 py-2 rounded-xl text-[10px] font-bold text-white flex justify-between items-center w-full max-w-[200px]">
-                          <span>{loaderType === 'fabric' ? '1.21.8' : loaderType === 'forge' ? '1.20.4' : '1.13.2'}</span>
-                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                        </div>
+                        <label className="text-[8.5px] font-black text-[#52525B] uppercase tracking-wider block mb-1.5">{t('profileSettings.versionSelect')}</label>
+                        <select
+                          value={selectedSubVer}
+                          onChange={(e) => setSelectedSubVer(e.target.value)}
+                          className="bg-black/40 border border-white/10 px-3.5 py-2 rounded-xl text-[10px] font-bold text-white w-full max-w-[200px] focus:outline-none focus:ring-0 cursor-pointer"
+                        >
+                          {LOADER_VERSIONS[loaderType].map((v) => (
+                            <option key={v.sub} value={v.sub} className="bg-[#060305] text-white">
+                              {v.sub}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -458,33 +561,44 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                 {/* 4. EXPORT TAB */}
                 {activeTab === 'export' && (
                   <div className="space-y-5">
+                    {/* Profile Export/Import */}
                     <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-5 space-y-4">
                       <div>
                         <h4 className="text-[10px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                           <Download className="w-4 h-4 text-[#2D7DD2]" />
-                          <span>Profili Dışa Aktar</span>
+                          <span>{t('profileSettings.exportProfile')}</span>
                         </h4>
                         <p className="text-[8.5px] text-[#A1A1AA] font-semibold mt-1">
-                          Profil ayarlarını, modları ve konfigürasyonu `.lcpack` dosyası olarak sıkıştırıp yedekleyin.
+                          {t('profileSettings.exportProfileDesc')}
                         </p>
                       </div>
-                      <button
-                        onClick={handleExport}
-                        className="px-4 py-2.5 bg-[#259457] hover:bg-[#2fa865] text-white rounded-xl text-[9.5px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        Profili Dışa Aktar (.lcpack)
-                      </button>
+                      <div className="flex gap-2.5">
+                        <button
+                          onClick={handleExport}
+                          className="px-4 py-2.5 bg-[#259457] hover:bg-[#2fa865] text-white rounded-xl text-[9.5px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          {t('profileSettings.exportBtn')}
+                        </button>
+                        <button
+                          onClick={handleImport}
+                          className="px-4 py-2.5 bg-[#2D7DD2]/20 hover:bg-[#2D7DD2]/30 border border-[#2D7DD2]/30 text-[#2D7DD2] rounded-xl text-[9.5px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5" />
+                          {t('profileSettings.importBtn')}
+                        </button>
+                      </div>
                     </div>
 
+                    {/* Profile Cloning */}
                     <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-5 space-y-4">
                       <div>
                         <h4 className="text-[10px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                           <Copy className="w-4 h-4 text-[#2D7DD2]" />
-                          <span>Profili Klonla / Kopyala</span>
+                          <span>{t('profileSettings.cloneProfile')}</span>
                         </h4>
                         <p className="text-[8.5px] text-[#A1A1AA] font-semibold mt-1">
-                          Aynı ayarlara sahip yeni bir bağımsız profil oluşturur.
+                          {t('profileSettings.cloneProfileDesc')}
                         </p>
                       </div>
                       <button
@@ -492,7 +606,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                         className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/[0.08] text-[#A1A1AA] hover:text-white rounded-xl text-[9.5px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5"
                       >
                         <Copy className="w-3.5 h-3.5" />
-                        Profili Klonla
+                        {t('profileSettings.cloneBtn')}
                       </button>
                     </div>
                   </div>

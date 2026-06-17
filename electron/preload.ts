@@ -52,6 +52,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   uploadSkin: () => ipcRenderer.invoke('upload-skin'),
   openCrashLog: (crashPath: string) => ipcRenderer.invoke('open-crash-log', crashPath),
   copyCrashLog: (crashPath: string) => ipcRenderer.invoke('copy-crash-log', crashPath),
+  exportProfile: (settings: any) => ipcRenderer.invoke('profile:export', settings),
+  importProfile: () => ipcRenderer.invoke('profile:import'),
+  cloneProfile: (sourceDir: string, destDir: string) => ipcRenderer.invoke('profile:clone', sourceDir, destDir),
 
   // Authentication IPCs
   loginCracked: (username: string) => ipcRenderer.invoke('auth:login-cracked', username),

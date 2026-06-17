@@ -370,3 +370,91 @@ ipcMain.handle('system:upload-skin-file', async (_event, filePath: string) => {
     return { success: false, error: err.message };
   }
 });
+
+ipcMain.handle('profile:export', async (_event, settingsPayload: any) => {
+  try {
+    const result = await dialog.showSaveDialog({
+      title: 'Profili Dışa Aktar',
+      defaultPath: 'marinmc-profile.lcpack',
+      filters: [
+        { name: 'MarinMC Profile Pack (*.lcpack)', extensions: ['lcpack'] }
+      ]
+    });
+
+    if (result.canceled || !result.filePath) {
+      return { success: false, error: 'Cancelled' };
+    }
+
+    fs.writeFileSync(result.filePath, JSON.stringify(settingsPayload, null, 2), 'utf-8');
+    return { success: true, filePath: result.filePath };
+  } catch (err: any) {
+    console.error('Error exporting profile:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('profile:import', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      title: 'Profili İçe Aktar',
+      filters: [
+        { name: 'MarinMC Profile Pack (*.lcpack)', extensions: ['lcpack'] }
+      ],
+      properties: ['openFile']
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, error: 'Cancelled' };
+    }
+
+    const content = fs.readFileSync(result.filePaths[0], 'utf-8');
+    const parsed = JSON.parse(content);
+    return { success: true, settings: parsed };
+  } catch (err: any) {
+    console.error('Error importing profile:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('profile:clone', async (_event, sourceDir: string, destDir: string) => {
+  try {
+    if (!sourceDir || !destDir) {
+      throw new Error('Geçersiz kaynak veya hedef dizini.');
+    }
+    
+    const resolvedSource = resolveGameDir(sourceDir);
+    const resolvedDest = resolveGameDir(destDir);
+    
+    if (!fs.existsSync(resolvedSource)) {
+      fs.mkdirSync(resolvedDest, { recursive: true });
+      return { success: true };
+    }
+
+    fs.mkdirSync(resolvedDest, { recursive: true });
+    
+    if (typeof fs.cpSync === 'function') {
+      fs.cpSync(resolvedSource, resolvedDest, { recursive: true, force: true });
+    } else {
+      const copyRecursive = (src: string, dest: string) => {
+        const exists = fs.existsSync(src);
+        const stats = exists && fs.statSync(src);
+        const isDirectory = exists && stats && stats.isDirectory();
+        if (isDirectory) {
+          if (!fs.existsSync(dest)) fs.mkdirSync(dest);
+          fs.readdirSync(src).forEach((childItemName) => {
+            copyRecursive(path.join(src, childItemName), path.join(dest, childItemName));
+          });
+        } else {
+          fs.copyFileSync(src, dest);
+        }
+      };
+      copyRecursive(resolvedSource, resolvedDest);
+    }
+    
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error cloning profile directory:', err);
+    return { success: false, error: err.message };
+  }
+});
+

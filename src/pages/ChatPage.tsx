@@ -124,6 +124,10 @@ export default function ChatPage() {
       });
 
       setContacts(prev => {
+        // Only update if the contact still exists (not deleted)
+        const contactExists = prev.some(c => c.id === contactId);
+        if (!contactExists) return prev; // Don't re-add deleted contacts
+        
         const updated = prev.map(c => {
           if (c.id === contactId) {
             return {
@@ -225,14 +229,23 @@ export default function ChatPage() {
     if (!deleteConfirmContactId) return;
     const contactId = deleteConfirmContactId;
 
+    // Remove from local contacts state
     const updatedContacts = contacts.filter(c => c.id !== contactId);
     setContacts(updatedContacts);
     await api.updateContacts(username, updatedContacts as any);
 
+    // Remove messages from local state and API
     const updatedMessages = { ...chatMessages };
     delete updatedMessages[contactId];
     setChatMessages(updatedMessages);
     await api.updateChatMessages(username, updatedMessages);
+
+    // Also sync with socialStore to remove from friends list
+    try {
+      await socialStore.removeFriend(contactId);
+    } catch (e) {
+      // socialStore might already have removed it
+    }
 
     if (activeContact && activeContact.id === contactId) {
       setActiveContact(null);

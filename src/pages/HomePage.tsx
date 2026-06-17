@@ -41,8 +41,8 @@ const defaultNews = [
   {
     category: 'ETKİNLİK',
     tagColor: 'text-[#F59E0B] border-[#F59E0B]/30 bg-[#F59E0B]/10',
-    title: 'Haftalık Survival Turnuvası Başlıyor',
-    description: 'Bu Pazar günü düzenlenecek olan Survival turnuvasına katılarak özel pelerin ve kozmetik ödülleri kazanın.',
+    title: 'Haftalık Towny Turnuvası Başlıyor',
+    description: 'Bu Pazar günü düzenlenecek olan Towny turnuvasına katılarak özel pelerin ve kozmetik ödülleri kazanın.',
     date: '14 Haziran 2026',
     imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400'
   },
@@ -459,7 +459,7 @@ export default function HomePage() {
   return (
     <div className="flex-1 flex overflow-hidden h-full relative select-none">
       {/* Middle Main Dashboard */}
-      <div className="flex-1 flex flex-col overflow-y-auto no-drag custom-scrollbar bg-[#060305] text-[#d2d2d2]">
+      <div className="flex-1 flex flex-col overflow-hidden h-full no-drag bg-[#060305] text-[#d2d2d2] relative">
         
         {/* Offline Red Banner */}
         {!isOnline && (
@@ -505,7 +505,8 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#060305]/70 to-[#060305]" />
         </div>
 
-        <div className="p-6 flex flex-col space-y-6 relative z-10">
+        {/* Top Scrollable Area */}
+        <div className="flex-grow overflow-y-auto p-6 space-y-6 relative z-10 custom-scrollbar">
           {/* Minimal top header with Profile Switcher */}
           <div className="flex justify-end items-center relative z-20">
             <div className="relative">
@@ -731,23 +732,101 @@ export default function HomePage() {
           </div>
 
           {/* Redesigned Sleek Lunar-style Launch Panel */}
-          <div className="w-full rounded-2xl bg-gradient-to-r from-[#0d0a11] via-[#08060a] to-[#0d0a11] border border-white/[0.05] relative overflow-hidden flex flex-col items-center justify-center py-6 px-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] group">
+          <div className="w-full rounded-2xl bg-gradient-to-r from-[#0d0a11] via-[#08060a] to-[#0d0a11] border border-white/[0.05] relative overflow-hidden flex flex-col items-center justify-center py-12 px-8 shadow-[0_20px_50px_rgba(0,0,0,0.6)] group">
             {/* Background particles and radial gradient */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.06),transparent_60%)] pointer-events-none" />
             <div className="absolute -top-12 -left-12 w-36 h-36 bg-[#2D7DD2]/5 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-12 -right-12 w-36 h-36 bg-[#8B5CF6]/5 rounded-full blur-3xl pointer-events-none" />
 
+            {/* Floating Minecraft Icons */}
+            <motion.svg
+              width="48"
+              height="48"
+              viewBox="0 0 16 16"
+              className="absolute top-4 left-8 text-white/[0.04] pointer-events-none fill-current"
+              animate={{
+                y: [0, -8, 0],
+                rotate: [15, 25, 15],
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <path d="M12,2h2v2h-2V2z M11,3h2v2h-2V3z M10,4h2v2h-2V4z M9,5h2v2h-2V5z M8,6h2v2h-2V6z M7,7h2v2h-2V7z M6,8h2v2h-2V8z M5,9h2v2H5V9z M4,10h2v2H4V10z M3,11h2v2H3V11z M2,12h2v2H2V12z M2,10h1v1H2V10z M1,11h1v1H1V11z M0,12h1v1H0V12z M0,13h2v2H0V13z M13,1h2v2h-2V1z M14,0h2v2h-2V0z" />
+            </motion.svg>
+
+            <motion.svg
+              width="48"
+              height="48"
+              viewBox="0 0 16 16"
+              className="absolute top-6 right-10 text-white/[0.04] pointer-events-none fill-current"
+              animate={{
+                y: [0, -10, 0],
+                rotate: [-15, -25, -15],
+              }}
+              transition={{
+                duration: 6,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <path d="M13,0h3v3h-3V0z M12,1h2v2h-2V1z M11,2h2v2h-2V2z M10,3h1v1h-1V3z M9,4h1v1H9V4z M8,5h1v1H8V5z M7,6h1v1H7V6z M6,7h1v1H6V7z M5,8h1v1H5V8z M4,9h1v1H4V9z M3,10h1v1H3V10z M2,11h1v1H2V11z M1,12h1v1H1V12z M0,13h2v2H0V13z M14,3v1h-1V3z M15,4v1h-1V4z" />
+            </motion.svg>
+
+            <motion.svg
+              width="48"
+              height="48"
+              viewBox="0 0 16 16"
+              className="absolute bottom-6 left-16 text-white/[0.04] pointer-events-none fill-current"
+              animate={{
+                y: [0, -6, 0],
+                scale: [1, 1.05, 1],
+              }}
+              transition={{
+                duration: 7,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <path d="M6,2h4v1H6V2z M4,3h2v1H4V3z M10,3h2v1h-2V3z M3,4h1v2H3V4z M12,4h1v2h-1V4z M2,6h1v4H2V6z M13,6h1v4h-1V6z M3,10h1v2H3V10z M12,10h1v2h-1V10z M4,12h2v1H4V12z M10,12h2v1h-2V12z M6,13h4v1H6V13z M7,0h2v2H7V0z" />
+            </motion.svg>
+
+            <motion.svg
+              width="48"
+              height="48"
+              viewBox="0 0 8 8"
+              className="absolute bottom-4 right-14 text-white/[0.04] pointer-events-none fill-current"
+              animate={{
+                y: [0, -7, 0],
+                rotate: [0, 10, -10, 0],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <rect x="1" y="1" width="2" height="2" />
+              <rect x="5" y="1" width="2" height="2" />
+              <rect x="3" y="3" width="2" height="2" />
+              <rect x="2" y="4" width="4" height="2" />
+              <rect x="2" y="6" width="1" height="1" />
+              <rect x="5" y="6" width="1" height="1" />
+            </motion.svg>
+
             {/* Launch components */}
             <div className="w-full flex flex-col items-center z-10">
-              <div className="flex items-center gap-3 w-full max-w-[340px]">
+              <div className="flex items-center gap-3 w-full max-w-[420px]">
                 {launchStatus === 'DOWNLOADING' ? (
                   // Downloading Green Button
                   <button
                     onClick={handleLaunch}
-                    className="flex-1 h-[54px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.25)] flex flex-col items-center justify-center gap-0.5"
+                    className="flex-1 h-[68px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.25)] flex flex-col items-center justify-center gap-0.5"
                   >
-                    <span className="font-black text-[12px] tracking-widest uppercase">{t('home.downloading')}</span>
-                    <div className="flex items-center gap-1.5 text-[8.5px] text-white/80 font-bold">
+                    <span className="font-black text-[14px] tracking-widest uppercase">{t('home.downloading')}</span>
+                    <div className="flex items-center gap-1.5 text-[9.5px] text-white/80 font-bold">
                       <span>Fabric {settings.selectedSubVersion || '1.21.0'}</span>
                       <span className="text-white/40">|</span>
                       <Pause className="w-2.5 h-2.5 fill-current" />
@@ -758,16 +837,16 @@ export default function HomePage() {
                   <button
                     onClick={handleLaunch}
                     disabled={launchStatus === 'CHECKING' || launchStatus === 'LAUNCHING'}
-                    className="flex-1 h-[54px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] disabled:opacity-50 text-white rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.3)] flex items-center justify-between px-6 cursor-pointer"
+                    className="flex-1 h-[68px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] disabled:opacity-50 text-white rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.3)] flex items-center justify-between px-6 cursor-pointer"
                   >
                     <div className="flex flex-col items-start text-left">
-                      <span className="font-black text-xs tracking-widest uppercase">{t('home.launch')}</span>
-                      <span className="text-[8.5px] text-white/80 font-bold uppercase tracking-wider mt-0.5">
+                      <span className="font-black text-sm tracking-widest uppercase">{t('home.launch')}</span>
+                      <span className="text-[9.5px] text-white/80 font-bold uppercase tracking-wider mt-0.5">
                         MarinMC {settings.selectedSubVersion || '1.21.3'}
                       </span>
                     </div>
-                    <div className="w-5 h-5 rounded bg-black/20 hover:bg-black/30 flex items-center justify-center transition-colors">
-                      <ChevronDown className="w-3.5 h-3.5 text-white/80 rotate-180" />
+                    <div className="w-6 h-6 rounded bg-black/20 hover:bg-black/30 flex items-center justify-center transition-colors">
+                      <ChevronDown className="w-4 h-4 text-white/80 rotate-180" />
                     </div>
                   </button>
                 )}
@@ -775,10 +854,10 @@ export default function HomePage() {
                 {/* Settings cog wheel next to it */}
                 <button
                   onClick={() => setProfileSettingsOpen(true)}
-                  className="w-[54px] h-[54px] bg-white/5 hover:bg-white/10 active:scale-[0.96] border border-white/[0.06] rounded-xl flex items-center justify-center transition-all duration-200"
+                  className="w-[68px] h-[68px] bg-white/5 hover:bg-white/10 active:scale-[0.96] border border-white/[0.06] rounded-xl flex items-center justify-center transition-all duration-200"
                   title={t('home.settings')}
                 >
-                  <Settings className="w-4.5 h-4.5 text-white/60 hover:text-white transition-colors" />
+                  <Settings className="w-5.5 h-5.5 text-white/60 hover:text-white transition-colors" />
                 </button>
               </div>
 
@@ -799,15 +878,15 @@ export default function HomePage() {
                 const totalFiles = details ? parseInt(details[3], 10) : 100;
                 
                 return (
-                  <div className="w-full max-w-[340px] mt-2.5 space-y-1 animate-[fadeIn_0.2s_ease-out]">
+                  <div className="w-full max-w-[420px] mt-2.5 space-y-1 animate-[fadeIn_0.2s_ease-out]">
                     <div className="w-full bg-white/[0.04] h-1 rounded-full overflow-hidden border border-white/[0.02] shadow-inner">
                       <div
                         className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-300 shadow-[0_0_8px_rgba(52,211,153,0.4)]"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-[7.5px] text-[#A1A1AA] font-bold uppercase tracking-wide">
-                      <span className="truncate max-w-[190px] text-emerald-400">
+                    <div className="flex justify-between text-[8.5px] text-[#A1A1AA] font-bold uppercase tracking-wide">
+                      <span className="truncate max-w-[250px] text-emerald-400">
                         {fileType}: {currentFile > 0 ? `${currentFile} / ${totalFiles}` : 'KONTROL EDİLİYOR'}
                       </span>
                       <span className="text-white/40">%{progress} TAMAM</span>
@@ -818,34 +897,37 @@ export default function HomePage() {
             </div>
           </div>
 
+        </div>
+
+        {/* Bottom Pinned News Feed Area */}
+        <div className="shrink-0 bg-[#070508]/85 border-t border-white/[0.04] p-6 relative z-10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
           {/* News Feed Header */}
-          <div className="space-y-1.5 pt-4">
+          <div className="space-y-1.5 pb-4">
             <span className="text-[10px] font-black text-[#8B5CF6] uppercase tracking-wider">MARINMC HABERLERİ</span>
             <h2 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#8B5CF6] animate-pulse" />
               <span>Gelişmeler & Güncellemeler</span>
             </h2>
-            <p className="text-[9.5px] text-[#52525B] font-semibold font-bold">MarinMC Client ile ilgili en son haberler, duyurular ve sürüm notları.</p>
           </div>
 
           {/* News Feed Grid */}
           {!isOnline ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="h-[280px] bg-[#0c080e]/40 border border-white/[0.04] rounded-2xl flex items-center justify-center flex-col text-center p-6 relative group">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-3 h-[180px] bg-[#0c080e]/40 border border-white/[0.04] rounded-2xl flex items-center justify-center flex-col text-center p-6 relative group">
                 <WifiOff className="w-8 h-8 text-[#52525B] mb-2" />
                 <span className="text-[10px] font-bold text-[#52525B]">{t('home.newsServiceError')}</span>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {displayNews.map((item, idx) => (
+            <div className="grid grid-cols-3 gap-4">
+              {displayNews.slice(0, 3).map((item, idx) => (
                 <motion.div
                   key={idx}
                   whileHover={{ y: -4, scale: 1.02 }}
-                  className="relative rounded-2xl overflow-hidden border border-white/[0.04] bg-[#0c080e]/60 hover:bg-[#120c15]/80 hover:border-white/10 transition-all duration-300 flex flex-col h-[280px] group shadow-xl"
+                  className="relative rounded-2xl overflow-hidden border border-white/[0.04] bg-[#0c080e]/60 hover:bg-[#120c15]/80 hover:border-white/10 transition-all duration-300 flex flex-col h-[180px] group shadow-xl"
                 >
                   {/* Card Image Cover with zoom effect */}
-                  <div className="h-[130px] overflow-hidden relative shrink-0">
+                  <div className="h-[90px] overflow-hidden relative shrink-0">
                     <div
                       className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
                       style={{ backgroundImage: `url(${item.imageUrl})` }}
@@ -853,26 +935,26 @@ export default function HomePage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0c080e] via-transparent to-black/30 pointer-events-none" />
                     
                     {/* Category tag on top of image */}
-                    <span className={`absolute top-3 left-3 text-[7.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded border backdrop-blur-md ${item.tagColor}`}>
+                    <span className={`absolute top-2.5 left-2.5 text-[7.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded border backdrop-blur-md ${item.tagColor}`}>
                       {item.category}
                     </span>
                   </div>
 
                   {/* Card Body */}
-                  <div className="p-4 flex flex-col justify-between flex-grow min-h-0 relative z-10">
-                    <div className="space-y-1">
-                      <h3 className="text-[10.5px] font-black text-white leading-snug uppercase line-clamp-2 tracking-wide group-hover:text-[#2D7DD2] transition-colors">
+                  <div className="p-3 flex flex-col justify-between flex-grow min-h-0 relative z-10">
+                    <div className="space-y-0.5">
+                      <h3 className="text-[9.5px] font-black text-white leading-snug uppercase line-clamp-1 tracking-wide group-hover:text-[#2D7DD2] transition-colors">
                         {item.title}
                       </h3>
-                      <p className="text-[8.5px] text-[#A1A1AA] leading-normal line-clamp-3 font-semibold">
+                      <p className="text-[8px] text-[#A1A1AA] leading-normal line-clamp-2 font-semibold">
                         {item.description}
                       </p>
                     </div>
                     
                     {/* Card Footer */}
-                    <div className="flex justify-between items-center pt-2 border-t border-white/[0.03] mt-2 shrink-0">
-                      <span className="text-[7.5px] text-[#52525B] font-bold font-mono uppercase tracking-wider">{item.date}</span>
-                      <span className="text-[7.5px] text-[#2D7DD2] font-black uppercase tracking-widest group-hover:underline flex items-center gap-0.5">
+                    <div className="flex justify-between items-center pt-1.5 border-t border-white/[0.03] mt-1 shrink-0">
+                      <span className="text-[7px] text-[#52525B] font-bold font-mono uppercase tracking-wider">{item.date}</span>
+                      <span className="text-[7px] text-[#2D7DD2] font-black uppercase tracking-widest group-hover:underline flex items-center gap-0.5">
                         DEVAMINI OKU ➔
                       </span>
                     </div>
@@ -881,9 +963,7 @@ export default function HomePage() {
               ))}
             </div>
           )}
-
         </div>
-
       </div>
 
       {/* Redesigned Collapsible right sidebar panel for friends list */}

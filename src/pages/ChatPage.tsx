@@ -8,7 +8,7 @@ import { wsManager } from '../lib/websocket';
 import {
   Search, Edit3, Pin, Users, MessageSquare,
   Image, Smile, FileText, Mic, Send, Heart, Video,
-  Paperclip, X
+  Paperclip, X, Trash2
 } from 'lucide-react';
 
 interface Contact {
@@ -296,6 +296,15 @@ export default function ChatPage() {
     const updated = contacts.map(c => c.id === contact.id ? { ...c, unread: 0 } : c);
     setContacts(updated);
     api.updateContacts(username, updated as any);
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    if (!activeContact) return;
+    const currentMsgs = chatMessages[activeContact.id] || [];
+    const updatedMsgs = currentMsgs.filter((m) => m.id !== messageId);
+    const newChatMessages = { ...chatMessages, [activeContact.id]: updatedMsgs };
+    setChatMessages(newChatMessages);
+    api.updateChatMessages(username, newChatMessages as any);
   };
 
   const handleSend = () => {
@@ -587,8 +596,18 @@ export default function ChatPage() {
                   key={msg.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${msg.isSelf ? 'justify-end' : 'justify-start'}`}
+                  className={`flex group items-center gap-2 ${msg.isSelf ? 'justify-end' : 'justify-start'}`}
                 >
+                  {msg.isSelf && (
+                    <button
+                      onClick={() => handleDeleteMessage(msg.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-[#52525B] hover:text-red-500 rounded-lg hover:bg-white/5 transition-all shrink-0"
+                      title="Mesajı Sil"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+
                   <div className={`max-w-[60%] px-3.5 py-2 rounded-2xl ${
                     msg.isSelf
                       ? 'bg-[#2D7DD2] text-white rounded-br-md'
@@ -642,6 +661,16 @@ export default function ChatPage() {
                       msg.isSelf ? 'text-white/50' : 'text-[#52525B]'
                     }`}>{msg.time}</span>
                   </div>
+
+                  {!msg.isSelf && (
+                    <button
+                      onClick={() => handleDeleteMessage(msg.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-[#52525B] hover:text-red-500 rounded-lg hover:bg-white/5 transition-all shrink-0"
+                      title="Mesajı Sil"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
                 </motion.div>
               ))}
               <div ref={messagesEndRef} />

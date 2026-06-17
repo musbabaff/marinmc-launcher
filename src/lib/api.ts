@@ -230,42 +230,6 @@ export const api = {
           players: { online: 284, max: 1000 },
           version: '1.21.8',
           ping: 15
-        },
-        {
-          id: 'survival',
-          name: 'MarinMC Survival',
-          ip: 'oyna.marinmc.com',
-          port: 25565,
-          mode: 'SURVIVAL',
-          description: 'Klasik hayatta kalma deneyimi, iddialı zindanlar ve klanlar.',
-          playerCount: 128,
-          maxPlayers: 1000,
-          tags: ['KLAN', 'DUNGEON', 'PVP'],
-          themeColor: 'purple',
-          artworkUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=60',
-          bannerUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80',
-          online: true,
-          players: { online: 128, max: 1000 },
-          version: '1.21.8',
-          ping: 22
-        },
-        {
-          id: 'skyblock',
-          name: 'MarinMC Skyblock',
-          ip: 'oyna.marinmc.com',
-          port: 25565,
-          mode: 'SKYBLOCK',
-          description: 'Gelişmiş ada görevleri, adalar arası ticaret ve özel minyonlar.',
-          playerCount: 92,
-          maxPlayers: 1000,
-          tags: ['SKYBLOCK', 'MINIONS', 'TRADE'],
-          themeColor: 'orange',
-          artworkUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=60',
-          bannerUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80',
-          online: true,
-          players: { online: 92, max: 1000 },
-          version: '1.21.8',
-          ping: 18
         }
       ];
     }
@@ -278,9 +242,9 @@ export const api = {
     } catch (err) {
       console.warn('[API] getLeaderboard failed, returning fallback.');
       return [
-        { rank: 1, username: '172px', totalPlayTime: 852, lastLogin: 'Bugün 12:44', coins: 4500, status: 'online', server: 'Survival' },
+        { rank: 1, username: '172px', totalPlayTime: 852, lastLogin: 'Bugün 12:44', coins: 4500, status: 'online', server: 'Towny' },
         { rank: 2, username: 'daaaavidds', totalPlayTime: 712, lastLogin: 'Bugün 13:10', coins: 3800, status: 'idle', server: 'Towny' },
-        { rank: 3, username: 'masaya46', totalPlayTime: 590, lastLogin: 'Dün 20:15', coins: 2900, status: 'online', server: 'Skyblock' },
+        { rank: 3, username: 'masaya46', totalPlayTime: 590, lastLogin: 'Dün 20:15', coins: 2900, status: 'online', server: 'Towny' },
         { rank: 4, username: 'cuvsa', totalPlayTime: 440, lastLogin: '08.06.2026', coins: 1200, status: 'offline', server: '-' },
         { rank: 5, username: 'zakhbear', totalPlayTime: 384, lastLogin: '07.06.2026', coins: 950, status: 'offline', server: '-' },
         { rank: 6, username: 'wtfbroimlagging', totalPlayTime: 290, lastLogin: '05.06.2026', coins: 640, status: 'offline', server: '-' },
@@ -402,7 +366,13 @@ export const api = {
       const initial: Achievement[] = [
         { id: 'a1', title: 'İlk Adım', description: 'Yeni tasarımlı launcher\'a ilk kez giriş yap.', completed: true, date: new Date().toLocaleDateString('tr-TR') },
         { id: 'a2', title: 'Mod Meraklısı', description: 'Mod Yöneticisinden ilk modunu indir.', completed: false, date: '-' },
-        { id: 'a3', title: 'Sosyal Keşif', description: 'Arkadaş listene ilk arkadaşını ekle.', completed: false, date: '-' }
+        { id: 'a3', title: 'Sosyal Keşif', description: 'Arkadaş listene ilk arkadaşını ekle.', completed: false, date: '-' },
+        { id: 'a4', title: 'Jeton Avcısı', description: 'Cüzdanında 1,000 veya daha fazla Jeton barındır.', completed: false, date: '-' },
+        { id: 'a5', title: 'Kozmetik Ustası', description: 'Gardıroptan ilk pelerin veya kanat kozmetiğini kuşan.', completed: false, date: '-' },
+        { id: 'a6', title: 'Zaman Bükücü', description: 'Toplam oynama süresini 10 saate ulaştır.', completed: false, date: '-' },
+        { id: 'a7', title: 'Relay Sohbetçisi', description: 'Relay Sohbet kanalında ilk mesajını gönder.', completed: false, date: '-' },
+        { id: 'a8', title: 'Fotoğrafçı', description: 'Galeri sayfasında ilk ekran görüntünü toplulukla paylaş.', completed: false, date: '-' },
+        { id: 'a9', title: 'Kusursuz Entegrasyon', description: 'Özel JVM optimizasyon ayarlarını aktif et.', completed: false, date: '-' }
       ];
       localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(initial));
       return initial;

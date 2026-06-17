@@ -4,6 +4,8 @@ import { dbAll, dbRun, dbGet } from './db.js';
 // Map to store active connections: username -> ws
 const clients = new Map();
 
+export const isUserOnline = (username) => clients.has(username.toLowerCase());
+
 export const initWebSocket = (server) => {
   const wss = new WebSocketServer({ noServer: true });
 

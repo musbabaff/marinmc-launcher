@@ -7,7 +7,7 @@ import hpp from 'hpp';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { ensureDbInitialized, dbGet, dbRun, dbAll } from './db.js';
-import { initWebSocket } from './ws.js';
+import { initWebSocket, isUserOnline } from './ws.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -437,26 +437,42 @@ router.get('/leaderboard', async (req, res) => {
     const dbUsers = await dbAll('SELECT username, total_play_time, last_login, coins FROM users ORDER BY total_play_time DESC LIMIT 10');
     
     // Default legendary mock list of players to ensure a complete leaderboard (10 items)
-    const mockPlayers = [];
+    const mockPlayers = [
+      { username: '172px', totalPlayTime: 852, lastLogin: 'Bugün 12:44', coins: 4500, status: 'online', server: 'Towny' },
+      { username: 'daaaavidds', totalPlayTime: 712, lastLogin: 'Bugün 13:10', coins: 3800, status: 'idle', server: 'Towny' },
+      { username: 'masaya46', totalPlayTime: 590, lastLogin: 'Dün 20:15', coins: 2900, status: 'online', server: 'Towny' },
+      { username: 'cuvsa', totalPlayTime: 440, lastLogin: '08.06.2026', coins: 1200, status: 'offline', server: '-' },
+      { username: 'zakhbear', totalPlayTime: 384, lastLogin: '07.06.2026', coins: 950, status: 'offline', server: '-' },
+      { username: 'wtfbroimlagging', totalPlayTime: 290, lastLogin: '05.06.2026', coins: 640, status: 'offline', server: '-' },
+      { username: 'wtfbro', totalPlayTime: 210, lastLogin: '04.06.2026', coins: 520, status: 'offline', server: '-' },
+      { username: 'Steve', totalPlayTime: 180, lastLogin: '02.06.2026', coins: 500, status: 'offline', server: '-' },
+      { username: 'Alex', totalPlayTime: 150, lastLogin: '01.06.2026', coins: 500, status: 'offline', server: '-' }
+    ];
 
     const merged = [];
     const seen = new Set();
 
     dbUsers.forEach((u) => {
       seen.add(u.username.toLowerCase());
+      const online = isUserOnline(u.username);
       merged.push({
         username: u.username,
         totalPlayTime: u.total_play_time,
         lastLogin: u.last_login || 'Bugün',
         coins: u.coins !== undefined ? u.coins : 500,
-        status: 'offline',
-        server: '-'
+        status: online ? 'online' : 'offline',
+        server: online ? 'Towny' : '-'
       });
     });
 
     mockPlayers.forEach((p) => {
       if (!seen.has(p.username.toLowerCase())) {
-        merged.push(p);
+        const online = isUserOnline(p.username);
+        merged.push({
+          ...p,
+          status: online ? 'online' : p.status,
+          server: online ? 'Towny' : p.server
+        });
       }
     });
 
@@ -874,30 +890,43 @@ router.post('/users/:username/quests/:id/claim', validateUsername, authenticateT
 router.get('/users/:username/achievements', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   try {
-    let list = await dbAll('SELECT * FROM achievements WHERE username = ?', [username]);
-    if (list.length === 0) {
-      const initialAchievements = [
-        { id: 'a1', title: 'İlk Adım', description: 'Yeni tasarımlı launcher\'a ilk kez giriş yap.', completed: 1, date: new Date().toLocaleDateString('tr-TR') },
-        { id: 'a2', title: 'Mod Meraklısı', description: 'Mod Yöneticisinden ilk modunu indir.', completed: 0, date: '-' },
-        { id: 'a3', title: 'Jeton Avcısı', description: 'Cüzdanında 1,000 veya daha fazla Jeton barındır.', completed: 0, date: '-' }
-      ];
-      for (const a of initialAchievements) {
+    const initialAchievements = [
+      { id: 'a1', title: 'İlk Adım', description: 'Yeni tasarımlı launcher\'a ilk kez giriş yap.', completed: 1, date: new Date().toLocaleDateString('tr-TR') },
+      { id: 'a2', title: 'Mod Meraklısı', description: 'Mod Yöneticisinden ilk modunu indir.', completed: 0, date: '-' },
+      { id: 'a3', title: 'Sosyal Keşif', description: 'Arkadaş listene ilk arkadaşını ekle.', completed: 0, date: '-' },
+      { id: 'a4', title: 'Jeton Avcısı', description: 'Cüzdanında 1,000 veya daha fazla Jeton barındır.', completed: 0, date: '-' },
+      { id: 'a5', title: 'Kozmetik Ustası', description: 'Gardıroptan ilk pelerin veya kanat kozmetiğini kuşan.', completed: 0, date: '-' },
+      { id: 'a6', title: 'Zaman Bükücü', description: 'Toplam oynama süresini 10 saate ulaştır.', completed: 0, date: '-' },
+      { id: 'a7', title: 'Relay Sohbetçisi', description: 'Relay Sohbet kanalında ilk mesajını gönder.', completed: 0, date: '-' },
+      { id: 'a8', title: 'Fotoğrafçı', description: 'Galeri sayfasında ilk ekran görüntünü toplulukla paylaş.', completed: 0, date: '-' },
+      { id: 'a9', title: 'Kusursuz Entegrasyon', description: 'Özel JVM optimizasyon ayarlarını aktif et.', completed: 0, date: '-' }
+    ];
+
+    for (const a of initialAchievements) {
+      const exists = await dbGet('SELECT 1 FROM achievements WHERE username = ? AND id = ?', [username, a.id]);
+      if (!exists) {
         await dbRun(`
           INSERT INTO achievements (id, username, title, description, completed, date)
           VALUES (?, ?, ?, ?, ?, ?)
         `, [a.id, username, a.title, a.description, a.completed, a.date]);
       }
-      list = await dbAll('SELECT * FROM achievements WHERE username = ?', [username]);
     }
 
-    // Dynamically update 'a3' (Jeton Avcısı)
-    const user = await dbGet('SELECT coins FROM users WHERE username = ?', [username]);
-    if (user && user.coins >= 1000) {
-      await dbRun('UPDATE achievements SET completed = 1, date = ? WHERE username = ? AND id = ? AND completed = 0', [new Date().toLocaleDateString('tr-TR'), username, 'a3']);
+    // Dynamically update achievements
+    const user = await dbGet('SELECT coins, total_play_time FROM users WHERE username = ?', [username]);
+    if (user) {
+      // Jeton Avcısı (a4)
+      if (user.coins >= 1000) {
+        await dbRun('UPDATE achievements SET completed = 1, date = ? WHERE username = ? AND id = ? AND completed = 0', [new Date().toLocaleDateString('tr-TR'), username, 'a4']);
+      }
+      // Zaman Bükücü (a6) - total_play_time is stored in hours in database
+      if (user.total_play_time >= 10) {
+        await dbRun('UPDATE achievements SET completed = 1, date = ? WHERE username = ? AND id = ? AND completed = 0', [new Date().toLocaleDateString('tr-TR'), username, 'a6']);
+      }
     }
 
-    // Fetch again
-    list = await dbAll('SELECT * FROM achievements WHERE username = ?', [username]);
+    // Fetch all updated achievements
+    const list = await dbAll('SELECT * FROM achievements WHERE username = ?', [username]);
 
     res.json(list.map(a => ({
       id: a.id,
@@ -930,42 +959,6 @@ const serversList = [
     players: { online: 284, max: 1000 },
     version: '1.21.8',
     ping: 15
-  },
-  {
-    id: 'survival',
-    name: 'MarinMC Survival',
-    ip: 'oyna.marinmc.com',
-    port: 25565,
-    mode: 'SURVIVAL',
-    description: 'Klasik hayatta kalma deneyimi, iddialı zindanlar ve klanlar.',
-    playerCount: 128,
-    maxPlayers: 1000,
-    tags: ['KLAN', 'DUNGEON', 'PVP'],
-    themeColor: 'purple',
-    artworkUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=60',
-    bannerUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80',
-    online: true,
-    players: { online: 128, max: 1000 },
-    version: '1.21.8',
-    ping: 22
-  },
-  {
-    id: 'skyblock',
-    name: 'MarinMC Skyblock',
-    ip: 'oyna.marinmc.com',
-    port: 25565,
-    mode: 'SKYBLOCK',
-    description: 'Gelişmiş ada görevleri, adalar arası ticaret ve özel minyonlar.',
-    playerCount: 92,
-    maxPlayers: 1000,
-    tags: ['SKYBLOCK', 'MINIONS', 'TRADE'],
-    themeColor: 'orange',
-    artworkUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=60',
-    bannerUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80',
-    online: true,
-    players: { online: 92, max: 1000 },
-    version: '1.21.8',
-    ping: 18
   }
 ];
 

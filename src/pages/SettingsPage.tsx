@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSettingsStore } from '../stores/settingsStore.ts';
+import { useAuthStore } from '../stores/authStore.ts';
+import { api } from '../lib/api.ts';
 import {
   HardDrive, Cpu, ShieldAlert, FolderOpen, Save,
   RefreshCcw, Check, Terminal, Languages, Settings, Gamepad2, Wrench,
@@ -124,6 +126,28 @@ export default function SettingsPage() {
     localStorage.setItem('marinmc_setting_autoCleanRam', autoCleanRamVal.toString());
     localStorage.setItem('marinmc_setting_showBeta', showBetaVal.toString());
     localStorage.setItem('marinmc_setting_soundEffects', soundEffectsVal.toString());
+
+    // Unlock achievement a9 (Kusursuz Entegrasyon)
+    if (smartJvmValue || jvmArgsVal !== "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch") {
+      const sessionName = useAuthStore.getState().session?.name;
+      if (sessionName) {
+        const achievementsStr = localStorage.getItem(`marinmc_achievements_${sessionName}`);
+        if (achievementsStr) {
+          try {
+            const achievements = JSON.parse(achievementsStr);
+            const a9 = achievements.find((a: any) => a.id === 'a9');
+            if (a9 && !a9.completed) {
+              a9.completed = true;
+              a9.date = new Date().toLocaleDateString('tr-TR');
+              localStorage.setItem(`marinmc_achievements_${sessionName}`, JSON.stringify(achievements));
+              api.updateAchievements(sessionName, achievements).catch(err => console.error(err));
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    }
 
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);

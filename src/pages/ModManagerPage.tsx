@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSettingsStore } from '../stores/settingsStore.ts';
+import { useAuthStore } from '../stores/authStore.ts';
+import { api } from '../lib/api.ts';
 import {
   Search, Download, Trash2, Package, Layers, Image, Sparkles,
   ArrowDownAZ, Clock, TrendingUp, Star, Loader2, AlertTriangle, RefreshCw,
@@ -135,6 +137,26 @@ export default function ModManagerPage() {
       const updated = [...installedMods, installed];
       setInstalledMods(updated);
       saveInstalled(updated);
+
+      // Unlock achievement a2 (Mod Meraklısı)
+      const sessionName = useAuthStore.getState().session?.name;
+      if (sessionName) {
+        const achievementsStr = localStorage.getItem(`marinmc_achievements_${sessionName}`);
+        if (achievementsStr) {
+          try {
+            const achievements = JSON.parse(achievementsStr);
+            const a2 = achievements.find((a: any) => a.id === 'a2');
+            if (a2 && !a2.completed) {
+              a2.completed = true;
+              a2.date = new Date().toLocaleDateString('tr-TR');
+              localStorage.setItem(`marinmc_achievements_${sessionName}`, JSON.stringify(achievements));
+              api.updateAchievements(sessionName, achievements).catch(err => console.error(err));
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
     } catch (err) {
       console.error('Install failed:', err);
     } finally {

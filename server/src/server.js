@@ -236,7 +236,7 @@ router.post('/auth/register', async (req, res) => {
 
     await dbRun('INSERT INTO users (username, total_play_time, last_login, coins, password_hash, token) VALUES (?, ?, ?, ?, ?, ?)', [
       username,
-      124,
+      0,
       lastLogin,
       500,
       passwordHash,
@@ -327,7 +327,7 @@ router.post('/auth/microsoft-login', async (req, res) => {
     if (!user) {
       await dbRun('INSERT INTO users (username, total_play_time, last_login, coins, token) VALUES (?, ?, ?, ?, ?)', [
         username,
-        124,
+        0,
         lastLogin,
         500,
         serverToken
@@ -364,8 +364,8 @@ router.get('/users/:username/profile', validateUsername, authenticateToken, auth
     let user = await dbGet('SELECT * FROM users WHERE username = ?', [username]);
     if (!user) {
       const lastLogin = new Date().toLocaleString('tr-TR');
-      await dbRun('INSERT INTO users (username, total_play_time, last_login, coins) VALUES (?, ?, ?, ?)', [username, 124, lastLogin, 500]);
-      user = { username, total_play_time: 124, last_login: lastLogin, coins: 500 };
+      await dbRun('INSERT INTO users (username, total_play_time, last_login, coins) VALUES (?, ?, ?, ?)', [username, 0, lastLogin, 500]);
+      user = { username, total_play_time: 0, last_login: lastLogin, coins: 500 };
     }
     const sessions = await dbAll('SELECT * FROM sessions WHERE username = ?', [username]);
     res.json({
@@ -436,51 +436,19 @@ router.get('/leaderboard', async (req, res) => {
   try {
     const dbUsers = await dbAll('SELECT username, total_play_time, last_login, coins FROM users ORDER BY total_play_time DESC LIMIT 10');
     
-    // Default legendary mock list of players to ensure a complete leaderboard (10 items)
-    const mockPlayers = [
-      { username: '172px', totalPlayTime: 852, lastLogin: 'Bugün 12:44', coins: 4500, status: 'online', server: 'Towny' },
-      { username: 'daaaavidds', totalPlayTime: 712, lastLogin: 'Bugün 13:10', coins: 3800, status: 'idle', server: 'Towny' },
-      { username: 'masaya46', totalPlayTime: 590, lastLogin: 'Dün 20:15', coins: 2900, status: 'online', server: 'Towny' },
-      { username: 'cuvsa', totalPlayTime: 440, lastLogin: '08.06.2026', coins: 1200, status: 'offline', server: '-' },
-      { username: 'zakhbear', totalPlayTime: 384, lastLogin: '07.06.2026', coins: 950, status: 'offline', server: '-' },
-      { username: 'wtfbroimlagging', totalPlayTime: 290, lastLogin: '05.06.2026', coins: 640, status: 'offline', server: '-' },
-      { username: 'wtfbro', totalPlayTime: 210, lastLogin: '04.06.2026', coins: 520, status: 'offline', server: '-' },
-      { username: 'Steve', totalPlayTime: 180, lastLogin: '02.06.2026', coins: 500, status: 'offline', server: '-' },
-      { username: 'Alex', totalPlayTime: 150, lastLogin: '01.06.2026', coins: 500, status: 'offline', server: '-' }
-    ];
-
-    const merged = [];
-    const seen = new Set();
-
-    dbUsers.forEach((u) => {
-      seen.add(u.username.toLowerCase());
+    const result = dbUsers.map((u, index) => {
       const online = isUserOnline(u.username);
-      merged.push({
+      const totalPlayTimeHours = Math.round((u.total_play_time || 0) / 60);
+      return {
+        rank: index + 1,
         username: u.username,
-        totalPlayTime: u.total_play_time,
+        totalPlayTime: totalPlayTimeHours,
         lastLogin: u.last_login || 'Bugün',
         coins: u.coins !== undefined ? u.coins : 500,
         status: online ? 'online' : 'offline',
         server: online ? 'Towny' : '-'
-      });
+      };
     });
-
-    mockPlayers.forEach((p) => {
-      if (!seen.has(p.username.toLowerCase())) {
-        const online = isUserOnline(p.username);
-        merged.push({
-          ...p,
-          status: online ? 'online' : p.status,
-          server: online ? 'Towny' : p.server
-        });
-      }
-    });
-
-    merged.sort((a, b) => b.totalPlayTime - a.totalPlayTime);
-    const result = merged.slice(0, 10).map((p, index) => ({
-      rank: index + 1,
-      ...p
-    }));
 
     res.json(result);
   } catch (err) {
@@ -841,7 +809,7 @@ router.get('/users/:username/quests', validateUsername, authenticateToken, autho
     await dbRun('UPDATE quests SET progress = ? WHERE username = ? AND id = ? AND claimed = 0', [hasFriend, username, 'q2']);
     
     if (user) {
-      const playedMin = Math.min(30, Math.max(0, Math.round((user.total_play_time - 124) * 60)));
+      const playedMin = Math.min(30, Math.max(0, user.total_play_time || 0));
       await dbRun('UPDATE quests SET progress = ? WHERE username = ? AND id = ? AND claimed = 0', [playedMin, username, 'q3']);
     }
 
@@ -919,8 +887,8 @@ router.get('/users/:username/achievements', validateUsername, authenticateToken,
       if (user.coins >= 1000) {
         await dbRun('UPDATE achievements SET completed = 1, date = ? WHERE username = ? AND id = ? AND completed = 0', [new Date().toLocaleDateString('tr-TR'), username, 'a4']);
       }
-      // Zaman Bükücü (a6) - total_play_time is stored in hours in database
-      if (user.total_play_time >= 10) {
+      // Zaman Bükücü (a6) - total_play_time is stored in minutes in database
+      if (user.total_play_time >= 600) {
         await dbRun('UPDATE achievements SET completed = 1, date = ? WHERE username = ? AND id = ? AND completed = 0', [new Date().toLocaleDateString('tr-TR'), username, 'a6']);
       }
     }
@@ -935,6 +903,33 @@ router.get('/users/:username/achievements', validateUsername, authenticateToken,
       completed: a.completed === 1,
       date: a.date
     })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/users/:username/achievements', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
+  const username = req.params.username;
+  const { achievements } = req.body;
+  try {
+    if (achievements) {
+      for (const a of achievements) {
+        const exists = await dbGet('SELECT 1 FROM achievements WHERE username = ? AND id = ?', [username, a.id]);
+        if (!exists) {
+          await dbRun(`
+            INSERT INTO achievements (id, username, title, description, completed, date)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `, [a.id, username, a.title, a.description, a.completed ? 1 : 0, a.date || '-']);
+        } else {
+          await dbRun(`
+            UPDATE achievements
+            SET completed = ?, date = ?
+            WHERE username = ? AND id = ?
+          `, [a.completed ? 1 : 0, a.date || '-', username, a.id]);
+        }
+      }
+    }
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

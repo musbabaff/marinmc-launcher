@@ -214,10 +214,24 @@ export default function ChatPage() {
     });
     setContacts(updated);
     api.updateContacts(username, updated as any);
-    if (activeContact && activeContact.id === contactId) {
-      setActiveContact({ ...activeContact, favorite: !activeContact.favorite });
-    }
   };
+
+  const handleDeleteChat = async (contactId: string) => {
+    if (!window.confirm('Bu sohbeti ve tüm mesaj geçmişini tamamen silmek istediğinize emin misiniz?')) {
+      return;
+    }
+    const updatedContacts = contacts.filter(c => c.id !== contactId);
+    setContacts(updatedContacts);
+    await api.updateContacts(username, updatedContacts as any);
+
+    const updatedMessages = { ...chatMessages };
+    delete updatedMessages[contactId];
+    setChatMessages(updatedMessages);
+    await api.updateChatMessages(username, updatedMessages);
+
+    setActiveContact(null);
+  };
+
 
   const handleSendFile = (fileName: string, fileSize: string, isImage = false) => {
     if (!activeContact) return;
@@ -252,6 +266,23 @@ export default function ChatPage() {
     );
     setContacts(updatedContacts);
     api.updateContacts(username, updatedContacts as any);
+
+    // Unlock achievement a7 (Relay Sohbetçisi)
+    const achievementsStr = localStorage.getItem(`marinmc_achievements_${username}`);
+    if (achievementsStr) {
+      try {
+        const achievements = JSON.parse(achievementsStr);
+        const a7 = achievements.find((a: any) => a.id === 'a7');
+        if (a7 && !a7.completed) {
+          a7.completed = true;
+          a7.date = new Date().toLocaleDateString('tr-TR');
+          localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(achievements));
+          api.updateAchievements(username, achievements).catch(err => console.error(err));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
   const handleSendVoice = (duration: string) => {
@@ -287,6 +318,23 @@ export default function ChatPage() {
     );
     setContacts(updatedContacts);
     api.updateContacts(username, updatedContacts as any);
+
+    // Unlock achievement a7 (Relay Sohbetçisi)
+    const achievementsStr = localStorage.getItem(`marinmc_achievements_${username}`);
+    if (achievementsStr) {
+      try {
+        const achievements = JSON.parse(achievementsStr);
+        const a7 = achievements.find((a: any) => a.id === 'a7');
+        if (a7 && !a7.completed) {
+          a7.completed = true;
+          a7.date = new Date().toLocaleDateString('tr-TR');
+          localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(achievements));
+          api.updateAchievements(username, achievements).catch(err => console.error(err));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
   const handleSelectContact = (contact: Contact) => {
@@ -341,6 +389,23 @@ export default function ChatPage() {
     );
     setContacts(updatedContacts);
     api.updateContacts(username, updatedContacts as any);
+
+    // Unlock achievement a7 (Relay Sohbetçisi)
+    const achievementsStr = localStorage.getItem(`marinmc_achievements_${username}`);
+    if (achievementsStr) {
+      try {
+        const achievements = JSON.parse(achievementsStr);
+        const a7 = achievements.find((a: any) => a.id === 'a7');
+        if (a7 && !a7.completed) {
+          a7.completed = true;
+          a7.date = new Date().toLocaleDateString('tr-TR');
+          localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(achievements));
+          api.updateAchievements(username, achievements).catch(err => console.error(err));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
     
     const userPrompt = inputText.trim();
     setInputText('');
@@ -463,45 +528,59 @@ export default function ChatPage() {
             </div>
           ) : (
             sortedContacts.map((contact) => (
-              <button
+              <div
                 key={contact.id}
                 onClick={() => handleSelectContact(contact)}
-                className={`w-full flex items-center gap-3 px-4 py-3 transition-all text-left relative group ${
+                className={`w-full flex items-center justify-between gap-3 px-4 py-3 transition-all text-left relative group cursor-pointer ${
                   activeContact?.id === contact.id
                     ? 'bg-[#2D7DD2]/10 border-l-2 border-[#2D7DD2]'
                     : 'hover:bg-white/[0.02] border-l-2 border-transparent'
                 }`}
               >
-                <div className="relative shrink-0">
-                  <img
-                    src={contact.avatar}
-                    alt={contact.name}
-                    className="w-9 h-9 rounded-lg border border-white/10"
-                  />
-                  <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a080a] ${
-                    contact.status === 'online' ? 'bg-[#259457]' :
-                    contact.status === 'idle' ? 'bg-[#F59E0B]' : 'bg-[#52525B]'
-                  }`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <h4 className="text-[10px] font-bold text-white truncate">{contact.name}</h4>
-                      {contact.type === 'pinned' && <Pin className="w-2.5 h-2.5 text-[#2D7DD2] shrink-0" />}
-                      {contact.favorite && <Heart className="w-2.5 h-2.5 text-red-500 fill-current shrink-0" />}
-                    </div>
-                    {contact.time && <span className="text-[8px] text-[#52525B] font-medium shrink-0">{contact.time}</span>}
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="relative shrink-0">
+                    <img
+                      src={contact.avatar}
+                      alt={contact.name}
+                      className="w-9 h-9 rounded-lg border border-white/10"
+                    />
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a080a] ${
+                      contact.status === 'online' ? 'bg-[#259457]' :
+                      contact.status === 'idle' ? 'bg-[#F59E0B]' : 'bg-[#52525B]'
+                    }`} />
                   </div>
-                  {contact.lastMessage && (
-                    <p className="text-[8px] text-[#52525B] truncate mt-0.5 font-medium">{contact.lastMessage}</p>
-                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <h4 className="text-[10px] font-bold text-white truncate">{contact.name}</h4>
+                        {contact.type === 'pinned' && <Pin className="w-2.5 h-2.5 text-[#2D7DD2] shrink-0" />}
+                        {contact.favorite && <Heart className="w-2.5 h-2.5 text-red-500 fill-current shrink-0" />}
+                      </div>
+                      {contact.time && <span className="text-[8px] text-[#52525B] font-medium shrink-0">{contact.time}</span>}
+                    </div>
+                    {contact.lastMessage && (
+                      <p className="text-[8px] text-[#52525B] truncate mt-0.5 font-medium">{contact.lastMessage}</p>
+                    )}
+                  </div>
                 </div>
-                {contact.unread && contact.unread > 0 ? (
-                  <span className="w-4 h-4 bg-[#2D7DD2] rounded-full text-[7px] font-black text-white flex items-center justify-center shrink-0">
-                    {contact.unread}
-                  </span>
-                ) : null}
-              </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {contact.unread && contact.unread > 0 ? (
+                    <span className="w-4 h-4 bg-[#2D7DD2] rounded-full text-[7px] font-black text-white flex items-center justify-center">
+                      {contact.unread}
+                    </span>
+                  ) : null}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteChat(contact.id);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-[#52525B] hover:text-red-400 rounded-lg hover:bg-white/5 transition-all"
+                    title="Sohbeti Sil"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
             ))
           )}
         </div>
@@ -580,6 +659,13 @@ export default function ChatPage() {
                   title="Görüntülü Arama Başlat"
                 >
                   <Video className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => handleDeleteChat(activeContact.id)}
+                  className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#52525B] hover:text-red-400 transition-colors"
+                  title="Sohbeti Tamamen Sil"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>

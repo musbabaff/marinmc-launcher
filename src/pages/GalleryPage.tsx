@@ -133,6 +133,23 @@ export default function GalleryPage() {
         setSelectedLocalScreenshot(null);
         setShareTitle('');
         setActiveTab('community');
+
+        // Unlock achievement a8 (Fotoğrafçı)
+        const achievementsStr = localStorage.getItem(`marinmc_achievements_${currentUsername}`);
+        if (achievementsStr) {
+          try {
+            const achievements = JSON.parse(achievementsStr);
+            const a8 = achievements.find((a: any) => a.id === 'a8');
+            if (a8 && !a8.completed) {
+              a8.completed = true;
+              a8.date = new Date().toLocaleDateString('tr-TR');
+              localStorage.setItem(`marinmc_achievements_${currentUsername}`, JSON.stringify(achievements));
+              api.updateAchievements(currentUsername, achievements).catch(err => console.error(err));
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to share screenshot:', err);

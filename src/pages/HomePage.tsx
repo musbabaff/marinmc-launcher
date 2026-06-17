@@ -732,20 +732,57 @@ export default function HomePage() {
           </div>
 
           {/* Redesigned Sleek Lunar-style Launch Panel */}
-          <div className="w-full rounded-2xl bg-gradient-to-r from-[#0d0a11] via-[#08060a] to-[#0d0a11] border border-white/[0.05] relative overflow-hidden flex flex-col items-center justify-center py-12 px-8 shadow-[0_20px_50px_rgba(0,0,0,0.6)] group">
+          <div className="w-full rounded-2xl bg-gradient-to-br from-[#0c0910] via-[#050406] to-[#0c0910] border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center py-20 px-12 shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(139,92,246,0.1)] group">
             {/* Background particles and radial gradient */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.06),transparent_60%)] pointer-events-none" />
-            <div className="absolute -top-12 -left-12 w-36 h-36 bg-[#2D7DD2]/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-12 -right-12 w-36 h-36 bg-[#8B5CF6]/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.08),transparent_70%)] pointer-events-none" />
+            <div className="absolute -top-12 -left-12 w-48 h-48 bg-[#2D7DD2]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-[#8B5CF6]/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Dynamic Minecraft-style floating pixel particles */}
+            {[...Array(24)].map((_, i) => {
+              const size = Math.random() * 4 + 2; // 2px to 6px
+              const isPurple = Math.random() > 0.5;
+              const delay = Math.random() * 8;
+              const duration = Math.random() * 10 + 6;
+              const left = Math.random() * 90 + 5; // 5% to 95%
+              return (
+                <motion.div
+                  key={i}
+                  className={`absolute rounded-sm pointer-events-none ${
+                    isPurple 
+                      ? 'bg-purple-500/35 shadow-[0_0_10px_rgba(168,85,247,0.6)]' 
+                      : 'bg-emerald-500/25 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
+                  }`}
+                  style={{
+                    width: size,
+                    height: size,
+                    left: `${left}%`,
+                    bottom: '10%'
+                  }}
+                  animate={{
+                    y: [0, -260 - Math.random() * 120],
+                    x: [0, (Math.random() - 0.5) * 60],
+                    opacity: [0, 0.8, 0.8, 0],
+                    scale: [0.5, 1.3, 0.5],
+                  }}
+                  transition={{
+                    duration: duration,
+                    repeat: Infinity,
+                    delay: delay,
+                    ease: "easeOut"
+                  }}
+                />
+              );
+            })}
 
             {/* Floating Minecraft Icons */}
             <motion.svg
               width="48"
               height="48"
               viewBox="0 0 16 16"
-              className="absolute top-4 left-8 text-white/[0.04] pointer-events-none fill-current"
+              className="absolute top-5 left-12 text-white/[0.04] pointer-events-none fill-current"
               animate={{
-                y: [0, -8, 0],
+                y: [0, -12, 0],
                 rotate: [15, 25, 15],
               }}
               transition={{
@@ -761,9 +798,9 @@ export default function HomePage() {
               width="48"
               height="48"
               viewBox="0 0 16 16"
-              className="absolute top-6 right-10 text-white/[0.04] pointer-events-none fill-current"
+              className="absolute top-8 right-16 text-white/[0.04] pointer-events-none fill-current"
               animate={{
-                y: [0, -10, 0],
+                y: [0, -15, 0],
                 rotate: [-15, -25, -15],
               }}
               transition={{
@@ -779,10 +816,10 @@ export default function HomePage() {
               width="48"
               height="48"
               viewBox="0 0 16 16"
-              className="absolute bottom-6 left-16 text-white/[0.04] pointer-events-none fill-current"
+              className="absolute bottom-8 left-20 text-white/[0.04] pointer-events-none fill-current"
               animate={{
-                y: [0, -6, 0],
-                scale: [1, 1.05, 1],
+                y: [0, -10, 0],
+                scale: [1, 1.1, 1],
               }}
               transition={{
                 duration: 7,
@@ -797,10 +834,10 @@ export default function HomePage() {
               width="48"
               height="48"
               viewBox="0 0 8 8"
-              className="absolute bottom-4 right-14 text-white/[0.04] pointer-events-none fill-current"
+              className="absolute bottom-6 right-24 text-white/[0.04] pointer-events-none fill-current"
               animate={{
-                y: [0, -7, 0],
-                rotate: [0, 10, -10, 0],
+                y: [0, -12, 0],
+                rotate: [0, 15, -15, 0],
               }}
               transition={{
                 duration: 8,
@@ -818,18 +855,18 @@ export default function HomePage() {
 
             {/* Launch components */}
             <div className="w-full flex flex-col items-center z-10">
-              <div className="flex items-center gap-3 w-full max-w-[420px]">
+              <div className="flex items-center gap-4.5 w-full max-w-[460px]">
                 {launchStatus === 'DOWNLOADING' ? (
                   // Downloading Green Button
                   <button
                     onClick={handleLaunch}
-                    className="flex-1 h-[68px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.25)] flex flex-col items-center justify-center gap-0.5"
+                    className="flex-1 h-[76px] bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_10px_35px_rgba(16,185,129,0.3)] flex flex-col items-center justify-center gap-0.5"
                   >
-                    <span className="font-black text-[14px] tracking-widest uppercase">{t('home.downloading')}</span>
-                    <div className="flex items-center gap-1.5 text-[9.5px] text-white/80 font-bold">
+                    <span className="font-black text-[15px] tracking-widest uppercase">{t('home.downloading')}</span>
+                    <div className="flex items-center gap-1.5 text-[10px] text-white/80 font-bold">
                       <span>Fabric {settings.selectedSubVersion || '1.21.0'}</span>
                       <span className="text-white/40">|</span>
-                      <Pause className="w-2.5 h-2.5 fill-current" />
+                      <Pause className="w-3 h-3 fill-current" />
                     </div>
                   </button>
                 ) : (
@@ -837,16 +874,16 @@ export default function HomePage() {
                   <button
                     onClick={handleLaunch}
                     disabled={launchStatus === 'CHECKING' || launchStatus === 'LAUNCHING'}
-                    className="flex-1 h-[68px] bg-[#259457] hover:bg-[#2fa865] active:scale-[0.98] disabled:opacity-50 text-white rounded-xl transition-all duration-300 shadow-[0_8px_30px_rgba(37,148,87,0.3)] flex items-center justify-between px-6 cursor-pointer"
+                    className="flex-1 h-[76px] bg-gradient-to-r from-[#22c55e] to-[#15803d] hover:from-[#4ade80] hover:to-[#16a34a] active:scale-[0.98] disabled:opacity-50 text-white rounded-xl transition-all duration-300 shadow-[0_12px_40px_rgba(34,197,94,0.4),0_0_20px_rgba(34,197,94,0.15)] flex items-center justify-between px-7 cursor-pointer border border-[#4ade80]/20"
                   >
                     <div className="flex flex-col items-start text-left">
-                      <span className="font-black text-sm tracking-widest uppercase">{t('home.launch')}</span>
-                      <span className="text-[9.5px] text-white/80 font-bold uppercase tracking-wider mt-0.5">
+                      <span className="font-black text-[15px] tracking-widest uppercase text-white shadow-sm">{t('home.launch')}</span>
+                      <span className="text-[10px] text-white/90 font-extrabold uppercase tracking-wider mt-0.5">
                         MarinMC {settings.selectedSubVersion || '1.21.3'}
                       </span>
                     </div>
-                    <div className="w-6 h-6 rounded bg-black/20 hover:bg-black/30 flex items-center justify-center transition-colors">
-                      <ChevronDown className="w-4 h-4 text-white/80 rotate-180" />
+                    <div className="w-7 h-7 rounded-lg bg-black/25 hover:bg-black/35 flex items-center justify-center transition-colors border border-white/5">
+                      <ChevronDown className="w-4.5 h-4.5 text-white/90 rotate-180" />
                     </div>
                   </button>
                 )}
@@ -854,20 +891,20 @@ export default function HomePage() {
                 {/* Settings cog wheel next to it */}
                 <button
                   onClick={() => setProfileSettingsOpen(true)}
-                  className="w-[68px] h-[68px] bg-white/5 hover:bg-white/10 active:scale-[0.96] border border-white/[0.06] rounded-xl flex items-center justify-center transition-all duration-200"
+                  className="w-[76px] h-[76px] bg-white/5 hover:bg-white/10 active:scale-[0.96] border border-white/[0.08] rounded-xl flex items-center justify-center transition-all duration-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
                   title={t('home.settings')}
                 >
-                  <Settings className="w-5.5 h-5.5 text-white/60 hover:text-white transition-colors" />
+                  <Settings className="w-6 h-6 text-white/70 hover:text-white transition-colors" />
                 </button>
               </div>
 
               {/* Version Selector Link under Button */}
               <button
                 onClick={() => navigate('/versions')}
-                className="mt-2.5 text-[8.5px] font-black text-[#52525B] hover:text-[#A1A1AA] uppercase tracking-widest transition-colors flex items-center gap-1"
+                className="mt-3.5 text-[9px] font-black text-[#62626B] hover:text-[#B1B1BA] uppercase tracking-widest transition-colors flex items-center gap-1.5"
               >
                 <span>{t('home.changeVersion')}</span>
-                <ChevronDown className="w-3 h-3 text-[#52525B]" />
+                <ChevronDown className="w-3.5 h-3.5 text-[#62626B]" />
               </button>
 
               {/* Progress bar inside card if downloading */}
@@ -878,15 +915,15 @@ export default function HomePage() {
                 const totalFiles = details ? parseInt(details[3], 10) : 100;
                 
                 return (
-                  <div className="w-full max-w-[420px] mt-2.5 space-y-1 animate-[fadeIn_0.2s_ease-out]">
-                    <div className="w-full bg-white/[0.04] h-1 rounded-full overflow-hidden border border-white/[0.02] shadow-inner">
+                  <div className="w-full max-w-[460px] mt-3.5 space-y-1.5 animate-[fadeIn_0.2s_ease-out]">
+                    <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/[0.02] shadow-inner">
                       <div
-                        className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-300 shadow-[0_0_8px_rgba(52,211,153,0.4)]"
+                        className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(52,211,153,0.5)]"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-[8.5px] text-[#A1A1AA] font-bold uppercase tracking-wide">
-                      <span className="truncate max-w-[250px] text-emerald-400">
+                    <div className="flex justify-between text-[9px] text-[#A1A1AA] font-bold uppercase tracking-wide">
+                      <span className="truncate max-w-[280px] text-emerald-400">
                         {fileType}: {currentFile > 0 ? `${currentFile} / ${totalFiles}` : 'KONTROL EDİLİYOR'}
                       </span>
                       <span className="text-white/40">%{progress} TAMAM</span>

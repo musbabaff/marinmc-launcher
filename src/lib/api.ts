@@ -50,7 +50,7 @@ export interface ChatMessage {
   fileAttachment?: {
     name: string;
     size: string;
-    isImage: boolean;
+    isImage?: boolean;
   };
 }
 
@@ -92,7 +92,6 @@ export interface Achievement {
 }
 
 export const api = {
-  // --- USER PROFILE & STATS ---
   getUserProfile: async (username: string) => {
     try {
       const res = await apiInstance.get(`/users/${username}/profile`);
@@ -101,7 +100,7 @@ export const api = {
       console.warn('[API] getProfile failed, returning fallback.');
       return {
         username,
-        totalPlayTime: parseInt(localStorage.getItem('marinmc_total_play_time') || '124', 10),
+        totalPlayTime: Number(localStorage.getItem('marinmc_total_play_time') || '0'),
         lastLogin: localStorage.getItem('marinmc_last_login_time') || 'Bugün 20:15',
         coins: parseInt(localStorage.getItem('marinmc_coins') || '500', 10),
         playSessions: JSON.parse(localStorage.getItem('marinmc_play_sessions') || '[]')
@@ -240,18 +239,8 @@ export const api = {
       const res = await apiInstance.get('/leaderboard');
       return res.data;
     } catch (err) {
-      console.warn('[API] getLeaderboard failed, returning fallback.');
-      return [
-        { rank: 1, username: '172px', totalPlayTime: 852, lastLogin: 'Bugün 12:44', coins: 4500, status: 'online', server: 'Towny' },
-        { rank: 2, username: 'daaaavidds', totalPlayTime: 712, lastLogin: 'Bugün 13:10', coins: 3800, status: 'idle', server: 'Towny' },
-        { rank: 3, username: 'masaya46', totalPlayTime: 590, lastLogin: 'Dün 20:15', coins: 2900, status: 'online', server: 'Towny' },
-        { rank: 4, username: 'cuvsa', totalPlayTime: 440, lastLogin: '08.06.2026', coins: 1200, status: 'offline', server: '-' },
-        { rank: 5, username: 'zakhbear', totalPlayTime: 384, lastLogin: '07.06.2026', coins: 950, status: 'offline', server: '-' },
-        { rank: 6, username: 'wtfbroimlagging', totalPlayTime: 290, lastLogin: '05.06.2026', coins: 640, status: 'offline', server: '-' },
-        { rank: 7, username: 'wtfbro', totalPlayTime: 210, lastLogin: '04.06.2026', coins: 520, status: 'offline', server: '-' },
-        { rank: 8, username: 'Steve', totalPlayTime: 180, lastLogin: '02.06.2026', coins: 500, status: 'offline', server: '-' },
-        { rank: 9, username: 'Alex', totalPlayTime: 150, lastLogin: '01.06.2026', coins: 500, status: 'offline', server: '-' }
-      ];
+      console.warn('[API] getLeaderboard failed, returning empty fallback.');
+      return [];
     }
   },
 
@@ -355,27 +344,87 @@ export const api = {
 
   // --- ACHIEVEMENTS ---
   getAchievements: async (username: string): Promise<Achievement[]> => {
+    const defaultAchievements: Achievement[] = [
+      { id: 'a1', title: 'İlk Adım', description: 'Yeni tasarımlı launcher\'a ilk kez giriş yap.', completed: true, date: new Date().toLocaleDateString('tr-TR') },
+      { id: 'a2', title: 'Mod Meraklısı', description: 'Mod Yöneticisinden ilk modunu indir.', completed: false, date: '-' },
+      { id: 'a3', title: 'Sosyal Keşif', description: 'Arkadaş listene ilk arkadaşını ekle.', completed: false, date: '-' },
+      { id: 'a4', title: 'Jeton Avcısı', description: 'Cüzdanında 1,000 veya daha fazla Jeton barındır.', completed: false, date: '-' },
+      { id: 'a5', title: 'Kozmetik Ustası', description: 'Gardıroptan ilk pelerin veya kanat kozmetiğini kuşan.', completed: false, date: '-' },
+      { id: 'a6', title: 'Zaman Bükücü', description: 'Toplam oynama süresini 10 saate ulaştır.', completed: false, date: '-' },
+      { id: 'a7', title: 'Relay Sohbetçisi', description: 'Relay Sohbet kanalında ilk mesajını gönder.', completed: false, date: '-' },
+      { id: 'a8', title: 'Fotoğrafçı', description: 'Galeri sayfasında ilk ekran görüntünü toplulukla paylaş.', completed: false, date: '-' },
+      { id: 'a9', title: 'Kusursuz Entegrasyon', description: 'Özel JVM optimizasyon ayarlarını aktif et.', completed: false, date: '-' }
+    ];
+
+    let backendList: any[] = [];
     try {
       const res = await apiInstance.get(`/users/${username}/achievements`);
-      return res.data;
+      backendList = Array.isArray(res.data) ? res.data : [];
     } catch (err) {
-      console.warn('[API] getAchievements failed, returning fallback.');
+      console.warn('[API] getAchievements failed, loading from local.');
       const local = localStorage.getItem(`marinmc_achievements_${username}`);
-      if (local) return JSON.parse(local);
+      if (local) {
+        backendList = JSON.parse(local);
+      } else {
+        backendList = defaultAchievements;
+      }
+    }
 
-      const initial: Achievement[] = [
-        { id: 'a1', title: 'İlk Adım', description: 'Yeni tasarımlı launcher\'a ilk kez giriş yap.', completed: true, date: new Date().toLocaleDateString('tr-TR') },
-        { id: 'a2', title: 'Mod Meraklısı', description: 'Mod Yöneticisinden ilk modunu indir.', completed: false, date: '-' },
-        { id: 'a3', title: 'Sosyal Keşif', description: 'Arkadaş listene ilk arkadaşını ekle.', completed: false, date: '-' },
-        { id: 'a4', title: 'Jeton Avcısı', description: 'Cüzdanında 1,000 veya daha fazla Jeton barındır.', completed: false, date: '-' },
-        { id: 'a5', title: 'Kozmetik Ustası', description: 'Gardıroptan ilk pelerin veya kanat kozmetiğini kuşan.', completed: false, date: '-' },
-        { id: 'a6', title: 'Zaman Bükücü', description: 'Toplam oynama süresini 10 saate ulaştır.', completed: false, date: '-' },
-        { id: 'a7', title: 'Relay Sohbetçisi', description: 'Relay Sohbet kanalında ilk mesajını gönder.', completed: false, date: '-' },
-        { id: 'a8', title: 'Fotoğrafçı', description: 'Galeri sayfasında ilk ekran görüntünü toplulukla paylaş.', completed: false, date: '-' },
-        { id: 'a9', title: 'Kusursuz Entegrasyon', description: 'Özel JVM optimizasyon ayarlarını aktif et.', completed: false, date: '-' }
-      ];
-      localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(initial));
-      return initial;
+    const currentCoins = parseInt(localStorage.getItem('marinmc_coins') || '500', 10);
+    const totalPlayTime = Number(localStorage.getItem('marinmc_total_play_time') || '0');
+
+    // a3: Sosyal Keşif (Friend check)
+    const contactsStr = localStorage.getItem('marinmc_chat_contacts') || '[]';
+    let hasFriend = false;
+    try {
+      const contacts = JSON.parse(contactsStr);
+      hasFriend = Array.isArray(contacts) && contacts.length > 0;
+    } catch (e) {}
+
+    // a5: Kozmetik Ustası (Cosmetics check)
+    const activeCape = localStorage.getItem('marinmc_active_cape_url') || '';
+    const wingsEnabled = localStorage.getItem('marinmc_active_wings_enabled') !== 'false';
+    const hasCosmetic = activeCape !== '' || wingsEnabled;
+
+    const merged = defaultAchievements.map(def => {
+      const found = backendList.find((b: any) => b.id === def.id);
+      let completed = found ? (found.completed === true || found.completed === 1) : def.completed;
+      let date = found ? (found.date || '-') : def.date;
+
+      if (def.id === 'a3' && hasFriend) {
+        completed = true;
+        if (date === '-') date = new Date().toLocaleDateString('tr-TR');
+      }
+      if (def.id === 'a4' && currentCoins >= 1000) {
+        completed = true;
+        if (date === '-') date = new Date().toLocaleDateString('tr-TR');
+      }
+      if (def.id === 'a5' && hasCosmetic) {
+        completed = true;
+        if (date === '-') date = new Date().toLocaleDateString('tr-TR');
+      }
+      if (def.id === 'a6' && totalPlayTime >= 600) { // 10 hours = 600 minutes
+        completed = true;
+        if (date === '-') date = new Date().toLocaleDateString('tr-TR');
+      }
+
+      return {
+        ...def,
+        completed,
+        date
+      };
+    });
+
+    localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(merged));
+    return merged;
+  },
+
+  updateAchievements: async (username: string, achievements: Achievement[]) => {
+    try {
+      await apiInstance.put(`/users/${username}/achievements`, { achievements });
+    } catch (err) {
+      console.warn('[API] updateAchievements failed, updating locally.');
+      localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(achievements));
     }
   }
 };

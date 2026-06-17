@@ -115,7 +115,7 @@ export default function ProfilePage() {
     setEditing(!editing);
   };
 
-  const totalPlayMinutes = profile ? profile.totalPlayTime * 60 : 0;
+  const totalPlayMinutes = profile ? profile.totalPlayTime : 0;
   const totalPlayTimeText = totalPlayMinutes >= 60 
     ? `${Math.round(totalPlayMinutes / 60)} Saat` 
     : `${totalPlayMinutes} dk`;

@@ -2,6 +2,9 @@ package com.marinmc.client.gui;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -260,9 +263,9 @@ public class OverlayScreen extends Screen {
         int x = (this.width - w) / 2;
         int y = (this.height - h) / 2;
 
-        // Draw outer glassmorphic window panel
-        context.fill(x, y, x + w, y + h, 0xF00B0F19);
-        context.drawBorder(x, y, w, h, 0x40BF5BFF); // violet glowing border
+        // Draw outer glassmorphic window panel - premium dark purple
+        context.fill(x, y, x + w, y + h, 0xF20E0A1A);
+        context.drawBorder(x, y, w, h, 0xFFB180E8); // neon lavender border
 
         // Draw Moon Logo on Header
         int logoSize = 14;
@@ -276,28 +279,30 @@ public class OverlayScreen extends Screen {
         );
         context.drawTextWithShadow(this.textRenderer, "MARINMC", x + 28, y + 11, 0xFFFFFFFF);
 
-        // 3. Render Top Header Tabs (MODS, SETTINGS, WAYPOINTS)
+        // 3. Render Top Header Tabs (MODS, SETTINGS, WAYPOINTS) - i18n
         String[] tabs = {"MODS", "SETTINGS", "WAYPOINTS"};
+        String[] tabKeys = {"marinmc.tab.mods", "marinmc.tab.settings", "marinmc.tab.waypoints"};
         int tabStartX = x + w / 2 - 80;
         for (int i = 0; i < tabs.length; i++) {
             String tab = tabs[i];
+            String tabLabel = Text.translatable(tabKeys[i]).getString();
             int tx = tabStartX + i * 55;
             int ty = y + 8;
             int tw = 50;
             int th = 14;
             boolean active = activeTab.equals(tab);
             
-            // Draw tab pill
+            // Draw tab pill - premium glass style
             if (active) {
-                context.fill(tx, ty, tx + tw, ty + th, 0x30BF5BFF);
-                context.drawBorder(tx, ty, tw, th, 0xFFBF5BFF);
+                context.fill(tx, ty, tx + tw, ty + th, 0x60B180E8);
+                context.drawBorder(tx, ty, tw, th, 0xFFB180E8);
             } else {
-                context.fill(tx, ty, tx + tw, ty + th, 0x30000000);
-                context.drawBorder(tx, ty, tw, th, 0x15FFFFFF);
+                context.fill(tx, ty, tx + tw, ty + th, 0x15FFFFFF);
+                context.drawBorder(tx, ty, tw, th, 0x10FFFFFF);
             }
             
-            int color = active ? 0xFFFFFFFF : 0xFFA1A1AA;
-            context.drawCenteredTextWithShadow(this.textRenderer, tab, tx + tw / 2, ty + 3, color);
+            int color = active ? 0xFFFFFFFF : 0xFF94A3B8;
+            context.drawCenteredTextWithShadow(this.textRenderer, tabLabel, tx + tw / 2, ty + 3, color);
         }
 
         // Close X Button on Top Right
@@ -306,15 +311,16 @@ public class OverlayScreen extends Screen {
         boolean closeHovered = mouseX >= closeX && mouseX <= closeX + 10 && mouseY >= closeY && mouseY <= closeY + 10;
         context.drawTextWithShadow(this.textRenderer, "✖", closeX, closeY, closeHovered ? 0xFFEF4444 : 0xFFA1A1AA);
 
-        // 4. Render Sidebar (Left) - always visible
+        // 4. Render Sidebar (Left) - always visible - premium glass
         int sbX = x + 6;
         int sbY = y + 30;
         int sbW = 105;
         int sbH = h - 36;
-        context.fill(sbX, sbY, sbX + sbW, sbY + sbH, 0x600F172A);
-        context.drawBorder(sbX, sbY, sbW, sbH, 0x10FFFFFF);
+        context.fill(sbX, sbY, sbX + sbW, sbY + sbH, 0x300E0A1A);
+        context.drawBorder(sbX, sbY, sbW, sbH, 0x20B180E8);
 
-        context.drawTextWithShadow(this.textRenderer, "PROFILLER", sbX + 8, sbY + 8, 0xFF64748B);
+        // i18n sidebar title
+        context.drawTextWithShadow(this.textRenderer, Text.translatable("marinmc.sidebar.profiles").getString(), sbX + 8, sbY + 8, 0xFF94A3B8);
 
         // Profiles list
         String[] profiles = {"Main", "Testing", "PvP Settings"};
@@ -327,25 +333,26 @@ public class OverlayScreen extends Screen {
             boolean active = activeProfile.equals(prof);
             
             if (active) {
-                context.fill(px, py, px + pw, py + ph, 0x303B82F6);
-                context.drawBorder(px, py, pw, ph, 0xFF3B82F6);
+                context.fill(px, py, px + pw, py + ph, 0x60B180E8);
+                context.drawBorder(px, py, pw, ph, 0xFFB180E8);
             } else {
-                context.fill(px, py, px + pw, py + ph, 0x15FFFFFF);
-                context.drawBorder(px, py, pw, ph, 0x05FFFFFF);
+                boolean profHovered = mouseX >= px && mouseX <= px + pw && mouseY >= py && mouseY <= py + ph;
+                context.fill(px, py, px + pw, py + ph, profHovered ? 0x30B180E8 : 0x15FFFFFF);
+                context.drawBorder(px, py, pw, ph, profHovered ? 0x40B180E8 : 0x08FFFFFF);
             }
             int color = active ? 0xFFFFFFFF : 0xFF94A3B8;
             context.drawCenteredTextWithShadow(this.textRenderer, prof, px + pw / 2, py + 3, color);
         }
 
-        // Sidebar Bottom Pill Button: EDIT HUD LAYOUT
+        // Sidebar Bottom Pill Button: EDIT HUD - i18n, premium glass
         int hudX = sbX + 6;
         int hudY = sbY + sbH - 22;
         int hudW = sbW - 12;
         int hudH = 16;
         boolean hudHovered = mouseX >= hudX && mouseX <= hudX + hudW && mouseY >= hudY && mouseY <= hudY + hudH;
-        context.fill(hudX, hudY, hudX + hudW, hudY + hudH, hudHovered ? 0xFF2563EB : 0xFF1D4ED8);
-        context.drawBorder(hudX, hudY, hudW, hudH, 0xFF3B82F6);
-        context.drawCenteredTextWithShadow(this.textRenderer, "EDIT HUD", hudX + hudW / 2, hudY + 4, 0xFFFFFFFF);
+        context.fill(hudX, hudY, hudX + hudW, hudY + hudH, hudHovered ? 0x80B180E8 : 0x40B180E8);
+        context.drawBorder(hudX, hudY, hudW, hudH, hudHovered ? 0xFFB180E8 : 0x60B180E8);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.translatable("marinmc.sidebar.edithud").getString(), hudX + hudW / 2, hudY + 4, 0xFFFFFFFF);
 
         // 5. Render Content Area (Right) based on active tab
         int contentX = x + 116;
@@ -379,11 +386,13 @@ public class OverlayScreen extends Screen {
     // ============================================================================
     private void renderModsTab(DrawContext context, int mouseX, int mouseY,
                                 int contentX, int contentY, int contentW, int contentH, int windowH) {
-        // Render Filter Pills (ALL, NEW, HUD, SERVER, MECHANIC)
+        // Render Filter Pills (ALL, NEW, HUD, SERVER, MECHANIC) - i18n + glass
         String[] categories = {"ALL", "NEW", "HUD", "SERVER", "MECHANIC"};
+        String[] catKeys = {"marinmc.category.all", "marinmc.category.new", "marinmc.category.hud", "marinmc.category.server", "marinmc.category.mechanic"};
         int catStartX = contentX + 4;
         for (int i = 0; i < categories.length; i++) {
             String cat = categories[i];
+            String catLabel = Text.translatable(catKeys[i]).getString();
             int cx = catStartX + i * 40;
             int cy = contentY + 6;
             int cw = 36;
@@ -391,14 +400,15 @@ public class OverlayScreen extends Screen {
             boolean active = activeCategory.equals(cat);
             
             if (active) {
-                context.fill(cx, cy, cx + cw, cy + ch, 0x40BF5BFF);
-                context.drawBorder(cx, cy, cw, ch, 0xFFBF5BFF);
+                context.fill(cx, cy, cx + cw, cy + ch, 0x60B180E8);
+                context.drawBorder(cx, cy, cw, ch, 0xFFB180E8);
             } else {
-                context.fill(cx, cy, cx + cw, cy + ch, 0x15FFFFFF);
-                context.drawBorder(cx, cy, cw, ch, 0x05FFFFFF);
+                boolean catHov = mouseX >= cx && mouseX <= cx + cw && mouseY >= cy && mouseY <= cy + ch;
+                context.fill(cx, cy, cx + cw, cy + ch, catHov ? 0x30B180E8 : 0x15FFFFFF);
+                context.drawBorder(cx, cy, cw, ch, catHov ? 0x40B180E8 : 0x08FFFFFF);
             }
             int color = active ? 0xFFFFFFFF : 0xFF94A3B8;
-            context.drawCenteredTextWithShadow(this.textRenderer, cat, cx + cw / 2, cy + 2, color);
+            context.drawCenteredTextWithShadow(this.textRenderer, catLabel, cx + cw / 2, cy + 2, color);
         }
 
         // Search Bar (Right of categories)
@@ -408,7 +418,8 @@ public class OverlayScreen extends Screen {
         int searchH = 14;
         context.fill(searchX, searchY, searchX + searchW, searchY + searchH, searchFocused ? 0x900F172A : 0x500F172A);
         context.drawBorder(searchX, searchY, searchW, searchH, searchFocused ? 0xFFBF5BFF : 0x20FFFFFF);
-        String displayText = searchQuery.isEmpty() ? (searchFocused ? "" : "Search...") : searchQuery;
+        String searchPlaceholder = Text.translatable("marinmc.menu.search").getString();
+        String displayText = searchQuery.isEmpty() ? (searchFocused ? "" : searchPlaceholder) : searchQuery;
         int displayColor = searchQuery.isEmpty() && !searchFocused ? 0xFF64748B : 0xFFFFFFFF;
         context.drawTextWithShadow(this.textRenderer, displayText, searchX + 5, searchY + 3, displayColor);
 
@@ -441,13 +452,13 @@ public class OverlayScreen extends Screen {
             int cx = gridX + col * (colWidth + spacing);
             int cy = gridY + row * (cardHeight + spacing) - scrollOffset;
 
-            // Render Card
+            // Render Card - premium glass design
             boolean isEnabled = configStates.getOrDefault(mod.id, false);
             
-            context.fill(cx, cy, cx + colWidth, cy + cardHeight, 0x651E293B);
-            
             boolean cardHovered = mouseX >= cx && mouseX <= cx + colWidth && mouseY >= cy && mouseY <= cy + cardHeight;
-            int borderColor = isEnabled ? 0x4022C55E : (cardHovered ? 0x40FFFFFF : 0x08FFFFFF);
+            // Card bg: dark glass with hover glow
+            context.fill(cx, cy, cx + colWidth, cy + cardHeight, cardHovered ? 0x80160E28 : 0x65160E28);
+            int borderColor = isEnabled ? 0x4010B981 : (cardHovered ? 0x40B180E8 : 0x10FFFFFF);
             context.drawBorder(cx, cy, colWidth, cardHeight, borderColor);
 
             // Icon circle
@@ -457,27 +468,33 @@ public class OverlayScreen extends Screen {
             context.fill(iconX, iconY, iconX + iconSize, iconY + iconSize, mod.iconBgColor | 0xFF000000);
             context.drawCenteredTextWithShadow(this.textRenderer, mod.icon, iconX + iconSize / 2, iconY + 2, 0xFFFFFFFF);
 
-            // Mod Title
-            context.drawTextWithShadow(this.textRenderer, mod.name, cx + 22, cy + 8, 0xFFFFFFFF);
+            // Mod Title - i18n (try translated name, fallback to hardcoded)
+            String modNameKey = "marinmc.mod." + mod.id + ".name";
+            String translatedName = Text.translatable(modNameKey).getString();
+            String displayName = translatedName.equals(modNameKey) ? mod.name : translatedName;
+            context.drawTextWithShadow(this.textRenderer, displayName, cx + 22, cy + 8, 0xFFFFFFFF);
             
-            // Options Gear button
+            // Options Gear button with hover glow
             int gearX = cx + colWidth - 14;
             int gearY = cy + 7;
             boolean gearHovered = mouseX >= gearX && mouseX <= gearX + 8 && mouseY >= gearY && mouseY <= gearY + 8;
-            context.drawTextWithShadow(this.textRenderer, "⚙", gearX, gearY, gearHovered ? 0xFFBF5BFF : 0xFF64748B);
+            context.drawTextWithShadow(this.textRenderer, "⚙", gearX, gearY, gearHovered ? 0xFFB180E8 : 0xFF64748B);
 
-            // Status Pill Button at the bottom
+            // Status Pill Button - glass style
             int btnX = cx + 6;
             int btnY = cy + 24;
             int btnW = colWidth - 12;
             int btnH = 14;
             boolean btnHovered = mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
             
-            int statusColor = isEnabled ? (btnHovered ? 0xFF16A34A : 0xFF22C55E) : (btnHovered ? 0xFFDC2626 : 0xFFEF4444);
-            int statusBorder = isEnabled ? 0xFF4ADE80 : 0xFFFCA5A5;
-            context.fill(btnX, btnY, btnX + btnW, btnY + btnH, statusColor);
+            // Glass-style enabled/disabled with i18n
+            String enabledText = Text.translatable("marinmc.menu.enabled").getString();
+            String disabledText = Text.translatable("marinmc.menu.disabled").getString();
+            int statusBg = isEnabled ? (btnHovered ? 0x8010B981 : 0x6010B981) : (btnHovered ? 0x80EF4444 : 0x60EF4444);
+            int statusBorder = isEnabled ? 0xFF10B981 : 0xFFEF4444;
+            context.fill(btnX, btnY, btnX + btnW, btnY + btnH, statusBg);
             context.drawBorder(btnX, btnY, btnW, btnH, statusBorder);
-            context.drawCenteredTextWithShadow(this.textRenderer, isEnabled ? "ENABLED" : "DISABLED", btnX + btnW / 2, btnY + 3, 0xFFFFFFFF);
+            context.drawCenteredTextWithShadow(this.textRenderer, isEnabled ? enabledText : disabledText, btnX + btnW / 2, btnY + 3, 0xFFFFFFFF);
         }
 
         context.disableScissor();
@@ -488,11 +505,13 @@ public class OverlayScreen extends Screen {
     // ============================================================================
     private void renderSettingsTab(DrawContext context, int mouseX, int mouseY,
                                     int contentX, int contentY, int contentW, int contentH) {
-        // Sub-tabs: GENERAL, PERFORMANCE, CONTROLS
+        // Sub-tabs: GENERAL, PERFORMANCE, CONTROLS - i18n + premium glass
         String[] subTabs = {"GENERAL", "PERFORMANCE", "CONTROLS"};
+        String[] subTabKeys = {"marinmc.settings.general", "marinmc.settings.performance", "marinmc.settings.controls"};
         int subTabStartX = contentX + 6;
         for (int i = 0; i < subTabs.length; i++) {
             String st = subTabs[i];
+            String stLabel = Text.translatable(subTabKeys[i]).getString();
             int sx = subTabStartX + i * 62;
             int sy = contentY + 6;
             int sw = 58;
@@ -500,14 +519,15 @@ public class OverlayScreen extends Screen {
             boolean active = settingsSubTab.equals(st);
             
             if (active) {
-                context.fill(sx, sy, sx + sw, sy + sh, 0x40BF5BFF);
-                context.drawBorder(sx, sy, sw, sh, 0xFFBF5BFF);
+                context.fill(sx, sy, sx + sw, sy + sh, 0x60B180E8);
+                context.drawBorder(sx, sy, sw, sh, 0xFFB180E8);
             } else {
-                context.fill(sx, sy, sx + sw, sy + sh, 0x15FFFFFF);
-                context.drawBorder(sx, sy, sw, sh, 0x05FFFFFF);
+                boolean stHov = mouseX >= sx && mouseX <= sx + sw && mouseY >= sy && mouseY <= sy + sh;
+                context.fill(sx, sy, sx + sw, sy + sh, stHov ? 0x30B180E8 : 0x15FFFFFF);
+                context.drawBorder(sx, sy, sw, sh, stHov ? 0x40B180E8 : 0x08FFFFFF);
             }
             int color = active ? 0xFFFFFFFF : 0xFF94A3B8;
-            context.drawCenteredTextWithShadow(this.textRenderer, st, sx + sw / 2, sy + 2, color);
+            context.drawCenteredTextWithShadow(this.textRenderer, stLabel, sx + sw / 2, sy + 2, color);
         }
 
         // Settings content area
@@ -539,9 +559,9 @@ public class OverlayScreen extends Screen {
             int toggleH = 12;
             boolean isOn = configStates.getOrDefault(entry.configKey, false);
             
-            // Track
-            context.fill(toggleX, toggleY, toggleX + toggleW, toggleY + toggleH, isOn ? 0xFF22C55E : 0xFF374151);
-            context.drawBorder(toggleX, toggleY, toggleW, toggleH, isOn ? 0xFF4ADE80 : 0xFF4B5563);
+            // Track - glass style
+            context.fill(toggleX, toggleY, toggleX + toggleW, toggleY + toggleH, isOn ? 0x6010B981 : 0x40374151);
+            context.drawBorder(toggleX, toggleY, toggleW, toggleH, isOn ? 0xFF10B981 : 0xFF4B5563);
             
             // Knob
             int knobX = isOn ? toggleX + toggleW - 12 : toggleX + 1;
@@ -600,17 +620,17 @@ public class OverlayScreen extends Screen {
     // ============================================================================
     private void renderWaypointsTab(DrawContext context, int mouseX, int mouseY,
                                      int contentX, int contentY, int contentW, int contentH) {
-        // Title and Add button
-        context.drawTextWithShadow(this.textRenderer, "WAYPOINTS", contentX + 8, contentY + 8, 0xFFE2E8F0);
+        // Title and Add button - i18n
+        context.drawTextWithShadow(this.textRenderer, Text.translatable("marinmc.tab.waypoints").getString(), contentX + 8, contentY + 8, 0xFFE2E8F0);
 
-        // Add Waypoint button
+        // Add Waypoint button - premium glass
         int addBtnX = contentX + contentW - 80;
         int addBtnY = contentY + 5;
         int addBtnW = 74;
         int addBtnH = 14;
         boolean addHovered = mouseX >= addBtnX && mouseX <= addBtnX + addBtnW && mouseY >= addBtnY && mouseY <= addBtnY + addBtnH;
-        context.fill(addBtnX, addBtnY, addBtnX + addBtnW, addBtnY + addBtnH, addHovered ? 0xFF16A34A : 0xFF22C55E);
-        context.drawBorder(addBtnX, addBtnY, addBtnW, addBtnH, 0xFF4ADE80);
+        context.fill(addBtnX, addBtnY, addBtnX + addBtnW, addBtnY + addBtnH, addHovered ? 0x8010B981 : 0x6010B981);
+        context.drawBorder(addBtnX, addBtnY, addBtnW, addBtnH, 0xFF10B981);
         context.drawCenteredTextWithShadow(this.textRenderer, "+ ADD", addBtnX + addBtnW / 2, addBtnY + 3, 0xFFFFFFFF);
 
         // Waypoint list
@@ -697,19 +717,23 @@ public class OverlayScreen extends Screen {
         int px = (this.width - pw) / 2;
         int py = (this.height - ph) / 2;
 
-        // Popup background
-        context.fill(px, py, px + pw, py + ph, 0xF80B0F19);
-        context.drawBorder(px, py, pw, ph, 0x60BF5BFF);
+        // Popup background - premium glass
+        context.fill(px, py, px + pw, py + ph, 0xF80E0A1A);
+        context.drawBorder(px, py, pw, ph, 0xFFB180E8);
 
-        // Header
-        context.fill(px + 1, py + 1, px + pw - 1, py + 26, 0x301E293B);
+        // Header - dark glass
+        context.fill(px + 1, py + 1, px + pw - 1, py + 26, 0x30160E28);
         
         // Icon
         context.fill(px + 10, py + 6, px + 22, py + 18, detailMod.iconBgColor | 0xFF000000);
         context.drawCenteredTextWithShadow(this.textRenderer, detailMod.icon, px + 16, py + 8, 0xFFFFFFFF);
         
-        // Title
-        context.drawTextWithShadow(this.textRenderer, detailMod.name + " Settings", px + 28, py + 9, 0xFFFFFFFF);
+        // Title - i18n
+        String modNameKey = "marinmc.mod." + detailMod.id + ".name";
+        String translatedModName = Text.translatable(modNameKey).getString();
+        String displayModName = translatedModName.equals(modNameKey) ? detailMod.name : translatedModName;
+        String settingsTitle = displayModName + " " + Text.translatable("marinmc.tab.settings").getString();
+        context.drawTextWithShadow(this.textRenderer, settingsTitle, px + 28, py + 9, 0xFFFFFFFF);
 
         // Close button
         int clX = px + pw - 18;
@@ -717,20 +741,25 @@ public class OverlayScreen extends Screen {
         boolean clHov = mouseX >= clX && mouseX <= clX + 10 && mouseY >= clY && mouseY <= clY + 10;
         context.drawTextWithShadow(this.textRenderer, "✖", clX, clY, clHov ? 0xFFEF4444 : 0xFFA1A1AA);
 
-        // Description
-        context.drawTextWithShadow(this.textRenderer, detailMod.description, px + 10, py + 32, 0xFF94A3B8);
+        // Description - i18n
+        String modDescKey = "marinmc.mod." + detailMod.id + ".desc";
+        String translatedDesc = Text.translatable(modDescKey).getString();
+        String displayDesc = translatedDesc.equals(modDescKey) ? detailMod.description : translatedDesc;
+        context.drawTextWithShadow(this.textRenderer, displayDesc, px + 10, py + 32, 0xFF94A3B8);
 
-        // Status toggle (large)
+        // Status toggle (large) - glass style
         boolean isEnabled = configStates.getOrDefault(detailMod.id, false);
         int tbX = px + 10;
         int tbY = py + 48;
         int tbW = pw - 20;
         int tbH = 18;
         boolean tbHov = mouseX >= tbX && mouseX <= tbX + tbW && mouseY >= tbY && mouseY <= tbY + tbH;
-        int tbColor = isEnabled ? (tbHov ? 0xFF16A34A : 0xFF22C55E) : (tbHov ? 0xFFDC2626 : 0xFFEF4444);
+        String enabledText = Text.translatable("marinmc.menu.enabled").getString();
+        String disabledText = Text.translatable("marinmc.menu.disabled").getString();
+        int tbColor = isEnabled ? (tbHov ? 0x8010B981 : 0x6010B981) : (tbHov ? 0x80EF4444 : 0x60EF4444);
         context.fill(tbX, tbY, tbX + tbW, tbY + tbH, tbColor);
-        context.drawBorder(tbX, tbY, tbW, tbH, isEnabled ? 0xFF4ADE80 : 0xFFFCA5A5);
-        context.drawCenteredTextWithShadow(this.textRenderer, isEnabled ? "ENABLED" : "DISABLED", tbX + tbW / 2, tbY + 5, 0xFFFFFFFF);
+        context.drawBorder(tbX, tbY, tbW, tbH, isEnabled ? 0xFF10B981 : 0xFFEF4444);
+        context.drawCenteredTextWithShadow(this.textRenderer, isEnabled ? enabledText : disabledText, tbX + tbW / 2, tbY + 5, 0xFFFFFFFF);
 
         // Settings: Customization options specific to HUD elements
         HudElement hudEl = null;
@@ -752,7 +781,7 @@ public class OverlayScreen extends Screen {
             int sliderY = settingsY + 2;
             context.fill(sliderX, sliderY, sliderX + sliderW, sliderY + 8, 0xFF374151);
             int filled = (int) ((scale - 0.5f) / 2.0f * sliderW);
-            context.fill(sliderX, sliderY, sliderX + Math.min(filled, sliderW), sliderY + 8, 0xFFBF5BFF);
+            context.fill(sliderX, sliderY, sliderX + Math.min(filled, sliderW), sliderY + 8, 0xFFB180E8);
             context.drawBorder(sliderX, sliderY, sliderW, 8, 0xFF4B5563);
             String scaleText = String.format("%.1fx", scale);
             context.drawTextWithShadow(this.textRenderer, scaleText, sliderX + sliderW + 4, settingsY, 0xFFA1A1AA);
@@ -791,8 +820,8 @@ public class OverlayScreen extends Screen {
             boolean shadow = configStates.getOrDefault(detailMod.id + "_shadow", true);
             int swX = px + pw - 44;
             int swY = settingsY - 1;
-            context.fill(swX, swY, swX + 26, swY + 12, shadow ? 0xFF22C55E : 0xFF374151);
-            context.drawBorder(swX, swY, 26, 12, shadow ? 0xFF4ADE80 : 0xFF4B5563);
+            context.fill(swX, swY, swX + 26, swY + 12, shadow ? 0x6010B981 : 0x40374151);
+            context.drawBorder(swX, swY, 26, 12, shadow ? 0xFF10B981 : 0xFF4B5563);
             int knobX = shadow ? swX + 15 : swX + 1;
             context.fill(knobX, swY + 1, knobX + 10, swY + 11, 0xFFFFFFFF);
             settingsY += 20;
@@ -986,7 +1015,13 @@ public class OverlayScreen extends Screen {
             int px = sbX + 6;
             int py = sbY + 22 + i * 18;
             if (mouseX >= px && mouseX <= px + sbW(w) && mouseY >= py && mouseY <= py + 14) {
-                activeProfile = profiles[i];
+                if (!activeProfile.equals(profiles[i])) {
+                    // Save current profile
+                    saveProfileConfig(activeProfile);
+                    // Switch and load new profile
+                    activeProfile = profiles[i];
+                    loadProfileConfig(activeProfile);
+                }
                 return true;
             }
         }
@@ -1498,6 +1533,81 @@ public class OverlayScreen extends Screen {
         public int x = 0;
         public int y = 0;
         public int z = 0;
+    }
+
+    // ============================================================================
+    // PROFILE SAVE/LOAD SYSTEM
+    // ============================================================================
+    private static void saveProfileConfig(String profileName) {
+        try {
+            java.io.File configDir = net.fabricmc.loader.api.FabricLoader.getInstance()
+                .getConfigDir().toFile();
+            String safeProfileName = profileName.replace(" ", "_").toLowerCase();
+            java.io.File profileFile = new java.io.File(configDir, "marinmc-profile-" + safeProfileName + ".json");
+            
+            JsonObject json = new JsonObject();
+            // Save configStates
+            JsonObject states = new JsonObject();
+            for (Map.Entry<String, Boolean> entry : configStates.entrySet()) {
+                states.addProperty(entry.getKey(), entry.getValue());
+            }
+            json.add("states", states);
+            
+            // Save configStrings
+            JsonObject strings = new JsonObject();
+            for (Map.Entry<String, String> entry : configStrings.entrySet()) {
+                strings.addProperty(entry.getKey(), entry.getValue());
+            }
+            json.add("strings", strings);
+            
+            try (java.io.FileWriter writer = new java.io.FileWriter(profileFile)) {
+                new GsonBuilder().setPrettyPrinting().create().toJson(json, writer);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void loadProfileConfig(String profileName) {
+        try {
+            java.io.File configDir = net.fabricmc.loader.api.FabricLoader.getInstance()
+                .getConfigDir().toFile();
+            String safeProfileName = profileName.replace(" ", "_").toLowerCase();
+            java.io.File profileFile = new java.io.File(configDir, "marinmc-profile-" + safeProfileName + ".json");
+            
+            if (profileFile.exists()) {
+                try (java.io.FileReader reader = new java.io.FileReader(profileFile)) {
+                    JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+                    
+                    // Load configStates
+                    if (json.has("states")) {
+                        configStates.clear();
+                        JsonObject states = json.getAsJsonObject("states");
+                        for (Map.Entry<String, JsonElement> entry : states.entrySet()) {
+                            configStates.put(entry.getKey(), entry.getValue().getAsBoolean());
+                        }
+                    }
+                    
+                    // Load configStrings
+                    if (json.has("strings")) {
+                        configStrings.clear();
+                        JsonObject strings = json.getAsJsonObject("strings");
+                        for (Map.Entry<String, JsonElement> entry : strings.entrySet()) {
+                            configStrings.put(entry.getKey(), entry.getValue().getAsString());
+                        }
+                    }
+                }
+                
+                // Sync with HudManager
+                for (HudElement el : HudManager.getInstance().getElements()) {
+                    boolean enabled = configStates.getOrDefault(el.getId(), false);
+                    el.setEnabled(enabled);
+                }
+            }
+            // If profile file doesn't exist, keep current config (first-time use)
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // Custom Lunar-style premium glassmorphism buttons (retained for other classes' compatibility)

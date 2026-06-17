@@ -66,13 +66,13 @@ public class GameMenuScreenMixin extends Screen {
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void onRender(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        // Darker overlay
-        context.fill(0, 0, this.width, this.height, 0x70000000);
+        // Darker overlay with blur effect
+        context.fill(0, 0, this.width, this.height, 0x88000000);
 
-        // Logo + "MARINMC LAUNCHER"
+        // Logo only, no text
         int logoSize = 48;
         int logoX = this.width / 2 - logoSize / 2;
-        int logoY = this.height / 2 - 90;
+        int logoY = this.height / 2 - 80;
         context.drawTexture(
             RenderPipelines.GUI_TEXTURED,
             LOGO_TEXTURE,
@@ -81,7 +81,6 @@ public class GameMenuScreenMixin extends Screen {
             logoSize, logoSize,
             logoSize, logoSize
         );
-        context.drawCenteredTextWithShadow(this.textRenderer, "MARINMC LAUNCHER", this.width / 2, logoY + logoSize + 4, 0xFFFFFFFF);
 
         // Render widgets (3 glass center buttons)
         super.render(context, mouseX, mouseY, delta);

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import * as os from 'os';
+import * as fs from 'fs';
 import { autoUpdater } from 'electron-updater';
 import { createSplash, closeSplash } from './splash.js';
 import { setupTray, destroyTray, setGameRunning } from './tray.js';
@@ -111,14 +112,36 @@ app.whenReady().then(() => {
 
   // Initialize auto updater (only in packaged builds, with a 5s delay)
   if (app.isPackaged) {
-    autoUpdater.logger = console;
+    const logDir = path.join(app.getPath('userData'), 'logs');
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+    const logFile = path.join(logDir, 'updater.log');
+    const writeLog = (message: string) => {
+      const timestamp = new Date().toISOString();
+      try {
+        fs.appendFileSync(logFile, `[${timestamp}] ${message}\n`);
+      } catch (e) {
+        console.error('Failed to write to updater.log:', e);
+      }
+    };
+
+    writeLog('Initializing autoUpdater...');
+    autoUpdater.logger = {
+      info: (msg: string) => writeLog(`INFO: ${msg}`),
+      warn: (msg: string) => writeLog(`WARN: ${msg}`),
+      error: (msg: string) => writeLog(`ERROR: ${msg}`),
+      debug: (msg: string) => writeLog(`DEBUG: ${msg}`)
+    } as any;
+
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
     // Disable the default update dialog - we handle everything silently
     autoUpdater.disableWebInstaller = true;
     setTimeout(() => {
+      writeLog('Checking for updates...');
       autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-        console.error('Error starting auto-updater:', err);
+        writeLog(`ERROR: Error starting auto-updater: ${err.message || err}`);
       });
     }, 5000);
   }

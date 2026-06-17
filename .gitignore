@@ -85,3 +85,10 @@ marinmc-client-mod/build/
 # Local databases
 *.db
 server/*.db
+
+# Server mods
+server/mods/
+server/mods
+server/mods/*
+
+

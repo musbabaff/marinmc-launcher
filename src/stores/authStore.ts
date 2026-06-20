@@ -7,7 +7,7 @@ interface AuthState {
   profiles: UserSession[];
   isLoading: boolean;
   error: string | null;
-  loginWithCracked: (username: string, password: string, isRegister?: boolean) => Promise<void>;
+  loginWithCracked: (username: string, password: string, isRegister?: boolean, email?: string) => Promise<void>;
   loginWithMicrosoft: () => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -15,7 +15,7 @@ interface AuthState {
   setSession: (session: UserSession | null) => void;
   switchProfile: (id: string) => Promise<void>;
   removeProfile: (id: string) => void;
-  addOfflineProfile: (username: string, password: string, isRegister?: boolean) => Promise<void>;
+  addOfflineProfile: (username: string, password: string, isRegister?: boolean, email?: string) => Promise<void>;
   addMicrosoftProfile: () => Promise<void>;
 }
 
@@ -49,6 +49,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const stored = localStorage.getItem('marinmc_profiles');
       profiles = stored ? JSON.parse(stored) : [];
+      let profilesChanged = false;
+      profiles = profiles.map(p => {
+        if (p.avatar && p.avatar.includes('mc-heads.net')) {
+          profilesChanged = true;
+          return { ...p, avatar: p.avatar.replace('mc-heads.net', 'minotar.net') };
+        }
+        return p;
+      });
+      if (profilesChanged) {
+        localStorage.setItem('marinmc_profiles', JSON.stringify(profiles));
+      }
     } catch (e) {
       profiles = [];
     }
@@ -59,11 +70,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ session, profiles });
   },
 
-  loginWithCracked: async (username, password, isRegister = false) => {
+  loginWithCracked: async (username, password, isRegister = false, email) => {
     set({ isLoading: true, error: null });
     try {
       const session = isRegister
-        ? await authService.registerCracked(username, password)
+        ? await authService.registerCracked(username, password, email)
         : await authService.loginCracked(username, password);
       const currentProfiles = get().profiles;
       const updated = currentProfiles.filter(p => p.id !== session.id);
@@ -116,11 +127,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ profiles: updated, session: nextSession });
   },
 
-  addOfflineProfile: async (username, password, isRegister = false) => {
+  addOfflineProfile: async (username, password, isRegister = false, email) => {
     set({ isLoading: true, error: null });
     try {
       const session = isRegister
-        ? await authService.registerCracked(username, password)
+        ? await authService.registerCracked(username, password, email)
         : await authService.loginCracked(username, password);
       const currentProfiles = get().profiles;
       const updated = currentProfiles.filter(p => p.id !== session.id);

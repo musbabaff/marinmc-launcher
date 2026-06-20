@@ -7,7 +7,7 @@ export const authService = {
   /**
    * Register using a cracked/offline username and password.
    */
-  async registerCracked(username: string, password: string): Promise<UserSession> {
+  async registerCracked(username: string, password: string, email?: string): Promise<UserSession> {
     if (!username || username.trim().length < 3 || username.trim().length > 16) {
       throw new Error('Kullanıcı adı 3-16 karakter arasında olmalıdır.');
     }
@@ -18,7 +18,8 @@ export const authService = {
     try {
       const res = await apiInstance.post('/auth/register', {
         username: username.trim(),
-        password: password
+        password: password,
+        email: email ? email.trim() : undefined
       });
 
       const session: UserSession = res.data.session;
@@ -85,7 +86,7 @@ export const authService = {
           name: 'MarinPremium',
           token: `mock_ms_token_${Date.now()}`,
           type: 'ms',
-          avatar: 'https://mc-heads.net/avatar/MarinPremium/64',
+          avatar: 'https://minotar.net/avatar/MarinPremium/64',
         };
       }
 
@@ -131,6 +132,10 @@ export const authService = {
       const data = localStorage.getItem(SESSION_STORE_NAME);
       if (data) {
         const session = JSON.parse(data);
+        if (session && session.avatar && session.avatar.includes('mc-heads.net')) {
+          session.avatar = session.avatar.replace('mc-heads.net', 'minotar.net');
+          localStorage.setItem(SESSION_STORE_NAME, JSON.stringify(session));
+        }
         if (session && session.token) {
           setAuthToken(session.token);
         }

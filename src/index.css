@@ -13,7 +13,7 @@
   --accent-blue-hover: #4A9AE8;
   --accent-gold: #EAB308;
   --accent-gold-hover: #FACC15;
-  --accent-teal: #06B6D4;
+  --accent-teal: #2D7DD2;
   --accent-green: #2E7D32;
   --accent-red: #C62828;
   --accent-amber: #F59E0B;
@@ -63,13 +63,13 @@
 
 /* Glassmorphism styling */
 .glass-panel {
-  background: rgba(17, 17, 17, 0.7);
+  background: rgba(15, 23, 42, 0.78);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
 }
 
 .glass-input {
-  background: rgba(10, 10, 10, 0.6);
+  background: rgba(7, 11, 25, 0.7);
   border: 1px solid var(--border-subtle);
   transition: all 0.3s ease;
 }

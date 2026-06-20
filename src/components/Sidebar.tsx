@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../stores/appStore.ts';
 import MarinLogo from './MarinLogo.tsx';
 import {
@@ -14,23 +15,24 @@ interface SidebarItem {
 }
 
 export default function Sidebar() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const setActivePage = useAppStore((state) => state.setActivePage);
 
   const group1: SidebarItem[] = [
-    { icon: Home, label: 'Ana Sayfa', path: '/home' },
-    { icon: User, label: 'Profil', path: '/profile' },
-    { icon: Bell, label: 'Bildirimler', path: '/notifications' },
+    { icon: Home, label: t('sidebar.home'), path: '/home' },
+    { icon: User, label: t('sidebar.profile'), path: '/profile' },
+    { icon: Bell, label: t('sidebar.notifications'), path: '/notifications' },
   ];
 
   const group2: SidebarItem[] = [
-    { icon: MessageSquare, label: 'Relay Sohbet', path: '/chat' },
-    { icon: Layers, label: 'Sürümler', path: '/versions' },
-    { icon: Package, label: 'Mod Yöneticisi', path: '/mods' },
-    { icon: Globe, label: 'Gardırop', path: '/cosmetics' },
-    { icon: Image, label: 'Galeri', path: '/gallery' },
-    { icon: Terminal, label: 'Konsol', path: '/console' },
+    { icon: MessageSquare, label: t('sidebar.chat'), path: '/chat' },
+    { icon: Layers, label: t('sidebar.versions'), path: '/versions' },
+    { icon: Package, label: t('sidebar.mods'), path: '/mods' },
+    { icon: Globe, label: t('sidebar.cosmetics'), path: '/cosmetics' },
+    { icon: Image, label: t('sidebar.gallery'), path: '/gallery' },
+    { icon: Terminal, label: t('sidebar.console'), path: '/console' },
   ];
 
   const handleNav = (item: SidebarItem) => {
@@ -45,7 +47,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className="w-[48px] h-[calc(100vh-40px)] bg-[#060305] border-r border-white/[0.04] flex flex-col items-center py-4 justify-between z-20 shrink-0 select-none">
+      <div className="w-[48px] h-[calc(100vh-40px)] bg-[#070b19] border-r border-white/[0.04] flex flex-col items-center py-4 justify-between z-20 shrink-0 select-none">
         {/* Brand Logo "M" */}
         <div className="flex flex-col space-y-3 w-full items-center">
           <div className="w-7 h-7 flex items-center justify-center text-white mb-0.5 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/home')}>
@@ -75,7 +77,7 @@ export default function Sidebar() {
                   </button>
 
                   {/* Tooltip */}
-                  <div className="absolute left-[55px] top-1/2 -translate-y-1/2 bg-[#060305] border border-[#2A2A2A] text-[#d2d2d2] text-[9px] font-bold px-2 py-1 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                  <div className="absolute left-[55px] top-1/2 -translate-y-1/2 bg-[#070b19] border border-white/[0.08] text-[#d2d2d2] text-[9px] font-bold px-2 py-1 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
                     {item.label}
                   </div>
                 </div>
@@ -109,8 +111,8 @@ export default function Sidebar() {
                   </button>
 
                   {/* Tooltip */}
-                  <div className="absolute left-[55px] top-1/2 -translate-y-1/2 bg-[#060305] border border-[#2A2A2A] text-[#d2d2d2] text-[9px] font-bold px-2 py-1 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
-                    {isLocked ? 'Gardırop (Yakında!)' : item.label}
+                  <div className="absolute left-[55px] top-1/2 -translate-y-1/2 bg-[#070b19] border border-white/[0.08] text-[#d2d2d2] text-[9px] font-bold px-2 py-1 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                    {isLocked ? t('sidebar.cosmeticsComingSoon') : item.label}
                   </div>
                 </div>
               );
@@ -135,8 +137,8 @@ export default function Sidebar() {
             >
               <ShoppingCart className="w-3.5 h-3.5" />
             </button>
-            <div className="absolute left-[55px] top-1/2 -translate-y-1/2 bg-[#060305] border border-[#2A2A2A] text-[#d2d2d2] text-[9px] font-bold px-2 py-1 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
-              Market
+            <div className="absolute left-[55px] top-1/2 -translate-y-1/2 bg-[#070b19] border border-white/[0.08] text-[#d2d2d2] text-[9px] font-bold px-2 py-1 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
+              {t('sidebar.market')}
             </div>
           </div>
 
@@ -155,8 +157,8 @@ export default function Sidebar() {
             >
               <Settings className="w-3.5 h-3.5" />
             </button>
-            <div className="absolute left-[55px] top-1/2 -translate-y-1/2 bg-[#060305] border border-[#2A2A2A] text-[#d2d2d2] text-[9px] font-bold px-2 py-1 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
-              Ayarlar
+            <div className="absolute left-[55px] top-1/2 -translate-y-1/2 bg-[#070b19] border border-white/[0.08] text-[#d2d2d2] text-[9px] font-bold px-2 py-1 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
+              {t('sidebar.settings')}
             </div>
           </div>
         </div>

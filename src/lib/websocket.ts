@@ -16,6 +16,12 @@ class WebSocketManager {
   private reconnectInterval = 5000;
 
   public connect(username: string) {
+    if (this.socket && this.activeUsername === username && 
+       (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+      console.log('[WebSocket] Already connected or connecting as:', username);
+      return;
+    }
+
     this.activeUsername = username;
     
     let token = '';
@@ -32,12 +38,21 @@ class WebSocketManager {
     const url = `${getWsUrl()}?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
 
     if (this.socket) {
-      this.socket.close();
+      this.socket.onopen = null;
+      this.socket.onmessage = null;
+      this.socket.onclose = null;
+      this.socket.onerror = null;
+      try {
+        this.socket.close();
+      } catch (err) {
+        console.warn('[WebSocket] Error closing old socket:', err);
+      }
     }
 
     console.log('[WebSocket] Connecting to:', url);
     try {
       this.socket = new WebSocket(url);
+
 
       this.socket.onopen = () => {
         console.log('[WebSocket] Connected as:', username);

@@ -85,7 +85,7 @@ export default function CrashModal({
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.9, y: 20, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="bg-[#0A0A0A] border border-[#EF4444]/30 w-[430px] rounded-2xl overflow-hidden shadow-2xl relative flex flex-col p-6 items-center"
+              className="bg-[#070b19] border border-[#EF4444]/30 w-[430px] rounded-2xl overflow-hidden shadow-2xl relative flex flex-col p-6 items-center"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close btn */}
@@ -110,7 +110,7 @@ export default function CrashModal({
               </p>
 
               {/* Suspected Cause box */}
-              <div className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl p-4 mb-3">
+              <div className="w-full bg-[#0f172a]/70 border border-white/[0.06] rounded-xl p-4 mb-3">
                 <span className="text-[10px] font-extrabold text-[#52525B] uppercase tracking-wider block mb-2">
                   {t('crash.suspectedCause')}
                 </span>
@@ -146,7 +146,7 @@ export default function CrashModal({
                         exit={{ height: 0, opacity: 0 }}
                         className="w-full overflow-hidden"
                       >
-                        <pre className="w-full bg-[#050505] border border-[#2A2A2A] rounded-xl p-3 text-[9px] font-mono text-red-400/90 overflow-x-auto max-h-32 whitespace-pre-wrap text-left select-text scrollbar-thin">
+                        <pre className="w-full bg-[#03050c] border border-white/[0.06] rounded-xl p-3 text-[9px] font-mono text-red-400/90 overflow-x-auto max-h-32 whitespace-pre-wrap text-left select-text scrollbar-thin">
                           {crashDetails}
                         </pre>
                       </motion.div>
@@ -173,7 +173,7 @@ export default function CrashModal({
                     className={`py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
                       copySuccess
                         ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
-                        : 'bg-white/[0.03] border-[#2A2A2A] text-[#A1A1AA] hover:bg-white/[0.06] hover:text-white'
+                        : 'bg-white/[0.03] border-white/[0.08] text-[#A1A1AA] hover:bg-white/[0.06] hover:text-white'
                     }`}
                   >
                     <Copy className="w-3.5 h-3.5" />
@@ -181,7 +181,7 @@ export default function CrashModal({
                   </button>
                   <button
                     onClick={handleOpenLog}
-                    className="py-2 rounded-xl bg-white/[0.03] border border-[#2A2A2A] text-[#A1A1AA] hover:bg-white/[0.06] hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                    className="py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-[#A1A1AA] hover:bg-white/[0.06] hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all"
                   >
                     <FolderOpen className="w-3.5 h-3.5" />
                     <span>{t('crash.openCrashLog')}</span>

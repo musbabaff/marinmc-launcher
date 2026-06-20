@@ -177,9 +177,9 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden select-none h-full bg-[#060305] text-[#d2d2d2] w-full">
+    <div className="flex-1 flex overflow-hidden select-none h-full bg-[#070b19] text-[#d2d2d2] w-full">
       {/* Sidebar Navigation */}
-      <div className="w-[220px] bg-[#09070a] border-r border-white/[0.04] p-4 flex flex-col justify-between shrink-0">
+      <div className="w-[220px] bg-[#070b19] border-r border-white/[0.04] p-4 flex flex-col justify-between shrink-0">
         <div className="space-y-4">
           <div className="px-2 py-1">
             <h2 className="text-xs font-extrabold uppercase tracking-widest text-[#52525B]">AYAR GRUPLARI</h2>
@@ -224,7 +224,7 @@ export default function SettingsPage() {
       {/* Settings Content Area */}
       <div className="flex-1 flex flex-col justify-between overflow-hidden h-full">
         {/* Header Action Bar */}
-        <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between shrink-0 bg-[#070507]">
+        <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between shrink-0 bg-[#070b19]">
           <div>
             <h2 className="text-sm font-extrabold tracking-widest uppercase text-white">
               {activeTab === 'general'
@@ -288,7 +288,7 @@ export default function SettingsPage() {
               {activeTab === 'general' && (
                 <>
                   {/* Language Selector */}
-                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl space-y-4">
+                  <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl space-y-4">
                     <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B]">
                       <Languages className="w-4 h-4 text-[#2D7DD2]" />
                       <span>Dil Seçeneği</span>
@@ -325,7 +325,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Discord RPC Card */}
-                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl flex items-center justify-between">
+                  <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl flex items-center justify-between">
                     <div className="space-y-1.5 pr-4 min-w-0">
                       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B]">
                         <svg className="w-4 h-4 text-[#2D7DD2] fill-current" viewBox="0 0 127.14 96.36">
@@ -340,7 +340,7 @@ export default function SettingsPage() {
                     <button
                       onClick={() => setDiscordRpcValue(!discordRpcValue)}
                       className={`w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none shrink-0 ${
-                        discordRpcValue ? 'bg-[#2D7DD2]' : 'bg-[#131622] border border-white/5'
+                        discordRpcValue ? 'bg-[#2D7DD2]' : 'bg-[#070b19] border border-white/5'
                       }`}
                     >
                       <div
@@ -352,7 +352,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Launcher Behavior Card */}
-                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl flex items-center justify-between">
+                  <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl flex items-center justify-between">
                     <div className="space-y-1.5 pr-4 min-w-0">
                       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B]">
                         <Settings className="w-4 h-4 text-[#2D7DD2]" />
@@ -365,7 +365,7 @@ export default function SettingsPage() {
                     <select
                       value={launcherBehaviorVal}
                       onChange={(e) => setLauncherBehaviorVal(e.target.value as any)}
-                      className="bg-[#0e0c0f] border border-white/[0.08] text-[#d2d2d2] text-[10px] font-bold px-3 py-2 rounded-xl focus:outline-none focus:border-[#2D7DD2] cursor-pointer"
+                      className="bg-[#0f172a] border border-white/[0.08] text-[#d2d2d2] text-[10px] font-bold px-3 py-2 rounded-xl focus:outline-none focus:border-[#2D7DD2] cursor-pointer"
                     >
                       <option value="minimize">Simge Durumuna Küçült</option>
                       <option value="close">Başlatıcıyı Kapat</option>
@@ -413,7 +413,7 @@ export default function SettingsPage() {
                         set: setSoundEffectsVal,
                       },
                     ].map((opt, i) => (
-                      <div key={i} className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl flex items-center justify-between">
+                      <div key={i} className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl flex items-center justify-between">
                         <div className="space-y-1.5 pr-4 min-w-0">
                           <span className="text-[10px] font-black uppercase tracking-widest text-[#d2d2d2] block">{opt.title}</span>
                           <span className="text-[8.5px] text-[#52525B] font-bold block leading-snug">{opt.desc}</span>
@@ -421,7 +421,7 @@ export default function SettingsPage() {
                         <button
                           onClick={() => opt.set(!opt.val)}
                           className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none shrink-0 ${
-                            opt.val ? 'bg-[#2D7DD2]' : 'bg-[#131622] border border-white/5'
+                            opt.val ? 'bg-[#2D7DD2]' : 'bg-[#070b19] border border-white/5'
                           }`}
                         >
                           <div
@@ -439,7 +439,7 @@ export default function SettingsPage() {
               {activeTab === 'game' && (
                 <>
                   {/* Smart JVM Toggle */}
-                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl flex items-center justify-between">
+                  <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl flex items-center justify-between">
                     <div className="space-y-1.5 pr-4 min-w-0">
                       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B]">
                         <Cpu className="w-4 h-4 text-[#2D7DD2]" />
@@ -464,7 +464,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Resolution and Fullscreen Card */}
-                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl space-y-4">
+                  <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl space-y-4">
                     <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B]">
                       <Gamepad2 className="w-4 h-4 text-[#2D7DD2]" />
                       <span>Ekran Çözünürlüğü ve Görünüm</span>
@@ -483,11 +483,11 @@ export default function SettingsPage() {
                           disabled={fullscreenVal}
                           className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 text-xs font-semibold text-white outline-none focus:border-[#2D7DD2]/40 transition-all select-none"
                         >
-                          <option value="1920x1080" className="bg-[#0a0a0a]">1920 x 1080 (16:9 Full HD)</option>
-                          <option value="1600x900" className="bg-[#0a0a0a]">1600 x 900 (16:9 HD+)</option>
-                          <option value="1280x720" className="bg-[#0a0a0a]">1280 x 720 (16:9 HD)</option>
-                          <option value="1024x768" className="bg-[#0a0a0a]">1024 x 768 (4:3 SVGA)</option>
-                          <option value="800x600" className="bg-[#0a0a0a]">800 x 600 (4:3 VGA)</option>
+                          <option value="1920x1080" className="bg-[#0f172a]">1920 x 1080 (16:9 Full HD)</option>
+                          <option value="1600x900" className="bg-[#0f172a]">1600 x 900 (16:9 HD+)</option>
+                          <option value="1280x720" className="bg-[#0f172a]">1280 x 720 (16:9 HD)</option>
+                          <option value="1024x768" className="bg-[#0f172a]">1024 x 768 (4:3 SVGA)</option>
+                          <option value="800x600" className="bg-[#0f172a]">800 x 600 (4:3 VGA)</option>
                         </select>
                       </div>
 
@@ -500,7 +500,7 @@ export default function SettingsPage() {
                         <button
                           onClick={() => setFullscreenVal(!fullscreenVal)}
                           className={`w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none shrink-0 ${
-                            fullscreenVal ? 'bg-[#2D7DD2]' : 'bg-[#131622] border border-white/5'
+                            fullscreenVal ? 'bg-[#2D7DD2]' : 'bg-[#070b19] border border-white/5'
                           }`}
                         >
                           <div
@@ -514,7 +514,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* RAM slider card */}
-                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl space-y-4">
+                  <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B]">
                         <Cpu className="w-4 h-4 text-[#2D7DD2]" />
@@ -533,7 +533,7 @@ export default function SettingsPage() {
                         step="512"
                         value={ramValue}
                         onChange={(e) => setRamValue(parseInt(e.target.value, 10))}
-                        className="w-full h-1.5 bg-[#131622] rounded-lg appearance-none cursor-pointer accent-[#2D7DD2] border border-white/5"
+                        className="w-full h-1.5 bg-[#070b19] rounded-lg appearance-none cursor-pointer accent-[#2D7DD2] border border-white/5"
                       />
                       <div className="flex justify-between text-[8px] text-[#52525B] font-bold px-0.5 uppercase tracking-wider">
                         <span>1.0 GB</span>
@@ -553,7 +553,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Game Location directory */}
-                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl space-y-3">
+                  <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl space-y-3">
                     <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B]">
                       <HardDrive className="w-4 h-4 text-[#2D7DD2]" />
                       <span>Oyun Klasörü</span>
@@ -584,7 +584,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Java Path Configuration card */}
-                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl space-y-3">
+                  <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl space-y-3">
                     <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B]">
                       <FolderOpen className="w-4 h-4 text-[#2D7DD2]" />
                       <span>Java Yolu (Java Runtime)</span>
@@ -606,7 +606,7 @@ export default function SettingsPage() {
               {activeTab === 'advanced' && (
                 <>
                   {/* JVM Arguments */}
-                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl space-y-3">
+                  <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl space-y-3">
                     <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B]">
                       <Terminal className="w-4 h-4 text-[#2D7DD2]" />
                       <span>JVM Başlatma Parametreleri</span>
@@ -630,7 +630,7 @@ export default function SettingsPage() {
                   {/* Real-time Monitor Grid */}
                   <div className="grid grid-cols-2 gap-4">
                     {/* CPU Card */}
-                    <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl flex flex-col items-center justify-between relative overflow-hidden group">
+                    <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl flex flex-col items-center justify-between relative overflow-hidden group">
                       <div className="absolute inset-0 bg-gradient-to-br from-[#2D7DD2]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       
                       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B] self-start w-full">
@@ -673,7 +673,7 @@ export default function SettingsPage() {
                     </div>
 
                     {/* RAM Card */}
-                    <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl flex flex-col items-center justify-between relative overflow-hidden group">
+                    <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl flex flex-col items-center justify-between relative overflow-hidden group">
                       <div className="absolute inset-0 bg-gradient-to-br from-[#2D7DD2]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       
                       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B] self-start w-full">
@@ -721,7 +721,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* RAM Optimizer Action Card */}
-                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl space-y-4">
+                  <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
                         <h4 className="text-[10px] font-black uppercase tracking-widest text-[#52525B]">Akıllı Bellek Temizleyici</h4>
@@ -758,7 +758,7 @@ export default function SettingsPage() {
                           </span>
                           <span className="text-white">{optimizationProgress}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-[#131622] rounded-full overflow-hidden border border-white/5">
+                        <div className="w-full h-1.5 bg-[#070b19] rounded-full overflow-hidden border border-white/5">
                           <motion.div
                             className="h-full bg-gradient-to-r from-[#2D7DD2] to-[#EAB308]"
                             initial={{ width: '0%' }}
@@ -785,7 +785,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* GPU & System Hardware Info Card */}
-                  <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl space-y-4">
+                  <div className="bg-[#0f172a]/70 border border-white/[0.04] p-5 rounded-2xl space-y-4">
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-[#52525B]">Sistem & Donanım Özellikleri</h4>
                     
                     <div className="grid grid-cols-2 gap-4 text-[9px]">

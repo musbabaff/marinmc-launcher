@@ -7,14 +7,15 @@ import { useSocialStore } from '../stores/socialStore.ts';
 import { useAppStore } from '../stores/appStore.ts';
 import { sanitizeUrl, sanitizeParam } from '../lib/security.ts';
 import { api, getApiBaseUrl } from '../lib/api.ts';
+import { STEVE_AVATAR_FALLBACK } from '../lib/constants.ts';
 import VersionModal from '../components/VersionModal.tsx';
 import ProfileSettingsModal from '../components/ProfileSettingsModal.tsx';
 import {
   ChevronDown, LogOut, Search,
   MessageSquare, UserPlus, X, AlertTriangle,
   Trophy, CheckCircle2, WifiOff, ExternalLink,
-  Pause, Plus, Trash2, Send,
-  Settings, Sparkles
+  Pause, Trash2, Send,
+  Settings, Sparkles, Loader2, Square
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { wsManager } from '../lib/websocket';
@@ -74,7 +75,7 @@ const defaultNews = [
 
 export default function HomePage() {
   const { t } = useTranslation();
-  const { session, logout, profiles, switchProfile, removeProfile, addOfflineProfile, addMicrosoftProfile } = useAuthStore();
+  const { session, logout, profiles, switchProfile, removeProfile, addOfflineProfile } = useAuthStore();
   const settings = useSettingsStore();
   const social = useSocialStore();
   const isOnline = useAppStore((state) => state.isOnline);
@@ -294,7 +295,7 @@ export default function HomePage() {
   }, [settings.launcherBehavior]);
 
   const handleLaunch = async () => {
-    if (launchStatus === 'RUNNING') {
+    if (launchStatus === 'RUNNING' || launchStatus === 'DOWNLOADING' || launchStatus === 'LAUNCHING' || launchStatus === 'CHECKING') {
       if (window.electronAPI) {
         await window.electronAPI.stopGame();
       }
@@ -460,7 +461,7 @@ export default function HomePage() {
   return (
     <div className="flex-1 flex overflow-hidden h-full relative select-none">
       {/* Middle Main Dashboard */}
-      <div className="flex-1 flex flex-col overflow-hidden h-full no-drag bg-[#060305] text-[#d2d2d2] relative">
+      <div className="flex-1 flex flex-col overflow-hidden h-full no-drag bg-[#070b19] text-[#d2d2d2] relative">
         
         {/* Offline Red Banner */}
         {!isOnline && (
@@ -498,12 +499,12 @@ export default function HomePage() {
         )}
 
         {/* Hero Background */}
-        <div className="absolute top-0 left-0 right-0 h-[420px] pointer-events-none overflow-hidden z-0">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-[0.15] scale-105 blur-sm"
+            className="absolute inset-0 bg-cover bg-center opacity-[0.25] scale-100"
             style={{ backgroundImage: `url(${heroBg})` }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#060305]/70 to-[#060305]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#070b19]/40 via-[#070b19]/80 to-[#070b19]" />
         </div>
 
         {/* Top Scrollable Area */}
@@ -520,7 +521,7 @@ export default function HomePage() {
                   alt="avatar"
                   className="w-4 h-4 rounded bg-black/20 shrink-0"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
+                    (e.target as HTMLImageElement).src = STEVE_AVATAR_FALLBACK;
                   }}
                 />
                 <span>{session?.name || 'dbrn'}</span>
@@ -533,7 +534,7 @@ export default function HomePage() {
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
-                    className="absolute right-0 mt-2 bg-[#060305] border border-white/[0.08] rounded-xl shadow-2xl w-64 py-2.5 z-50 text-[10px] font-black"
+                    className="absolute right-0 mt-2 bg-[#070b19] border border-white/[0.08] rounded-xl shadow-2xl w-64 py-2.5 z-50 text-[10px] font-black"
                   >
                     <div className="px-3.5 pb-2 border-b border-white/[0.05] mb-2 flex items-center justify-between">
                       <span className="text-[#52525B] uppercase tracking-wider text-[8px] font-black">Hesaplar</span>
@@ -565,13 +566,13 @@ export default function HomePage() {
                                 alt="avatar"
                                 className="w-5 h-5 rounded bg-black/25 shrink-0"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
+                                  (e.target as HTMLImageElement).src = STEVE_AVATAR_FALLBACK;
                                 }}
                               />
                               <div className="flex flex-col min-w-0">
                                 <span className="text-white truncate font-bold text-[9.5px]">{p.name}</span>
                                 <span className="text-[7px] text-[#52525B] uppercase leading-none font-bold">
-                                  {p.type === 'ms' ? 'Microsoft' : 'Cracked'}
+                                  {p.type === 'ms' ? t('home.accountPremium') : t('home.accountCracked')}
                                 </span>
                               </div>
                             </div>
@@ -621,7 +622,7 @@ export default function HomePage() {
                           }}
                           className="space-y-1.5"
                         >
-                          <div className="flex bg-[#111111]/80 rounded-lg p-0.5 border border-white/5">
+                          <div className="flex bg-white/[0.03] rounded-lg p-0.5 border border-white/5">
                             <button
                               type="button"
                               onClick={() => setIsDropdownRegister(false)}
@@ -641,7 +642,7 @@ export default function HomePage() {
                               Kayıt
                             </button>
                           </div>
-                          <div className="flex items-center bg-[#111111] border border-white/10 rounded-lg px-2 py-1 focus-within:border-[#2D7DD2]/50">
+                          <div className="flex items-center bg-[#070b19] border border-white/10 rounded-lg px-2 py-1 focus-within:border-[#2D7DD2]/50">
                             <input
                               type="text"
                               placeholder="Kullanıcı Adı"
@@ -651,7 +652,7 @@ export default function HomePage() {
                               autoFocus
                             />
                           </div>
-                          <div className="flex items-center bg-[#111111] border border-white/10 rounded-lg px-2 py-1 focus-within:border-[#2D7DD2]/50">
+                          <div className="flex items-center bg-[#070b19] border border-white/10 rounded-lg px-2 py-1 focus-within:border-[#2D7DD2]/50">
                             <input
                               type="password"
                               placeholder={isDropdownRegister ? "Şifre (En az 6 kar.)" : "Şifre giriniz"}
@@ -680,26 +681,10 @@ export default function HomePage() {
                         <div className="flex gap-1.5">
                           <button
                             onClick={() => { setOfflineAddOpen(true); setProfileAddError(null); }}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded font-bold text-[7.5px] uppercase tracking-wider transition-all"
+                            className="w-full flex items-center justify-center gap-1.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-bold text-[8px] uppercase tracking-wider transition-all"
                           >
-                            <UserPlus className="w-2.5 h-2.5" />
+                            <UserPlus className="w-3 h-3 text-[#2D7DD2]" />
                             <span>Offline Ekle</span>
-                          </button>
-                          <button
-                            onClick={async () => {
-                              setProfileAddError(null);
-                              try {
-                                await addMicrosoftProfile();
-                                setProfileAddSuccess('Profil başarıyla eklendi.');
-                                setTimeout(() => setProfileAddSuccess(null), 3000);
-                              } catch (err: any) {
-                                setProfileAddError(err.message || 'Profil eklenemedi.');
-                              }
-                            }}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-[#208390]/20 hover:bg-[#208390]/30 border border-[#208390]/30 text-[#208390] rounded font-bold text-[7.5px] uppercase tracking-wider transition-all"
-                          >
-                            <Plus className="w-2.5 h-2.5" />
-                            <span>Microsoft Ekle</span>
                           </button>
                         </div>
                       )}
@@ -733,7 +718,12 @@ export default function HomePage() {
           </div>
 
           {/* Redesigned Sleek Lunar-style Launch Panel */}
-          <div className="w-full rounded-2xl bg-gradient-to-br from-[#080d1a] via-[#05060d] to-[#080d1a] border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center py-20 px-12 shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(45,125,210,0.1)] group">
+          <div className="w-full rounded-2xl bg-gradient-to-br from-[#080d1a] via-[#040714] to-[#080d1a] border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center py-20 px-12 shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(45,125,210,0.1)] group">
+            {/* Background image overlay */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center opacity-[0.18] scale-100 pointer-events-none transition-transform duration-700 group-hover:scale-102"
+              style={{ backgroundImage: `url(${heroBg})` }}
+            />
             {/* Background particles and radial gradient */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(45,125,210,0.08),transparent_70%)] pointer-events-none" />
             <div className="absolute -top-12 -left-12 w-48 h-48 bg-[#2D7DD2]/10 rounded-full blur-3xl pointer-events-none" />
@@ -857,36 +847,73 @@ export default function HomePage() {
             {/* Launch components */}
             <div className="w-full flex flex-col items-center z-10">
               <div className="flex items-center gap-4.5 w-full max-w-[460px]">
-                {launchStatus === 'DOWNLOADING' ? (
-                  // Downloading Green Button
+                {launchStatus === 'RUNNING' ? (
+                  // Running - Stop Button (Red/Rose Gradient)
                   <button
                     onClick={handleLaunch}
-                    className="flex-1 h-[76px] bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_10px_35px_rgba(16,185,129,0.3)] flex flex-col items-center justify-center gap-0.5"
+                    className="flex-1 h-[76px] bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_10px_35px_rgba(244,63,94,0.3)] flex flex-col items-center justify-center gap-0.5 cursor-pointer border border-rose-500/20"
+                  >
+                    <span className="font-black text-[15px] tracking-widest uppercase">{t('home.stop')}</span>
+                    <div className="flex items-center gap-1.5 text-[10px] text-white/80 font-bold">
+                      <span>MarinMC {settings.selectedSubVersion || '1.21.3'}</span>
+                      <span className="text-white/40">|</span>
+                      <Square className="w-3 h-3 fill-current" />
+                    </div>
+                  </button>
+                ) : launchStatus === 'DOWNLOADING' ? (
+                  // Downloading Green Button (Click to cancel/stop)
+                  <button
+                    onClick={handleLaunch}
+                    className="flex-1 h-[76px] bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_10px_35px_rgba(16,185,129,0.3)] flex flex-col items-center justify-center gap-0.5 cursor-pointer border border-emerald-500/20"
                   >
                     <span className="font-black text-[15px] tracking-widest uppercase">{t('home.downloading')}</span>
                     <div className="flex items-center gap-1.5 text-[10px] text-white/80 font-bold">
                       <span>Fabric {settings.selectedSubVersion || '1.21.0'}</span>
                       <span className="text-white/40">|</span>
-                      <Pause className="w-3 h-3 fill-current" />
+                      <Pause className="w-3 h-3 fill-current text-white animate-pulse" />
+                    </div>
+                  </button>
+                ) : (launchStatus === 'CHECKING' || launchStatus === 'LAUNCHING') ? (
+                  // Checking / Launching Amber Button (Click to cancel/stop)
+                  <button
+                    onClick={handleLaunch}
+                    className="flex-1 h-[76px] bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_10px_35px_rgba(245,158,11,0.3)] flex flex-col items-center justify-center gap-0.5 cursor-pointer border border-amber-500/20"
+                  >
+                    <span className="font-black text-[15px] tracking-widest uppercase text-white">
+                      {launchStatus === 'CHECKING' ? t('home.checking') : t('home.launching')}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-[10px] text-white/80 font-bold">
+                      <span>{t('home.changeVersion')}</span>
+                      <span className="text-white/40">|</span>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     </div>
                   </button>
                 ) : (
                   // Large Green Launch Game Button matching Screenshot
-                  <button
-                    onClick={handleLaunch}
-                    disabled={launchStatus === 'CHECKING' || launchStatus === 'LAUNCHING'}
-                    className="flex-1 h-[76px] bg-gradient-to-r from-[#22c55e] to-[#15803d] hover:from-[#4ade80] hover:to-[#16a34a] active:scale-[0.98] disabled:opacity-50 text-white rounded-xl transition-all duration-300 shadow-[0_12px_40px_rgba(34,197,94,0.4),0_0_20px_rgba(34,197,94,0.15)] flex items-center justify-between px-7 cursor-pointer border border-[#4ade80]/20"
+                  <div
+                    className="flex-1 h-[76px] bg-gradient-to-r from-[#22c55e] to-[#15803d] hover:from-[#4ade80] hover:to-[#16a34a] active:scale-[0.98] text-white rounded-xl transition-all duration-300 shadow-[0_12px_40px_rgba(34,197,94,0.4),0_0_20px_rgba(34,197,94,0.15)] flex items-center justify-between pl-7 pr-4 border border-[#4ade80]/20"
                   >
-                    <div className="flex flex-col items-start text-left">
+                    <button
+                      onClick={handleLaunch}
+                      className="flex-grow flex flex-col items-start text-left h-full justify-center cursor-pointer select-none"
+                    >
                       <span className="font-black text-[15px] tracking-widest uppercase text-white shadow-sm">{t('home.launch')}</span>
                       <span className="text-[10px] text-white/90 font-extrabold uppercase tracking-wider mt-0.5">
                         MarinMC {settings.selectedSubVersion || '1.21.3'}
                       </span>
-                    </div>
-                    <div className="w-7 h-7 rounded-lg bg-black/25 hover:bg-black/35 flex items-center justify-center transition-colors border border-white/5">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setVersionModalOpen(true);
+                      }}
+                      className="w-8 h-8 rounded-lg bg-black/25 hover:bg-black/40 flex items-center justify-center transition-colors border border-white/5 cursor-pointer ml-3 z-20"
+                    >
                       <ChevronDown className="w-4.5 h-4.5 text-white/90 rotate-180" />
-                    </div>
-                  </button>
+                    </button>
+                  </div>
                 )}
 
                 {/* Settings cog wheel next to it */}
@@ -951,7 +978,7 @@ export default function HomePage() {
           {/* News Feed Grid */}
           {!isOnline ? (
             <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-3 h-[180px] bg-[#0c080e]/40 border border-white/[0.04] rounded-2xl flex items-center justify-center flex-col text-center p-6 relative group">
+              <div className="col-span-3 h-[180px] bg-[#0f172a]/40 border border-white/[0.04] rounded-2xl flex items-center justify-center flex-col text-center p-6 relative group">
                 <WifiOff className="w-8 h-8 text-[#52525B] mb-2" />
                 <span className="text-[10px] font-bold text-[#52525B]">{t('home.newsServiceError')}</span>
               </div>
@@ -962,7 +989,7 @@ export default function HomePage() {
                 <motion.div
                   key={idx}
                   whileHover={{ y: -4, scale: 1.02 }}
-                  className="relative rounded-2xl overflow-hidden border border-white/[0.04] bg-[#0c080e]/60 hover:bg-[#120c15]/80 hover:border-white/10 transition-all duration-300 flex flex-col h-[180px] group shadow-xl"
+                  className="relative rounded-2xl overflow-hidden border border-white/[0.04] bg-[#0f172a]/60 hover:bg-[#1e293b]/80 hover:border-white/10 transition-all duration-300 flex flex-col h-[180px] group shadow-xl"
                 >
                   {/* Card Image Cover with zoom effect */}
                   <div className="h-[90px] overflow-hidden relative shrink-0">
@@ -970,7 +997,7 @@ export default function HomePage() {
                       className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
                       style={{ backgroundImage: `url(${item.imageUrl})` }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0c080e] via-transparent to-black/30 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-black/30 pointer-events-none" />
                     
                     {/* Category tag on top of image */}
                     <span className={`absolute top-2.5 left-2.5 text-[7.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded border backdrop-blur-md ${item.tagColor}`}>
@@ -1006,7 +1033,7 @@ export default function HomePage() {
 
       {/* Redesigned Collapsible right sidebar panel for friends list */}
       <div
-        className={`bg-[#0a080a] border-l border-white/[0.04] flex flex-col transition-all duration-300 relative select-none shrink-0 ${
+        className={`bg-[#070b19] border-l border-white/[0.04] flex flex-col transition-all duration-300 relative select-none shrink-0 ${
           friendsPanelOpen ? 'w-[300px]' : 'w-0'
         }`}
       >
@@ -1124,7 +1151,7 @@ export default function HomePage() {
                                 alt={f.username}
                                 className="w-7 h-7 rounded-lg grayscale border border-white/5"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/32';
+                                  (e.target as HTMLImageElement).src = STEVE_AVATAR_FALLBACK;
                                 }}
                               />
                               <div className="flex-1 min-w-0">
@@ -1151,10 +1178,10 @@ export default function HomePage() {
                                   alt={f.username}
                                   className="w-7 h-7 rounded-lg border border-white/5"
                                   onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/32';
+                                    (e.target as HTMLImageElement).src = STEVE_AVATAR_FALLBACK;
                                   }}
                                 />
-                                <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[#0a080a] ${
+                                <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[#070b19] ${
                                   getStatusColor(f.username, f.status)
                                 }`} />
                               </div>
@@ -1204,7 +1231,7 @@ export default function HomePage() {
                                   alt={f.username}
                                   className="w-7 h-7 rounded-lg grayscale border border-white/5"
                                   onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/32';
+                                    (e.target as HTMLImageElement).src = STEVE_AVATAR_FALLBACK;
                                   }}
                                 />
                               <div className="flex-1 min-w-0">
@@ -1255,7 +1282,7 @@ export default function HomePage() {
                           alt={msg.sender} 
                           className="w-6 h-6 rounded shrink-0 border border-white/5 bg-black/35"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
+                            (e.target as HTMLImageElement).src = STEVE_AVATAR_FALLBACK;
                           }}
                         />
                         <div className="flex-1 min-w-0">
@@ -1333,7 +1360,7 @@ export default function HomePage() {
       {/* Collapse vertical toggle tab handle */}
       <button
         onClick={() => setFriendsPanelOpen(!friendsPanelOpen)}
-        className="absolute right-0 top-1/2 -translate-y-1/2 bg-[#0a080a] hover:bg-[#1C2028] border-l border-y border-white/[0.04] text-[#52525B] hover:text-white px-0.5 py-4 rounded-l-md z-30 transition-all select-none"
+        className="absolute right-0 top-1/2 -translate-y-1/2 bg-[#070b19] hover:bg-[#0f172a] border-l border-y border-white/[0.04] text-[#52525B] hover:text-white px-0.5 py-4 rounded-l-md z-30 transition-all select-none"
       >
         <span className="text-[8px] font-bold writing-mode-vertical uppercase tracking-widest">
           {friendsPanelOpen ? '▶' : '◀'}
@@ -1348,7 +1375,7 @@ export default function HomePage() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#060305] border border-white/[0.08] w-[320px] rounded-2xl p-5 shadow-2xl"
+              className="bg-[#070b19] border border-white/[0.08] w-[320px] rounded-2xl p-5 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-3">

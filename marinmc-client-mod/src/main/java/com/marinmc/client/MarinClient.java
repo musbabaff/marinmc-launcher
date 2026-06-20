@@ -10,6 +10,11 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
 import net.minecraft.text.Text;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.Camera;
+import net.minecraft.client.util.math.MatrixStack;
+import org.joml.Matrix4f;
 
 public class MarinClient implements ClientModInitializer {
     public static KeyBinding overlayKeyBinding;
@@ -85,6 +90,81 @@ public class MarinClient implements ClientModInitializer {
 
             // Tick freelook handler
             FreelookHandler.getInstance().tick();
+        });
+
+        // Register waypoint rendering in 3D world
+        WorldRenderEvents.LAST.register(context -> {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            if (mc.player == null || mc.world == null || OverlayScreen.waypoints.isEmpty()) return;
+
+            Camera camera = context.camera();
+            MatrixStack matrices = context.matrixStack();
+            if (camera == null || matrices == null) return;
+
+            double camX = camera.getPos().x;
+            double camY = camera.getPos().y;
+            double camZ = camera.getPos().z;
+
+            net.minecraft.client.render.VertexConsumerProvider vertexConsumers = context.consumers();
+            if (vertexConsumers == null) return;
+
+            for (OverlayScreen.Waypoint wp : OverlayScreen.waypoints) {
+                double dx = wp.x + 0.5 - camX;
+                double dy = wp.y + 1.0 - camY;
+                double dz = wp.z + 0.5 - camZ;
+
+                double distSq = dx * dx + dy * dy + dz * dz;
+                double dist = Math.sqrt(distSq);
+
+                matrices.push();
+                matrices.translate(dx, dy, dz);
+
+                // Billboard rotation: face camera
+                matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(-camera.getYaw()));
+                matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
+
+                // Size calculation
+                float scale = 0.02666667F;
+                if (dist > 16.0) {
+                    scale = (float)(scale * (dist / 16.0));
+                }
+                scale = Math.min(0.4f, scale);
+
+                matrices.scale(-scale, -scale, scale);
+
+                String label = wp.name + " (" + (int)dist + "m)";
+                int color = 0xFFFFFFFF;
+                if ("red".equalsIgnoreCase(wp.color)) color = 0xFFEF4444;
+                else if ("green".equalsIgnoreCase(wp.color)) color = 0xFF22C55E;
+                else if ("blue".equalsIgnoreCase(wp.color)) color = 0xFF2D7DD2;
+                else if ("yellow".equalsIgnoreCase(wp.color)) color = 0xFFF59E0B;
+                else if ("purple".equalsIgnoreCase(wp.color)) color = 0xFFA78BFA;
+                else if ("orange".equalsIgnoreCase(wp.color)) color = 0xFFF97316;
+
+                int textW = mc.textRenderer.getWidth(label);
+                int halfW = textW / 2;
+
+                Matrix4f positionMatrix = matrices.peek().getPositionMatrix();
+
+                // Draw text plate through blocks
+                mc.textRenderer.draw(
+                    label,
+                    -halfW,
+                    0,
+                    color,
+                    false,
+                    positionMatrix,
+                    vertexConsumers,
+                    net.minecraft.client.font.TextRenderer.TextLayerType.SEE_THROUGH,
+                    0x40000000,
+                    15728880
+                );
+
+                matrices.pop();
+            }
+            if (vertexConsumers instanceof net.minecraft.client.render.VertexConsumerProvider.Immediate) {
+                ((net.minecraft.client.render.VertexConsumerProvider.Immediate) vertexConsumers).draw();
+            }
         });
     }
 }

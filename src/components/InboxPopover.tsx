@@ -28,7 +28,7 @@ export default function InboxPopover({ onClose }: InboxPopoverProps) {
       case 'success':
         return <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />;
       default:
-        return <Info className="w-3.5 h-3.5 text-[#06B6D4]" />;
+        return <Info className="w-3.5 h-3.5 text-[#2D7DD2]" />;
     }
   };
 
@@ -39,12 +39,12 @@ export default function InboxPopover({ onClose }: InboxPopoverProps) {
       case 'success':
         return 'bg-[#10B981]/10 border border-[#10B981]/20';
       default:
-        return 'bg-[#06B6D4]/10 border border-[#06B6D4]/20';
+        return 'bg-[#2D7DD2]/10 border border-[#2D7DD2]/20';
     }
   };
 
   return (
-    <div className="absolute right-0 top-[32px] w-[300px] bg-[#09070a] border border-white/[0.08] rounded-xl shadow-2xl p-3 z-50 text-[10px] select-none font-bold animate-fade-in">
+    <div className="absolute right-0 top-[32px] w-[300px] bg-[#070b19] border border-white/[0.08] rounded-xl shadow-2xl p-3 z-50 text-[10px] select-none font-bold animate-fade-in">
       {/* Header */}
       <div className="flex justify-between items-center pb-2 border-b border-white/[0.05] mb-2">
         <div className="flex items-center gap-1.5">

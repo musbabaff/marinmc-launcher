@@ -240,7 +240,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="w-[720px] h-[480px] bg-[#060305] border border-white/[0.08] rounded-2xl flex overflow-hidden shadow-2xl relative select-none"
+            className="w-[720px] h-[480px] bg-[#070b19] border border-white/[0.08] rounded-2xl flex overflow-hidden shadow-2xl relative select-none"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Left Sidebar inside modal */}
@@ -325,7 +325,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
             </div>
 
             {/* Right Tab Content Panel */}
-            <div className="flex-grow flex flex-col h-full bg-[#060305] text-[#d2d2d2] overflow-hidden">
+            <div className="flex-grow flex flex-col h-full bg-[#070b19] text-[#d2d2d2] overflow-hidden">
               <div className="flex justify-between items-center p-5 border-b border-white/[0.04]">
                 <div>
                   <h3 className="text-[11px] font-black text-white uppercase tracking-widest">
@@ -548,7 +548,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                           className="bg-black/40 border border-white/10 px-3.5 py-2 rounded-xl text-[10px] font-bold text-white w-full max-w-[200px] focus:outline-none focus:ring-0 cursor-pointer"
                         >
                           {LOADER_VERSIONS[loaderType].map((v) => (
-                            <option key={v.sub} value={v.sub} className="bg-[#060305] text-white">
+                            <option key={v.sub} value={v.sub} className="bg-[#070b19] text-white">
                               {v.sub}
                             </option>
                           ))}

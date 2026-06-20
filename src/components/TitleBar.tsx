@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../stores/appStore.ts';
 import { useAuthStore } from '../stores/authStore.ts';
 import { useNotificationStore } from '../stores/notificationStore.ts';
@@ -7,8 +8,10 @@ import { api } from '../lib/api.ts';
 import MarinLogo from './MarinLogo.tsx';
 import InboxPopover from './InboxPopover.tsx';
 import { useNavigate } from 'react-router-dom';
+import { STEVE_AVATAR_FALLBACK } from '../lib/constants.ts';
 
 export default function TitleBar() {
+  const { t } = useTranslation();
   const isOnline = useAppStore((state) => state.isOnline);
   const activePage = useAppStore((state) => state.activePage);
   const gameStatus = useAppStore((state) => state.gameStatus);
@@ -70,18 +73,18 @@ export default function TitleBar() {
 
   const getPageTitle = () => {
     switch (activePage) {
-      case '/home': return 'Launchpad';
-      case '/profile': return 'Profil';
-      case '/notifications': return 'Bildirimler';
-      case '/chat': return 'Relay Sohbet';
-      case '/versions': return 'Sürümler';
-      case '/mods': return 'Mod Yöneticisi';
-      case '/cosmetics': return 'Gardırop';
-      case '/gallery': return 'Galeri';
-      case '/console': return 'Konsol';
-      case '/store': return 'Market';
-      case '/settings': return 'Ayarlar';
-      default: return 'Launchpad';
+      case '/home': return t('titlebar.launchpad');
+      case '/profile': return t('titlebar.profile');
+      case '/notifications': return t('titlebar.notifications');
+      case '/chat': return t('titlebar.chat');
+      case '/versions': return t('titlebar.versions');
+      case '/mods': return t('titlebar.mods');
+      case '/cosmetics': return t('titlebar.cosmetics');
+      case '/gallery': return t('titlebar.gallery');
+      case '/console': return t('titlebar.console');
+      case '/store': return t('titlebar.market');
+      case '/settings': return t('titlebar.settings');
+      default: return t('titlebar.launchpad');
     }
   };
 
@@ -103,7 +106,7 @@ export default function TitleBar() {
   const isRunning = gameStatus === 'RUNNING';
 
   return (
-    <div className="h-[40px] w-full drag-region bg-[#060305] flex items-center justify-between px-6 select-none text-[11px] text-[#A1A1AA] font-semibold z-50 shrink-0 border-b border-white/[0.02]">
+    <div className="h-[40px] w-full drag-region bg-[#070b19] flex items-center justify-between px-6 select-none text-[11px] text-[#A1A1AA] font-semibold z-50 shrink-0 border-b border-white/[0.02]">
       {/* Left side: Brand Logo + Online Count + Active Tab */}
       <div className="flex items-center space-x-3 text-[10px] tracking-wide font-normal">
         <MarinLogo glyphOnly size={14} className="text-white" />
@@ -123,11 +126,11 @@ export default function TitleBar() {
           <span className={`${isOnline ? 'text-white/80' : 'text-[#EF4444]'} font-bold`}>
             {isOnline ? (
               onlineCount !== null ? (
-                `${onlineCount.toLocaleString('tr-TR')} Çevrimiçi`
+                `${onlineCount.toLocaleString()} ${t('titlebar.online')}`
               ) : (
-                'Bağlanıyor...'
+                t('titlebar.connecting')
               )
-            ) : 'Çevrimdışı'}
+            ) : t('titlebar.offline')}
           </span>
         </div>
 
@@ -150,9 +153,9 @@ export default function TitleBar() {
               ? 'bg-[#259457]/15 border-[#259457]/30 text-[#259457] shadow-[0_0_10px_rgba(37,148,87,0.15)] hover:bg-[#259457]/25' 
               : 'bg-white/5 border-white/[0.05] text-[#A1A1AA] hover:bg-white/10 hover:text-white'
           }`}
-          title={isRunning ? 'Konsolu Aç' : 'Çalışan Oyun Yok'}
+          title={isRunning ? t('titlebar.openConsole') : t('titlebar.noRunningGame')}
         >
-          <span>{isRunning ? '1' : '0'} Çalışan Örnek</span>
+          <span>{isRunning ? '1' : '0'} {t('titlebar.runningInstance')}</span>
           <ExternalLink className="w-3 h-3" />
         </button>
 
@@ -168,7 +171,7 @@ export default function TitleBar() {
           >
             <Bell className="w-3.5 h-3.5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#2D7DD2] rounded-full border-2 border-[#060305] shadow-[0_0_6px_#2D7DD2]" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#2D7DD2] rounded-full border-2 border-[#070b19] shadow-[0_0_6px_#2D7DD2]" />
             )}
           </button>
           
@@ -182,14 +185,14 @@ export default function TitleBar() {
           <button 
             onClick={handleProfileClick}
             className="flex items-center gap-2 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/[0.05] rounded-lg transition-all"
-            title="Profil Sayfasına Git"
+            title={t('titlebar.goToProfile')}
           >
             <img 
               src={session.avatar} 
               alt="" 
               className="w-4 h-4 rounded bg-black/20 shrink-0"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/20';
+                (e.target as HTMLImageElement).src = STEVE_AVATAR_FALLBACK;
               }}
             />
             <span className="text-white font-extrabold text-[9.5px] max-w-[80px] truncate">{session.name}</span>
@@ -200,7 +203,7 @@ export default function TitleBar() {
             className="flex items-center gap-1.5 px-3 py-1 bg-[#2D7DD2]/10 hover:bg-[#2D7DD2]/20 border border-[#2D7DD2]/30 rounded-lg text-white font-extrabold text-[9.5px] uppercase transition-all"
           >
             <LogIn className="w-3 h-3 text-[#2D7DD2]" />
-            <span>Giriş Yap</span>
+            <span>{t('titlebar.login')}</span>
           </button>
         )}
 

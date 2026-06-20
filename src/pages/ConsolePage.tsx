@@ -91,7 +91,7 @@ export default function ConsolePage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-6 overflow-hidden bg-[#060305] text-[#d2d2d2] select-none h-full relative">
+    <div className="flex-1 flex flex-col p-6 overflow-hidden bg-[#070b19] text-[#d2d2d2] select-none h-full relative">
       {/* Header section */}
       <div className="flex items-center justify-between mb-5 shrink-0">
         <div>
@@ -135,26 +135,26 @@ export default function ConsolePage() {
 
       {/* Counters & Statistics Bar */}
       <div className="grid grid-cols-4 gap-4 mb-4 shrink-0">
-        <div className="bg-[#0a0a0a] border border-white/[0.04] p-3 rounded-xl flex flex-col justify-center">
+        <div className="bg-[#0f172a]/70 border border-white/[0.04] p-3 rounded-xl flex flex-col justify-center">
           <span className="text-[8px] text-[#52525B] font-black uppercase tracking-wider block">Toplam Log Satırı</span>
           <span className="text-lg font-black text-white leading-none mt-1">{stats.total}</span>
         </div>
-        <div className="bg-[#0a0a0a] border border-white/[0.04] p-3 rounded-xl flex flex-col justify-center">
+        <div className="bg-[#0f172a]/70 border border-white/[0.04] p-3 rounded-xl flex flex-col justify-center">
           <span className="text-[8px] text-[#52525B] font-black uppercase tracking-wider block">Bilgi (Info)</span>
           <span className="text-lg font-black text-cyan-400 leading-none mt-1">{stats.info}</span>
         </div>
-        <div className="bg-[#0a0a0a] border border-white/[0.04] p-3 rounded-xl flex flex-col justify-center">
+        <div className="bg-[#0f172a]/70 border border-white/[0.04] p-3 rounded-xl flex flex-col justify-center">
           <span className="text-[8px] text-[#52525B] font-black uppercase tracking-wider block">Uyarılar (Warn)</span>
           <span className="text-lg font-black text-amber-500 leading-none mt-1">{stats.warn}</span>
         </div>
-        <div className="bg-[#0a0a0a] border border-white/[0.04] p-3 rounded-xl flex flex-col justify-center">
+        <div className="bg-[#0f172a]/70 border border-white/[0.04] p-3 rounded-xl flex flex-col justify-center">
           <span className="text-[8px] text-[#52525B] font-black uppercase tracking-wider block">Hatalar (Error)</span>
           <span className="text-lg font-black text-red-500 leading-none mt-1">{stats.error}</span>
         </div>
       </div>
 
       {/* Filtering Actions Bar */}
-      <div className="bg-[#0a0a0a] border border-white/[0.04] p-3 rounded-xl mb-4 flex items-center justify-between gap-4 shrink-0">
+      <div className="bg-[#0f172a]/70 border border-white/[0.04] p-3 rounded-xl mb-4 flex items-center justify-between gap-4 shrink-0">
         {/* Level Filters */}
         <div className="flex gap-1.5">
           {[
@@ -233,7 +233,7 @@ export default function ConsolePage() {
       </div>
 
       {/* Terminal logs viewport */}
-      <div className="flex-1 bg-[#030103] border border-white/[0.03] rounded-2xl p-4 overflow-y-auto custom-scrollbar font-mono text-[9px] leading-relaxed no-drag relative">
+      <div className="flex-1 bg-[#0b0f19]/90 border border-white/[0.03] rounded-2xl p-4 overflow-y-auto custom-scrollbar font-mono text-[9px] leading-relaxed no-drag relative">
         {filteredLogs.length === 0 ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center text-[#52525B]">
             {gameLogs.length === 0 ? (

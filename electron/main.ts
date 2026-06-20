@@ -2,6 +2,32 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
+import * as gracefulFs from 'graceful-fs';
+
+// Safely monkey-patch Object.defineProperty for graceful-fs to support modern Electron/Node
+const originalDefineProperty = Object.defineProperty;
+Object.defineProperty = function (obj: any, prop: string | symbol, descriptor: PropertyDescriptor & ThisType<any>) {
+  if (obj === fs) {
+    try {
+      return originalDefineProperty(obj, prop, descriptor);
+    } catch (err) {
+      try {
+        obj[prop] = descriptor.value;
+      } catch {}
+      return obj;
+    }
+  }
+  return originalDefineProperty(obj, prop, descriptor);
+};
+
+try {
+  gracefulFs.gracefulify(fs);
+} catch (e) {
+  console.warn('[main.ts] Error during gracefulify:', e);
+}
+
+Object.defineProperty = originalDefineProperty;
+
 import { autoUpdater } from 'electron-updater';
 import { createSplash, closeSplash } from './splash.js';
 import { setupTray, destroyTray, setGameRunning } from './tray.js';

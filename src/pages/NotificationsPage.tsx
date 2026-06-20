@@ -131,14 +131,14 @@ export default function NotificationsPage() {
             const colors = {
               all: 'hover:text-[#2D7DD2]',
               urgent: 'hover:text-[#EF4444]',
-              info: 'hover:text-[#06B6D4]',
+              info: 'hover:text-[#2D7DD2]',
               success: 'hover:text-[#10B981]'
             };
 
             const activeColors = {
               all: 'bg-[#2D7DD2]/15 text-[#2D7DD2] border border-[#2D7DD2]/20 shadow-[0_0_10px_rgba(45,125,210,0.1)]',
               urgent: 'bg-red-500/15 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]',
-              info: 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.1)]',
+              info: 'bg-[#2D7DD2]/15 text-[#2D7DD2] border border-[#2D7DD2]/20 shadow-[0_0_10px_rgba(45,125,210,0.1)]',
               success: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
             };
 
@@ -199,10 +199,10 @@ export default function NotificationsPage() {
                     accentColor: 'text-red-400'
                   },
                   info: {
-                    border: 'border-l-[4px] border-l-[#06B6D4]/80 hover:border-cyan-500/30',
-                    iconBg: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20',
-                    glow: 'hover:shadow-[0_0_25px_rgba(6,182,212,0.08)]',
-                    accentColor: 'text-cyan-400'
+                    border: 'border-l-[4px] border-l-[#2D7DD2]/80 hover:border-[#2D7DD2]/30',
+                    iconBg: 'bg-[#2D7DD2]/10 text-[#2D7DD2] border border-[#2D7DD2]/20',
+                    glow: 'hover:shadow-[0_0_25px_rgba(45,125,210,0.08)]',
+                    accentColor: 'text-[#2D7DD2]'
                   },
                   success: {
                     border: 'border-l-[4px] border-l-[#10B981]/80 hover:border-emerald-500/30',

@@ -9,8 +9,6 @@ import {
   Anchor, 
   LogOut, 
   Compass, 
-  Disc, 
-  Send, 
   ChevronDown, 
   Globe 
 } from 'lucide-react';
@@ -157,7 +155,7 @@ export default function ServersPage() {
         <div className="flex items-center space-x-3">
           <img src={logoSvg} className="w-8 h-8" alt="Logo" />
           <div>
-            <span className="text-sm font-extrabold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">MARINMC</span>
+            <span className="text-sm font-extrabold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-400">MARINMC</span>
             <p className="text-[8px] text-gray-500 tracking-wider font-bold uppercase">Minecraft Network</p>
           </div>
         </div>
@@ -299,95 +297,116 @@ export default function ServersPage() {
             }}
             className="grid grid-cols-3 gap-6 w-full max-w-4.5xl px-4"
           >
-            {servers.map((server) => {
-              const theme = colorMap[server.themeColor] || colorMap.teal;
-              const isSelected = selectedServerId === server.id;
+            {(() => {
+              const sortedServers = [...servers].sort((a, b) => {
+                const aIsMarin = a.name.toLowerCase().includes("marinmc") || a.ip.toLowerCase().includes("marinmc");
+                const bIsMarin = b.name.toLowerCase().includes("marinmc") || b.ip.toLowerCase().includes("marinmc");
+                if (aIsMarin && !bIsMarin) return -1;
+                if (!aIsMarin && bIsMarin) return 1;
+                return 0;
+              });
+              return sortedServers.map((server) => {
+                const theme = colorMap[server.themeColor] || colorMap.teal;
+                const isSelected = selectedServerId === server.id;
+                const isMarin = server.name.toLowerCase().includes("marinmc") || server.ip.toLowerCase().includes("marinmc");
 
-              return (
-                <motion.div
-                  key={server.id}
-                  variants={{
-                    hidden: { y: 30, opacity: 0 },
-                    visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } }
-                  }}
-                  whileHover={{ y: -6, scale: 1.02 }}
-                  onClick={() => handleSelectServer(server.id)}
-                  className={`h-[330px] rounded-2xl bg-[#131622]/40 border backdrop-blur-md p-5 flex flex-col justify-between relative cursor-pointer overflow-hidden transition-all duration-300 group shadow-lg ${theme.shadow} ${
-                    isSelected 
-                      ? `${theme.activeBorder} bg-[#131622]/60` 
-                      : `border-white/[0.04] hover:bg-[#131622]/50 ${theme.border} ${theme.glow}`
-                  }`}
-                >
-                  {/* Subtle Top-gradient background based on server theme */}
-                  <div className={`absolute top-0 inset-x-0 h-40 bg-gradient-to-b ${theme.gradient} opacity-60 pointer-events-none`} />
+                return (
+                  <motion.div
+                    key={server.id}
+                    variants={{
+                      hidden: { y: 30, opacity: 0 },
+                      visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } }
+                    }}
+                    whileHover={{ y: -6, scale: 1.02 }}
+                    onClick={() => handleSelectServer(server.id)}
+                    className={`h-[330px] rounded-2xl bg-[#131622]/40 border backdrop-blur-md p-5 flex flex-col justify-between relative cursor-pointer overflow-hidden transition-all duration-300 group shadow-lg ${
+                      isMarin 
+                        ? isSelected 
+                          ? 'border-yellow-500 bg-[#131622]/60 shadow-[0_0_25px_rgba(234,179,8,0.25)]' 
+                          : 'border-yellow-500/40 shadow-[0_0_20px_rgba(234,179,8,0.15)] bg-[#131622]/50 hover:border-yellow-500/60'
+                        : isSelected 
+                          ? `${theme.activeBorder} bg-[#131622]/60` 
+                          : `border-white/[0.04] hover:bg-[#131622]/50 ${theme.border} ${theme.glow}`
+                    }`}
+                  >
+                    {/* Subtle Top-gradient background based on server theme */}
+                    <div className={`absolute top-0 inset-x-0 h-40 bg-gradient-to-b ${isMarin ? 'from-yellow-500/10 to-transparent' : theme.gradient} opacity-60 pointer-events-none`} />
 
-                  {/* Top: Badges & Live status */}
-                  <div className="flex justify-between items-start z-10">
-                    <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[8.5px] text-gray-400 font-extrabold tracking-wider uppercase">
-                      {server.mode}
-                    </span>
-
-                    {/* Server Specific Player Count */}
-                    <div className="bg-black/35 border border-white/5 rounded-lg px-2 py-0.5 text-[10px] font-semibold flex items-center space-x-1.5 backdrop-blur-sm">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                      <span className="text-gray-300 font-bold">
-                        {server.playerCount}
-                        <span className="text-gray-500 font-normal"> / {server.maxPlayers}</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Artwork Placeholder or actual Image (renders in a middle box or bg) */}
-                  <div className="w-full h-24 rounded-lg overflow-hidden border border-white/[0.04] relative bg-[#0d0f17] z-10 group-hover:border-white/[0.1] transition-colors">
-                    {server.artworkUrl ? (
-                      <img 
-                        src={server.artworkUrl} 
-                        alt={server.name} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                        <Compass className={`w-8 h-8 ${theme.text} opacity-30`} />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
-                  </div>
-
-                  {/* Bottom: Info, tags & Action button */}
-                  <div className="space-y-3 z-10">
-                    <div className="space-y-1">
-                      {/* Tags */}
-                      <div className="flex flex-wrap gap-1.5">
-                        {server.tags.map((tag) => (
-                          <span key={tag} className={`text-[8px] font-extrabold tracking-wide px-1.5 py-0.5 rounded uppercase ${theme.badgeBg}`}>
-                            {tag}
+                    {/* Top: Badges & Live status */}
+                    <div className="flex justify-between items-start z-10">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[8.5px] text-gray-400 font-extrabold tracking-wider uppercase">
+                          {server.mode}
+                        </span>
+                        {isMarin && (
+                          <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/20 text-[8px] text-yellow-400 font-black tracking-wider uppercase">
+                            📌 ⭐
                           </span>
-                        ))}
+                        )}
                       </div>
 
-                      {/* Server Name */}
-                      <h3 className="font-extrabold text-base tracking-tight text-white group-hover:text-blue-400 transition-colors">
-                        {server.name}
-                      </h3>
-
-                      {/* Description */}
-                      <p className="text-[11px] text-gray-400 line-clamp-1 leading-relaxed">
-                        {server.description}
-                      </p>
+                      {/* Server Specific Player Count */}
+                      <div className="bg-black/35 border border-white/5 rounded-lg px-2 py-0.5 text-[10px] font-semibold flex items-center space-x-1.5 backdrop-blur-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        <span className="text-gray-300 font-bold">
+                          {server.playerCount}
+                          <span className="text-gray-500 font-normal"> / {server.maxPlayers}</span>
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Action Button */}
-                    <button className={`w-full py-2.5 rounded-xl text-[10px] font-extrabold tracking-wider uppercase transition-colors duration-200 ${
-                      isSelected 
-                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md' 
-                        : 'bg-white/5 hover:bg-white/10 text-gray-300 group-hover:text-white'
-                    }`}>
-                      {t.selectBtn}
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })}
+                    {/* Artwork Placeholder or actual Image (renders in a middle box or bg) */}
+                    <div className="w-full h-24 rounded-lg overflow-hidden border border-white/[0.04] relative bg-[#0d0f17] z-10 group-hover:border-white/[0.1] transition-colors">
+                      {server.artworkUrl ? (
+                        <img 
+                          src={server.artworkUrl} 
+                          alt={server.name} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                          <Compass className={`w-8 h-8 ${theme.text} opacity-30`} />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+                    </div>
+
+                    {/* Bottom: Info, tags & Action button */}
+                    <div className="space-y-3 z-10">
+                      <div className="space-y-1">
+                        {/* Tags */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {server.tags.map((tag) => (
+                            <span key={tag} className={`text-[8px] font-extrabold tracking-wide px-1.5 py-0.5 rounded uppercase ${theme.badgeBg}`}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Server Name */}
+                        <h3 className="font-extrabold text-base tracking-tight text-white group-hover:text-blue-400 transition-colors">
+                          {server.name}
+                        </h3>
+
+                        {/* Description */}
+                        <p className="text-[11px] text-gray-400 line-clamp-1 leading-relaxed">
+                          {server.description}
+                        </p>
+                      </div>
+
+                      {/* Action Button */}
+                      <button className={`w-full py-2.5 rounded-xl text-[10px] font-extrabold tracking-wider uppercase transition-colors duration-200 ${
+                        isSelected 
+                          ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md' 
+                          : 'bg-white/5 hover:bg-white/10 text-gray-300 group-hover:text-white'
+                      }`}>
+                        {t.selectBtn}
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              });
+            })()}
           </motion.div>
         )}
       </div>
@@ -410,7 +429,9 @@ export default function ServersPage() {
             title="Discord"
             className="p-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.04] hover:border-white/10 text-gray-500 hover:text-[#5865F2] transition-all"
           >
-            <Disc className="w-3.5 h-3.5" />
+            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026c.462-.62.874-1.275 1.226-1.963.021-.04.001-.088-.041-.104a13.201 13.201 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028zM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38z" />
+            </svg>
           </a>
           <a
             href="https://t.me/marinmc"
@@ -419,7 +440,9 @@ export default function ServersPage() {
             title="Telegram"
             className="p-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.04] hover:border-white/10 text-gray-500 hover:text-[#24A1DE] transition-all"
           >
-            <Send className="w-3.5 h-3.5" />
+            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M20.665 3.717l-17.73 6.837c-1.21.486-1.203 1.161-.222 1.462l4.552 1.42 10.532-6.645c.498-.303.953-.14.578.192l-8.533 7.701-.33 4.955c.488 0 .702-.223.974-.488l2.338-2.27 4.861 3.59c.896.495 1.543.24 1.768-.83l3.19-15.029c.328-1.31-.502-1.907-1.36-1.518z" />
+            </svg>
           </a>
           <a
             href="https://marinmc.com"

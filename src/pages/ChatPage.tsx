@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore.ts';
 import { useSocialStore } from '../stores/socialStore.ts';
 import { api } from '../lib/api';
+import { STEVE_AVATAR_FALLBACK } from '../lib/constants.ts';
 import { wsManager } from '../lib/websocket';
 import {
   Search, Edit3, Pin, Users, MessageSquare,
@@ -509,9 +510,9 @@ export default function ChatPage() {
   });
 
   return (
-    <div className="flex-grow flex h-full overflow-hidden select-none bg-[#060305] text-[#d2d2d2]">
+    <div className="flex-grow flex h-full overflow-hidden select-none bg-[#070b19] text-[#d2d2d2]">
       {/* ===== LEFT PANEL ===== */}
-      <div className="w-[280px] shrink-0 bg-[#0a080a] border-r border-white/[0.04] flex flex-col h-full">
+      <div className="w-[280px] shrink-0 bg-[#070b19] border-r border-white/[0.04] flex flex-col h-full">
         {/* Header */}
         <div className="px-4 py-4 border-b border-white/[0.04] flex items-center justify-between">
           <h2 className="text-[12px] font-extrabold text-white tracking-wider">MarinMC Relay</h2>
@@ -526,7 +527,7 @@ export default function ChatPage() {
 
         {/* Search */}
         <div className="px-4 py-2 border-b border-white/[0.04]">
-          <div className="flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2 bg-white/[0.02] border border-white/[0.06] rounded-xl px-3 py-2">
             <Search className="w-3.5 h-3.5 text-[#52525B]" />
             <input
               type="text"
@@ -565,7 +566,7 @@ export default function ChatPage() {
                       alt={contact.name}
                       className="w-9 h-9 rounded-lg border border-white/10"
                     />
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a080a] ${
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#070b19] ${
                       contact.status === 'online' ? 'bg-[#259457]' :
                       contact.status === 'idle' ? 'bg-[#F59E0B]' : 'bg-[#52525B]'
                     }`} />
@@ -608,7 +609,7 @@ export default function ChatPage() {
       </div>
 
       {/* ===== MAIN CHAT AREA ===== */}
-      <div className="flex-grow flex flex-col bg-[#060305] h-full relative">
+      <div className="flex-grow flex flex-col bg-[#070b19] h-full relative">
         {!activeContact ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
             <div className="w-16 h-16 rounded-2xl bg-[#2D7DD2]/10 border border-[#2D7DD2]/20 flex items-center justify-center mb-4">
@@ -718,7 +719,7 @@ export default function ChatPage() {
                   <div className={`max-w-[60%] px-3.5 py-2 rounded-2xl ${
                     msg.isSelf
                       ? 'bg-[#2D7DD2] text-white rounded-br-md'
-                      : 'bg-[#111111] border border-white/[0.06] text-[#d2d2d2] rounded-bl-md'
+                      : 'bg-[#0f172a]/70 border border-white/[0.06] text-[#d2d2d2] rounded-bl-md'
                   }`}>
                     {!msg.isSelf && (
                       <span className="text-[8px] font-bold text-[#2D7DD2] block mb-0.5">{msg.sender}</span>
@@ -728,7 +729,7 @@ export default function ChatPage() {
                     {/* Render Image Attachment */}
                     {msg.fileAttachment?.isImage && (
                       <div className="mt-2 rounded-lg overflow-hidden border border-white/5 bg-black/10 p-1">
-                        <div className="h-28 bg-[#111111] flex items-center justify-center text-[10px] text-white/40 gap-1.5">
+                        <div className="h-28 bg-[#070b19] flex items-center justify-center text-[10px] text-white/40 gap-1.5">
                           <Image className="w-5 h-5 text-[#2D7DD2]" />
                           <span>{msg.fileAttachment.name} ({msg.fileAttachment.size})</span>
                         </div>
@@ -837,7 +838,7 @@ export default function ChatPage() {
 
               {!isRecordingVoice && (
                 <>
-                  <div className="flex-grow flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-xl px-3.5 py-2.5">
+                  <div className="flex-grow flex items-center gap-2 bg-[#070b19] border border-white/[0.06] rounded-xl px-3.5 py-2.5">
                     <input
                       type="text"
                       value={inputText}
@@ -922,7 +923,7 @@ export default function ChatPage() {
                       alt="" 
                       className="w-6 h-6 rounded" 
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://mc-heads.net/avatar/Steve/24';
+                        (e.target as HTMLImageElement).src = STEVE_AVATAR_FALLBACK;
                       }}
                     />
                     <span className="text-[10px] font-bold text-white">{friend.username}</span>

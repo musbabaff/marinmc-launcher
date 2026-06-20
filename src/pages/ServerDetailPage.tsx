@@ -18,6 +18,7 @@ import {
 import axios from 'axios';
 import logoSvg from '../../assets/logo.svg';
 import { getApiBaseUrl } from '../lib/api.ts';
+import { STEVE_AVATAR_FALLBACK } from '../lib/constants.ts';
 
 const translations = {
   tr: {
@@ -457,7 +458,7 @@ export default function ServerDetailPage() {
           </button>
           <img src={logoSvg} className="w-8 h-8" alt="Logo" />
           <div>
-            <span className="text-sm font-extrabold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">MARINMC</span>
+            <span className="text-sm font-extrabold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-400">MARINMC</span>
             <p className="text-[8px] text-gray-500 tracking-wider font-bold uppercase">Minecraft Network</p>
           </div>
         </div>
@@ -600,9 +601,12 @@ export default function ServerDetailPage() {
                     <div className="flex items-center justify-between text-[9px] text-gray-500">
                       <div className="flex items-center space-x-1.5">
                         <img 
-                          src={/^(https?:\/\/)/.test(item.authorAvatar) ? encodeURI(item.authorAvatar) : 'https://mc-heads.net/avatar/Steve/32'} 
+                          src={/^(https?:\/\/)/.test(item.authorAvatar) ? encodeURI(item.authorAvatar) : STEVE_AVATAR_FALLBACK} 
                           alt="Author" 
                           className="w-4 h-4 rounded-full border border-white/10" 
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = STEVE_AVATAR_FALLBACK;
+                          }}
                         />
                         <span>{item.author}</span>
                       </div>

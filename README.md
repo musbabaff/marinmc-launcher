@@ -2,15 +2,27 @@
 
 Official client-side and server-side ecosystem for the **MarinMC** network. This repository integrates a custom **Electron Launcher**, a **Fabric 1.21.8 client mod** with a dynamic 3D cosmetics engine, and a **Node.js/Express API & WebSocket server** for friends, lobby chat, and real-time emote synchronization.
 
-![Version](https://img.shields.io/badge/version-1.1.8-blue?style=for-the-badge)
-![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=for-the-badge)
+---
+
+<p align="center">
+  <img src="assets/logo.png" alt="MarinMC Logo" width="128" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/musbabaff/marinmc-launcher/releases">
+    <img src="https://img.shields.io/badge/version-1.2.2-blue?style=for-the-badge&logo=github" alt="Version 1.2.2" />
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License MIT" />
+  </a>
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=for-the-badge" alt="Platforms" />
+</p>
 
 ---
 
 ## 🏛️ Project Architecture
 
-The repository is divided into three core subsystems working in unison:
+The ecosystem consists of three main components:
 
 ```mermaid
 graph TD
@@ -28,6 +40,25 @@ graph TD
    * **3D Cosmetics Engine**: Parses Blockbench `.geo.json` models and custom textures from the API, binds them to player bones, and renders them in-game using GeckoLib/Minecraft APIs.
    * **Skin & Cape Sync**: Decodes and registers custom skins/capes to the client's TextureManager.
    * **Emotecraft Custom WS**: Redirects client emote packages to our custom `/emotes` WebSocket server.
+
+---
+
+## ✨ Features
+
+### 🚀 Electron Launcher
+* **Premium & Cracked Account Support**: Dual-mode login with session caching, Microsoft authentication, and custom offline registration.
+* **Legacy Session Migration**: Automatic migration of active accounts and profile databases from legacy domains to new infrastructure.
+* **Modern UI & High-fidelity Aesthetics**: Custom-designed sidebar, interactive animations, and page transitions.
+* **Automatic Game Downloader**: Downloads client binaries, assets, libraries, and asset index maps directly from Mojang and Modrinth.
+* **Background Selection**: Choice of themes (Classic, Lunar, Spring, and Vanilla) with customized launcher layout styles.
+
+### 🧩 Fabric Client Mod
+* **Dynamic HUD Editor**: Drag-and-drop, resize, and configure layout elements directly in-game. Features collapsing configurations, snap-to-grid, and reset options.
+* **3D Waypoint System**: Add and track 3D waypoints rendered directly in the game world using Fabric API events (`WorldRenderEvents.LAST`), completely avoiding fragile obfuscated Mixin targets.
+* **Fullbright Control**: Toggle night vision easily with keybinds.
+* **Freelook Handler**: Perform 360-degree camera sweeps while walking.
+* **RAM Cleaner**: Clear memory fragmentation dynamically with a key press.
+* **Emote Synchronizer**: Real-time broadcast and receipt of emotes via custom WebSockets.
 
 ---
 
@@ -64,91 +95,24 @@ This launches the Electron interface. In developer mode, whenever you press **Pl
 
 ---
 
-## 🧪 How to Test (Step-by-Step)
+## 🧪 Development & Compilation
 
-To test the cosmetics and emote synchronization system locally, follow this guide:
-
-### A. Set Up Test Assets on Server
-1. Navigate to the `server/cosmetics/` folder.
-2. Put your Blockbench `.geo.json` geometry file in `server/cosmetics/models/` (e.g., `devil_wings.geo.json`).
-3. Put the corresponding texture `.png` file in `server/cosmetics/textures/` (e.g., `devil_wings.png`).
-4. *(Optional)* Put your animation `.json` in `server/cosmetics/animations/`.
-
-### B. Register Cosmetics in Database
-Open a SQLite GUI or use a terminal script to insert cosmetic data. For a user named `masaya46`:
-```sql
--- Create a row for the user in the cosmetics table
-INSERT OR REPLACE INTO cosmetics (
-    username, 
-    skin_type, 
-    skin_val, 
-    cape_url, 
-    model_type, 
-    wings_enabled, 
-    hat_name, 
-    wings_name, 
-    staff_name, 
-    pet_name
-) VALUES (
-    'masaya46', 
-    'username', 
-    'masaya46', 
-    'https://i.imgur.com/83p1D2Q.png', -- Test cape URL
-    'classic', 
-    1, 
-    '', 
-    'devil_wings',                     -- Match filename: devil_wings.geo.json
-    '', 
-    ''
-);
-```
-
-### C. Verify API Response
-Open your browser and navigate to:
-`http://localhost:3000/api/public/users/masaya46/cosmetics`
-You should receive the JSON response containing the cape URL and the `wingsName` configuration.
-
-### D. Run the Game & Verify
-1. Start the launcher using `npm run dev`.
-2. Login with username `masaya46` (Cracked login is supported in settings/login screen).
-3. Click **PLAY** to compile the mod, download dependencies, and launch Minecraft.
-4. Open a singleplayer or multiplayer world.
-5. You should see your custom skin, custom cape, and the 3D devil wings rendering on your player!
-
-### E. Test Emote Synchronization
-1. Start a second game instance by launching another account username (e.g., `Alex`).
-2. Join the same local LAN world or test server.
-3. On player `masaya46`, press `B` to open the Emotecraft menu and trigger an emote (e.g., wave or dance).
-4. On the second client (`Alex`), you should immediately see `masaya46` performing the animation in real-time, synced via the WebSocket server at `ws://localhost:3000/emotes`.
-
----
-
-## 📦 Building for Production
-
-### Build Launcher & Installer Packages
-```bash
-# Compile React assets & package Electron app into installers
-npm run build
-
-# Platform-specific installers (Output in release/)
-npm run build:win    # Windows (.exe)
-npm run build:mac    # macOS (.dmg)
-npm run build:linux  # Linux (.AppImage)
-```
-
-### Build Client Mod JAR
+### Compiling the Fabric Client Mod manually
+If you wish to build the Fabric client mod JAR independently:
 ```bash
 cd marinmc-client-mod
-./gradlew build -x test
+./gradlew build
 ```
-The remapped and production-ready mod JAR will be generated under `marinmc-client-mod/build/libs/`.
+The compiled mod JAR will be output to `marinmc-client-mod/build/libs/marinmc-client-mod-1.0.0.jar`.
+
+### Packaging the Electron Launcher
+To package the launcher as a production build:
+```bash
+npm run build
+```
+This builds both the frontend renderer and the Electron main process, packaging them using `electron-builder`.
 
 ---
 
 ## 📄 License
-
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-**MarinMC Network** · [Website](https://marinmc.com) · [Discord](https://discord.gg/marinmc) · [Telegram](https://t.me/marinmc)

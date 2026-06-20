@@ -94,7 +94,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="w-[820px] h-[520px] bg-[#060305] border border-white/[0.08] rounded-2xl flex overflow-hidden shadow-2xl relative"
+            className="w-[820px] h-[520px] bg-[#070b19] border border-white/[0.08] rounded-2xl flex overflow-hidden shadow-2xl relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Left Sidebar inside modal */}
@@ -190,7 +190,7 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
             </div>
 
             {/* Right Main settings panel */}
-            <div className="flex-grow flex flex-col h-full bg-[#060305] text-[#d2d2d2] overflow-hidden">
+            <div className="flex-grow flex flex-col h-full bg-[#070b19] text-[#d2d2d2] overflow-hidden">
               
               {/* Modal Topbar Search + Controls */}
               <div className="flex justify-between items-center p-5 border-b border-white/[0.04]">

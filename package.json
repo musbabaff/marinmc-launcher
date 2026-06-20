@@ -1,6 +1,6 @@
 {
   "name": "marinmc-launcher",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Official Minecraft Launcher for MarinMC",
   "main": "dist-electron/main.js",
   "author": "MarinMC",
@@ -17,10 +17,12 @@
     "build:linux": "npm run build:renderer && npm run build:electron && electron-builder --linux"
   },
   "dependencies": {
+    "@types/graceful-fs": "^4.1.9",
     "@types/three": "^0.184.1",
     "axios": "^1.6.7",
     "electron-updater": "^6.1.7",
     "framer-motion": "^12.40.0",
+    "graceful-fs": "^4.2.11",
     "i18next": "^26.3.1",
     "lucide-react": "^0.344.0",
     "minecraft-launcher-core": "^3.18.2",

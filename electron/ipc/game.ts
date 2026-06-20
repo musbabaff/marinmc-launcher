@@ -727,6 +727,8 @@ function syncModsFolder(gameDir: string, targetVersion: string, is121Version: bo
 }
 
 let gameProcess: any = null;
+let isLaunching = false;
+let launchCancelled = false;
 
 export function registerGameHandlers(rawMainWindow: BrowserWindow) {
   const mainWindow = {
@@ -761,6 +763,9 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
     if (gameProcess) {
       return { success: false, error: 'Minecraft zaten çalışıyor.' };
     }
+
+    isLaunching = true;
+    launchCancelled = false;
 
     const logBuffer: string[] = [];
     const logLimit = 150;
@@ -845,17 +850,20 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
           await compileAndCopyClientModDev(gameDir, (msg) => {
             sendAndLog(msg);
           });
+          if (launchCancelled) { isLaunching = false; return { success: false, error: 'Başlatma iptal edildi.' }; }
         }
 
         // 1. Verify performance mods
         await verifyPerformanceMods(gameDir, (msg) => {
           sendAndLog(msg);
         });
+        if (launchCancelled) { isLaunching = false; return { success: false, error: 'Başlatma iptal edildi.' }; }
 
         // 2. Download resource pack
         await downloadResourcePack(gameDir, (msg) => {
           sendAndLog(msg);
         });
+        if (launchCancelled) { isLaunching = false; return { success: false, error: 'Başlatma iptal edildi.' }; }
 
         // 3. Inject resource pack
         injectResourcePack(gameDir, (msg) => {
@@ -876,6 +884,7 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
             fs.mkdirSync(fabricVersionDir, { recursive: true });
             const profileUrl = `https://meta.fabricmc.net/v2/versions/loader/${gameVersion}/${loaderVersion}/profile/json`;
             const profileRes = await axios.get(profileUrl, { timeout: 15000 });
+            if (launchCancelled) { isLaunching = false; return { success: false, error: 'Başlatma iptal edildi.' }; }
             fs.writeFileSync(fabricJsonPath, JSON.stringify(profileRes.data, null, 2), 'utf8');
             sendAndLog(`[MarinMC Launcher] Fabric Loader profili başarıyla kuruldu.`);
           } catch (fabricErr: any) {
@@ -1104,6 +1113,17 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
       sendAndLog(`[MarinMC Launcher] minecraft-launcher-core ile başlatılıyor...`);
 
       gameProcess = await launcher.launch(launchOptions);
+      isLaunching = false;
+
+      if (launchCancelled) {
+        if (gameProcess) {
+          try {
+            gameProcess.kill('SIGKILL');
+          } catch {}
+          gameProcess = null;
+        }
+        return { success: false, error: 'Başlatma iptal edildi.' };
+      }
 
       // Update Discord status to: Playing on MarinMC [ServerName]
       if (backendSettings.discordRpcEnabled) {
@@ -1134,9 +1154,24 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
   });
 
   ipcMain.handle('game:stop', async () => {
+    if (isLaunching) {
+      launchCancelled = true;
+      isLaunching = false;
+    }
+
     if (gameProcess) {
       try {
-        gameProcess.kill();
+        if (process.platform === 'win32' && gameProcess.pid) {
+          const { exec } = require('child_process');
+          exec(`taskkill /pid ${gameProcess.pid} /T /F`, (err: any) => {
+            if (err) {
+              console.error('[game.ts] Error killing process via taskkill:', err);
+              try { gameProcess.kill('SIGKILL'); } catch {}
+            }
+          });
+        } else {
+          gameProcess.kill('SIGKILL');
+        }
       } catch (err) {
         console.error('[game.ts] Error killing game process:', err);
       }

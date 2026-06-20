@@ -146,6 +146,13 @@ const authSchema = z.object({
   password: z.string().min(6).max(100)
 });
 
+const registerSchema = z.object({
+  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/),
+  password: z.string().min(6).max(100),
+  email: z.string().email().optional().or(z.literal(''))
+});
+
+
 const microsoftAuthSchema = z.object({
   username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/),
   uuid: z.string().min(3).max(100),
@@ -201,12 +208,12 @@ const authorizeUser = (req, res, next) => {
 // --- AUTHENTICATION ROUTES ---
 
 router.post('/auth/register', async (req, res) => {
-  const validation = authSchema.safeParse(req.body);
+  const validation = registerSchema.safeParse(req.body);
   if (!validation.success) {
     return res.status(400).json({ error: 'Geçersiz veri formatı. Kullanıcı adı 3-30 harf/rakam/alt çizgi olmalı, şifre en az 6 karakter olmalıdır.', details: validation.error.format() });
   }
 
-  const { username, password } = validation.data;
+  const { username, password, email } = validation.data;
   const lowerUsername = username.toLowerCase();
 
   try {
@@ -222,10 +229,11 @@ router.post('/auth/register', async (req, res) => {
       const token = crypto.randomBytes(32).toString('hex');
       const lastLogin = new Date().toLocaleString('tr-TR');
       
-      await dbRun('UPDATE users SET password_hash = ?, token = ?, last_login = ? WHERE LOWER(username) = ?', [
+      await dbRun('UPDATE users SET password_hash = ?, token = ?, last_login = ?, email = ? WHERE LOWER(username) = ?', [
         passwordHash,
         token,
         lastLogin,
+        email || null,
         lowerUsername
       ]);
       
@@ -237,7 +245,7 @@ router.post('/auth/register', async (req, res) => {
           name: existingUser.username,
           token,
           type: 'cracked',
-          avatar: `https://mc-heads.net/avatar/${existingUser.username}/64`
+          avatar: `https://minotar.net/avatar/${existingUser.username}/64`
         }
       });
     }
@@ -246,13 +254,14 @@ router.post('/auth/register', async (req, res) => {
     const token = crypto.randomBytes(32).toString('hex');
     const lastLogin = new Date().toLocaleString('tr-TR');
 
-    await dbRun('INSERT INTO users (username, total_play_time, last_login, coins, password_hash, token) VALUES (?, ?, ?, ?, ?, ?)', [
+    await dbRun('INSERT INTO users (username, total_play_time, last_login, coins, password_hash, token, email) VALUES (?, ?, ?, ?, ?, ?, ?)', [
       username,
       0,
       lastLogin,
       500,
       passwordHash,
-      token
+      token,
+      email || null
     ]);
 
     res.json({
@@ -263,7 +272,7 @@ router.post('/auth/register', async (req, res) => {
         name: username,
         token,
         type: 'cracked',
-        avatar: `https://mc-heads.net/avatar/${username}/64`
+        avatar: `https://minotar.net/avatar/${username}/64`
       }
     });
   } catch (err) {
@@ -313,7 +322,7 @@ router.post('/auth/login', async (req, res) => {
         name: user.username,
         token,
         type: 'cracked',
-        avatar: `https://mc-heads.net/avatar/${user.username}/64`
+        avatar: `https://minotar.net/avatar/${user.username}/64`
       }
     });
   } catch (err) {
@@ -360,7 +369,7 @@ router.post('/auth/microsoft-login', async (req, res) => {
         name: username,
         token: serverToken,
         type: 'ms',
-        avatar: `https://mc-heads.net/avatar/${username}/64`
+        avatar: `https://minotar.net/avatar/${username}/64`
       }
     });
   } catch (err) {

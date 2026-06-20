@@ -29,7 +29,7 @@ const ConsolePage = lazy(() => import('./pages/ConsolePage.tsx'));
 const PageLoader = () => {
   const { t } = useTranslation();
   return (
-    <div className="flex-grow flex items-center justify-center bg-[#060305]">
+    <div className="flex-grow flex items-center justify-center bg-[#070b19]">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-2 border-[#2D7DD2]/30 border-t-[#2D7DD2] rounded-full animate-spin" />
         <span className="text-[10px] text-[#A1A1AA] font-bold uppercase tracking-wider">{t('login.loading')}</span>
@@ -44,12 +44,12 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const isLoginPage = location.pathname === '/login';
 
   return (
-    <div className="flex flex-1 h-[calc(100vh-40px)] w-full relative overflow-hidden bg-[#060305]">
+    <div className="flex flex-1 h-[calc(100vh-40px)] w-full relative overflow-hidden bg-[#070b19]">
       {/* Sidebar Navigation */}
       {!isLoginPage && <Sidebar />}
 
       {/* Main View Area */}
-      <div className="flex-1 h-full overflow-hidden flex flex-col relative bg-[#060305]">
+      <div className="flex-1 h-full overflow-hidden flex flex-col relative bg-[#070b19]">
         <OfflineBanner />
         {children}
       </div>
@@ -282,8 +282,8 @@ export default function App() {
   };
 
   return (
-    <HashRouter>
-      <div className="flex flex-col w-full h-screen overflow-hidden select-none bg-[#060305] relative text-[#d2d2d2]">
+    <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <div className="flex flex-col w-full h-screen overflow-hidden select-none bg-[#070b19] relative text-[#d2d2d2]">
         <TitleBar />
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -396,7 +396,7 @@ export default function App() {
 
         {/* Global Auto-Updater Overlay */}
         {(updateStatus === 'downloading' || updateStatus === 'downloaded' || updateStatus === 'available' || updateStatus === 'error') && (
-          <div className="fixed inset-0 bg-[#060305]/95 backdrop-blur-md z-[200] flex flex-col items-center justify-center p-8 select-none text-center">
+          <div className="fixed inset-0 bg-[#070b19]/95 backdrop-blur-md z-[200] flex flex-col items-center justify-center p-8 select-none text-center">
             {/* Spinning/pulsing update icon */}
             <div className="w-16 h-16 rounded-2xl bg-[#2D7DD2]/10 border border-[#2D7DD2]/20 flex items-center justify-center mb-6 animate-pulse">
               <svg className="w-8 h-8 text-[#2D7DD2] animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -435,7 +435,7 @@ export default function App() {
                     {/* Progress Bar */}
                     <div className="w-64 bg-white/[0.04] h-2 rounded-full overflow-hidden border border-white/[0.05] mt-2">
                       <div 
-                        className="bg-gradient-to-r from-[#2D7DD2] to-[#208390] h-full rounded-full transition-all duration-300"
+                        className="bg-gradient-to-r from-[#2D7DD2] to-[#4A9AE8] h-full rounded-full transition-all duration-300"
                         style={{ width: `${updateProgress}%` }}
                       />
                     </div>

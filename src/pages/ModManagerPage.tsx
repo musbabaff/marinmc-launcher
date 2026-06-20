@@ -74,7 +74,32 @@ const SYSTEM_MOD_SLUGS = new Set(SYSTEM_MODS.map(m => m.slug));
 
 function loadInstalled(): InstalledMod[] {
   try {
-    return JSON.parse(localStorage.getItem(INSTALLED_KEY) || '[]');
+    const list = JSON.parse(localStorage.getItem(INSTALLED_KEY) || '[]');
+    let modified = false;
+    const updated = list.map((m: any) => {
+      if (!m.projectType) {
+        // Infer projectType from file extension, slug or title
+        const nameLower = (m.fileName || '').toLowerCase();
+        const slugLower = (m.slug || '').toLowerCase();
+        const titleLower = (m.title || '').toLowerCase();
+        
+        if (nameLower.endsWith('.zip') || slugLower.includes('shader') || titleLower.includes('shader') || slugLower.includes('pack') || titleLower.includes('pack')) {
+          if (nameLower.includes('shader') || slugLower.includes('shader') || titleLower.includes('shader')) {
+            m.projectType = 'shader';
+          } else {
+            m.projectType = 'resourcepack';
+          }
+        } else {
+          m.projectType = 'mod';
+        }
+        modified = true;
+      }
+      return m;
+    });
+    if (modified) {
+      localStorage.setItem(INSTALLED_KEY, JSON.stringify(updated));
+    }
+    return updated;
   } catch {
     return [];
   }
@@ -104,6 +129,70 @@ export default function ModManagerPage() {
 
   const LIMIT = 20;
 
+  const installedModsOnly = installedMods.filter(m => !m.projectType || m.projectType === 'mod' || m.projectType === 'modpack');
+  const installedResourcePacks = installedMods.filter(m => m.projectType === 'resourcepack');
+  const installedShaders = installedMods.filter(m => m.projectType === 'shader');
+
+  const renderInstalledCard = (mod: InstalledMod, idx: number, IconComponent: any) => {
+    return (
+      <motion.div
+        key={mod.projectId}
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: idx * 0.05 }}
+        className="bg-[#0f172a]/70 border border-white/[0.04] rounded-xl p-3 flex items-center gap-3 hover:border-white/10 transition-all"
+      >
+        <div className="w-10 h-10 rounded-lg bg-[#070b19] border border-white/[0.06] overflow-hidden shrink-0">
+          {mod.iconUrl ? (
+            <img src={mod.iconUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-[#52525B]">
+              <IconComponent className="w-4 h-4" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[10.5px] font-black text-white truncate">{mod.title}</h3>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-[8px] text-[#52525B] font-bold uppercase">by {mod.author}</span>
+            <span className="text-[7.5px] text-[#52525B] font-mono">{mod.fileName}</span>
+            <span className="text-[7.5px] text-[#52525B] font-mono">{formatFileSize(mod.fileSize)}</span>
+          </div>
+          <div className="flex gap-1 mt-1">
+            {mod.loaders?.slice(0, 2).map(l => (
+              <span key={l} className="text-[6.5px] bg-[#2D7DD2]/10 text-[#2D7DD2] px-1.5 py-0.5 rounded font-black uppercase tracking-wider">{l}</span>
+            ))}
+            {mod.gameVersions?.slice(0, 2).map(v => (
+              <span key={v} className="text-[6.5px] bg-white/[0.04] text-[#52525B] px-1.5 py-0.5 rounded font-bold">{v}</span>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => handleToggleEnable(mod.projectId)}
+            className={`w-8 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none shrink-0 ${
+              mod.enabled !== false ? 'bg-[#259457]' : 'bg-white/5 border border-white/10'
+            }`}
+            title={mod.enabled !== false ? "Devre Dışı Bırak" : "Etkinleştir"}
+          >
+            <div
+              className={`w-3.5 h-3.5 rounded-full bg-white transition-transform duration-200 ${
+                mod.enabled !== false ? 'translate-x-3' : 'translate-x-0'
+              }`}
+            />
+          </button>
+          <button
+            onClick={() => handleUninstall(mod.projectId)}
+            className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all shrink-0"
+            title="Kaldır"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </motion.div>
+    );
+  };
+
   const doSearch = useCallback(async (q: string, type: ProjectType, sort: SortIndex, newOffset = 0) => {
     setLoading(true);
     setError(null);
@@ -129,7 +218,6 @@ export default function ModManagerPage() {
     }
   }, []);
 
-  // Auto-search with debounce
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -142,21 +230,16 @@ export default function ModManagerPage() {
 
   const handleInstall = async (hit: ModrinthSearchHit) => {
     if (installedMods.some(m => m.projectId === hit.project_id)) return;
-
     setInstallingIds(prev => new Set(prev).add(hit.project_id));
-
     try {
       const versions = await getProjectVersions(hit.project_id);
       const latest = versions[0];
       if (!latest || !latest.files[0]) throw new Error('Sürüm bulunamadı');
-
       const file = latest.files.find(f => f.primary) || latest.files[0];
-
-      // If Electron API available, download to correct folder
+      const pType = hit.project_type || projectType;
       if (window.electronAPI) {
-        await window.electronAPI.downloadFile(file.url, file.filename, projectType);
+        await window.electronAPI.downloadFile(file.url, file.filename, pType);
       }
-
       const installed: InstalledMod & { enabled?: boolean; projectType?: string } = {
         projectId: hit.project_id,
         versionId: latest.id,
@@ -170,14 +253,11 @@ export default function ModManagerPage() {
         gameVersions: latest.game_versions,
         loaders: latest.loaders,
         enabled: true,
-        projectType: projectType
+        projectType: pType
       };
-
       const updated = [...installedMods, installed];
       setInstalledMods(updated);
       saveInstalled(updated);
-
-      // Unlock achievement a2 (Mod Meraklısı)
       const sessionName = useAuthStore.getState().session?.name;
       if (sessionName) {
         const achievementsStr = localStorage.getItem(`marinmc_achievements_${sessionName}`);
@@ -246,14 +326,14 @@ export default function ModManagerPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-row gap-5 p-6 overflow-hidden bg-[#060305] text-[#d2d2d2] select-none h-full w-full">
+    <div className="flex-1 flex flex-row gap-5 p-6 overflow-hidden bg-[#070b19] text-[#d2d2d2] select-none h-full w-full">
       
       {/* LEFT COLUMN: Mod Search and List */}
       <div className="flex-grow flex flex-col min-w-0 h-full">
         {/* Header + Tabs */}
         <div className="flex items-center justify-between mb-4 shrink-0">
           <h1 className="text-sm font-extrabold tracking-widest text-white uppercase">MOD YÖNETİCİSİ</h1>
-          <div className="flex gap-1 bg-[#0a0a0a] border border-white/[0.06] rounded-xl p-0.5">
+          <div className="flex gap-1 bg-[#0f172a]/70 border border-white/[0.06] rounded-xl p-0.5">
             <button
               onClick={() => setTab('search')}
               className={`px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${
@@ -269,9 +349,9 @@ export default function ModManagerPage() {
               }`}
             >
               YÜKLÜ
-              {installedMods.length > 0 && (
+              {installedModsOnly.length > 0 && (
                 <span className="w-4 h-4 bg-white/10 rounded-full text-[7px] flex items-center justify-center font-black">
-                  {installedMods.length}
+                  {installedModsOnly.length}
                 </span>
               )}
             </button>
@@ -282,7 +362,7 @@ export default function ModManagerPage() {
           <>
             {/* Search Bar */}
             <div className="flex items-center gap-3 mb-3 shrink-0">
-              <div className="flex-1 flex items-center gap-2 bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3.5 py-2.5">
+              <div className="flex-1 flex items-center gap-2 bg-[#0f172a]/70 border border-white/[0.06] rounded-xl px-3.5 py-2.5">
                 <Search className="w-4 h-4 text-[#52525B]" />
                 <input
                   type="text"
@@ -316,7 +396,7 @@ export default function ModManagerPage() {
                   );
                 })}
               </div>
-              <div className="flex gap-1 bg-[#0a0a0a] border border-white/[0.04] rounded-xl p-0.5">
+              <div className="flex gap-1 bg-[#0f172a]/70 border border-white/[0.04] rounded-xl p-0.5">
                 {SORTS.map(s => (
                   <button
                     key={s.value}
@@ -363,10 +443,10 @@ export default function ModManagerPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: idx * 0.03 }}
-                      className="bg-[#0a0a0a] border border-white/[0.04] rounded-xl p-3 flex gap-3 group hover:border-white/10 transition-all"
+                      className="bg-[#0f172a]/70 border border-white/[0.04] rounded-xl p-3 flex gap-3 group hover:border-white/10 transition-all"
                     >
                       {/* Icon */}
-                      <div className="w-11 h-11 rounded-lg bg-[#111111] border border-white/[0.06] overflow-hidden shrink-0">
+                      <div className="w-11 h-11 rounded-lg bg-[#070b19] border border-white/[0.06] overflow-hidden shrink-0">
                         {hit.icon_url ? (
                           <img src={hit.icon_url} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -435,7 +515,7 @@ export default function ModManagerPage() {
                     disabled={loading}
                     className="px-6 py-2.5 bg-[#2D7DD2]/10 border border-[#2D7DD2]/20 rounded-xl text-[9px] font-black text-[#2D7DD2] hover:bg-[#2D7DD2]/20 transition-all disabled:opacity-50 flex items-center gap-2 uppercase tracking-wider"
                   >
-                    {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                    {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                     Daha Fazla Yükle ({results.length}/{totalHits})
                   </button>
                 </div>
@@ -445,8 +525,8 @@ export default function ModManagerPage() {
               {loading && results.length === 0 && (
                 <div className="grid grid-cols-2 gap-2.5">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="bg-[#0a0a0a] border border-white/[0.04] rounded-xl p-3 flex gap-3 animate-pulse">
-                      <div className="w-11 h-11 rounded-lg bg-white/[0.04]" />
+                    <div key={i} className="bg-[#0f172a]/70 border border-white/[0.04] rounded-xl p-3 flex gap-3 animate-pulse">
+                      <div className="w-11 h-11 rounded-lg bg-white/[0.04] animate-pulse" />
                       <div className="flex-1 space-y-2">
                         <div className="h-2.5 bg-white/[0.04] rounded w-3/4" />
                         <div className="h-2 bg-white/[0.04] rounded w-1/2" />
@@ -491,7 +571,7 @@ export default function ModManagerPage() {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.02 }}
-                        className="bg-[#0a0a0a] border border-yellow-500/[0.08] rounded-xl px-3 py-2.5 flex items-center gap-3 group"
+                        className="bg-[#0f172a]/60 border border-yellow-500/[0.08] rounded-xl px-3 py-2.5 flex items-center gap-3 group"
                       >
                         <div className="w-7 h-7 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0">
                           <Lock className="w-3 h-3 text-yellow-400" />
@@ -508,75 +588,53 @@ export default function ModManagerPage() {
               </AnimatePresence>
             </div>
 
-            {/* User-installed Mods Section */}
+            {/* User-installed Mods Section (Separated by category) */}
             {installedMods.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Package className="w-3.5 h-3.5 text-[#2D7DD2]" />
-                  <span className="text-[8px] font-black text-[#2D7DD2] uppercase tracking-widest">Kullanıcı Modları</span>
-                  <span className="text-[7px] bg-[#2D7DD2]/15 text-[#2D7DD2] px-1.5 py-0.5 rounded-full font-black">{installedMods.length}</span>
-                  <div className="flex-1 h-[1px] bg-[#2D7DD2]/10" />
-                </div>
-                <div className="space-y-2">
-                  {installedMods.map((mod, idx) => (
-                    <motion.div
-                      key={mod.projectId}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="bg-[#0a0a0a] border border-white/[0.04] rounded-xl p-3 flex items-center gap-3 hover:border-white/10 transition-all"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-[#111111] border border-white/[0.06] overflow-hidden shrink-0">
-                        {mod.iconUrl ? (
-                          <img src={mod.iconUrl} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[#52525B]">
-                            <Package className="w-4 h-4" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-[10.5px] font-black text-white truncate">{mod.title}</h3>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[8px] text-[#52525B] font-bold uppercase">by {mod.author}</span>
-                          <span className="text-[7.5px] text-[#52525B] font-mono">{mod.fileName}</span>
-                          <span className="text-[7.5px] text-[#52525B] font-mono">{formatFileSize(mod.fileSize)}</span>
-                        </div>
-                        <div className="flex gap-1 mt-1">
-                          {mod.loaders?.slice(0, 2).map(l => (
-                            <span key={l} className="text-[6.5px] bg-[#2D7DD2]/10 text-[#2D7DD2] px-1.5 py-0.5 rounded font-black uppercase tracking-wider">{l}</span>
-                          ))}
-                          {mod.gameVersions?.slice(0, 2).map(v => (
-                            <span key={v} className="text-[6.5px] bg-white/[0.04] text-[#52525B] px-1.5 py-0.5 rounded font-bold">{v}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2.5 shrink-0">
-                        {/* Enable/Deactivate Toggle Switch */}
-                        <button
-                          onClick={() => handleToggleEnable(mod.projectId)}
-                          className={`w-8 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none shrink-0 ${
-                            mod.enabled !== false ? 'bg-[#259457]' : 'bg-white/5 border border-white/10'
-                          }`}
-                          title={mod.enabled !== false ? "Devre Dışı Bırak" : "Etkinleştir"}
-                        >
-                          <div
-                            className={`w-3.5 h-3.5 rounded-full bg-white transition-transform duration-200 ${
-                              mod.enabled !== false ? 'translate-x-3' : 'translate-x-0'
-                            }`}
-                          />
-                        </button>
-                        <button
-                          onClick={() => handleUninstall(mod.projectId)}
-                          className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all shrink-0"
-                          title="Kaldır"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+              <div className="space-y-6">
+                {/* 1. Mods */}
+                {installedModsOnly.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Package className="w-3.5 h-3.5 text-[#2D7DD2]" />
+                      <span className="text-[8px] font-black text-[#2D7DD2] uppercase tracking-widest">Kullanıcı Modları</span>
+                      <span className="text-[7px] bg-[#2D7DD2]/15 text-[#2D7DD2] px-1.5 py-0.5 rounded-full font-black">{installedModsOnly.length}</span>
+                      <div className="flex-1 h-[1px] bg-[#2D7DD2]/10" />
+                    </div>
+                    <div className="space-y-2">
+                      {installedModsOnly.map((mod, idx) => renderInstalledCard(mod, idx, Package))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Texture Packs */}
+                {installedResourcePacks.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Image className="w-3.5 h-3.5 text-yellow-400" />
+                      <span className="text-[8px] font-black text-yellow-400 uppercase tracking-widest">Texture Packler</span>
+                      <span className="text-[7px] bg-yellow-500/15 text-yellow-400 px-1.5 py-0.5 rounded-full font-black">{installedResourcePacks.length}</span>
+                      <div className="flex-1 h-[1px] bg-yellow-500/10" />
+                    </div>
+                    <div className="space-y-2">
+                      {installedResourcePacks.map((mod, idx) => renderInstalledCard(mod, idx, Image))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Shaders */}
+                {installedShaders.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="text-[8px] font-black text-purple-400 uppercase tracking-widest">Shaderlar</span>
+                      <span className="text-[7px] bg-purple-500/15 text-purple-400 px-1.5 py-0.5 rounded-full font-black">{installedShaders.length}</span>
+                      <div className="flex-1 h-[1px] bg-purple-500/10" />
+                    </div>
+                    <div className="space-y-2">
+                      {installedShaders.map((mod, idx) => renderInstalledCard(mod, idx, Sparkles))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -592,7 +650,7 @@ export default function ModManagerPage() {
       </div>
 
       {/* RIGHT COLUMN: Selected Version Detail Card & Launch game */}
-      <div className="w-[300px] bg-[#0a080a] border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shrink-0 h-full relative overflow-hidden">
+      <div className="w-[300px] bg-[#0f172a]/95 border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shrink-0 h-full relative overflow-hidden">
         {/* Background Overlay Art */}
         <div
           className="absolute inset-0 bg-cover bg-center opacity-[0.04] pointer-events-none"
@@ -651,12 +709,12 @@ export default function ModManagerPage() {
 
         {/* Bottom launch button card */}
         <div className="space-y-3 z-10 pt-4 border-t border-white/[0.04]">
-          <div className="bg-black/40 border border-white/[0.04] rounded-xl p-3 text-center">
+          <div className="bg-[#070b19]/60 border border-white/[0.04] rounded-xl p-3 text-center">
             <span className="text-[8px] text-[#52525B] font-black uppercase tracking-wider block mb-0.5">TOPLAM MOD</span>
-            <span className="text-xs text-white font-extrabold">{SYSTEM_MODS.length + installedMods.length}</span>
+            <span className="text-xs text-white font-extrabold">{SYSTEM_MODS.length + installedModsOnly.length}</span>
             <div className="flex items-center justify-center gap-3 mt-1">
               <span className="text-[6.5px] text-yellow-400/70 font-black"><Lock className="w-2 h-2 inline mr-0.5" />{SYSTEM_MODS.length} Sistem</span>
-              <span className="text-[6.5px] text-[#2D7DD2]/70 font-black"><Package className="w-2 h-2 inline mr-0.5" />{installedMods.filter((m: any) => m.enabled !== false).length} Kullanıcı</span>
+              <span className="text-[6.5px] text-[#2D7DD2]/70 font-black"><Package className="w-2 h-2 inline mr-0.5" />{installedModsOnly.filter((m: any) => m.enabled !== false).length} Kullanıcı</span>
             </div>
           </div>
 

@@ -63,7 +63,7 @@ export default function ThreePreview({ skin, capeUrl, wingsEnabled = true, model
     const textureLoader = new THREE.TextureLoader();
     const skinImgUrl = skin.startsWith('data:') || skin.startsWith('file:') || skin.startsWith('http')
       ? skin
-      : `https://mc-heads.net/skin/${skin}`;
+      : `https://minotar.net/skin/${skin}`;
 
     // Helper to generate a custom premium glowing wing texture using 2D Canvas
     const createWingTexture = (isLeft: boolean) => {

@@ -124,7 +124,7 @@ async function exchangeCodeForSession(code: string): Promise<any> {
         name: profile.name,
         token: mcAccessToken,
         type: 'ms',
-        avatar: `https://mc-heads.net/avatar/${profile.name}/64`
+        avatar: `https://minotar.net/avatar/${profile.name}/64`
       };
     } catch (profileErr: any) {
       if (profileErr.response?.status === 404) {
@@ -152,7 +152,7 @@ ipcMain.handle('auth:login-cracked', async (_event, username: string) => {
     name: username.trim(),
     token: `offline_token_${Date.now()}`,
     type: 'cracked',
-    avatar: `https://mc-heads.net/avatar/${username}/64`
+    avatar: `https://minotar.net/avatar/${username}/64`
   };
 
   console.log('[auth.ts] Cracked login session cache set:', activeSession.name);

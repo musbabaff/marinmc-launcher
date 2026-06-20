@@ -7,6 +7,7 @@ import {
   Trash2, RefreshCw
 } from 'lucide-react';
 import ThreePreview from '../components/ThreePreview.tsx';
+import { STEVE_BODY_FALLBACK } from '../lib/constants.ts';
 
 // Real Minecraft cape images
 const CAPES = [
@@ -199,24 +200,24 @@ export default function CosmeticsPage() {
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-[#060305] text-[#d2d2d2] h-full w-full select-none">
+    <div className="flex-1 flex overflow-hidden bg-[#070b19] text-[#d2d2d2] h-full w-full select-none">
       
       {/* LEFT PANEL: PREVIEW & CONTROLS */}
-      <div className="w-[300px] border-r border-white/[0.04] p-5 flex flex-col justify-between shrink-0 bg-[#080509]/30 h-full overflow-y-auto custom-scrollbar">
+      <div className="w-[300px] border-r border-white/[0.04] p-5 flex flex-col justify-between shrink-0 bg-[#0f172a]/30 h-full overflow-y-auto custom-scrollbar">
         <div className="space-y-5">
           <div>
             <h2 className="text-[10px] font-black tracking-widest text-[#52525B] uppercase mb-2">Görünüm Önizleme</h2>
             
             {/* 3D Canvas Frame */}
-            <div className="w-full h-[280px] bg-[#0a0a0a] border border-white/[0.05] hover:border-white/10 rounded-2xl relative overflow-hidden group transition-all duration-300">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#8B5CF6]/5 rounded-full blur-[50px] pointer-events-none group-hover:bg-[#8B5CF6]/10 transition-all duration-300" />
+            <div className="w-full h-[280px] bg-[#070b19] border border-white/[0.05] hover:border-white/10 rounded-2xl relative overflow-hidden group transition-all duration-300">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#2D7DD2]/5 rounded-full blur-[50px] pointer-events-none group-hover:bg-[#2D7DD2]/10 transition-all duration-300" />
               
               <div className="absolute top-3.5 left-3.5 z-20 flex flex-col gap-1.5">
                 <span className="text-[7.5px] bg-white/5 border border-white/10 text-white px-2 py-0.5 rounded font-black uppercase">
                   {activeSkinType === 'file' ? 'Özel Dosya' : activeSkin}
                 </span>
                 {selectedCape >= 0 && (
-                  <span className="text-[6.5px] bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#c084fc] px-1.5 py-0.5 rounded font-black uppercase tracking-wider self-start">
+                  <span className="text-[6.5px] bg-[#2D7DD2]/15 border border-[#2D7DD2]/20 text-[#2D7DD2] px-1.5 py-0.5 rounded font-black uppercase tracking-wider self-start">
                     Pelerin Aktif
                   </span>
                 )}
@@ -249,7 +250,7 @@ export default function CosmeticsPage() {
           </div>
 
           {/* arm model selectors */}
-          <div className="bg-[#0a0a0a] border border-white/[0.04] p-3.5 rounded-2xl space-y-3.5">
+          <div className="bg-[#0f172a]/70 border border-white/[0.04] p-3.5 rounded-2xl space-y-3.5">
             <div>
               <span className="text-[8px] font-black text-[#52525B] uppercase tracking-widest mb-1.5 block">Kol Modeli</span>
               <div className="grid grid-cols-2 gap-2">
@@ -266,7 +267,7 @@ export default function CosmeticsPage() {
                     }}
                     className={`text-[8.5px] font-black py-1.5 rounded-lg border transition-all uppercase tracking-wider ${
                       modelType === m.id
-                        ? 'bg-[#8B5CF6]/15 border-[#8B5CF6]/40 text-[#c084fc] shadow-[0_0_12px_rgba(139,92,246,0.15)]'
+                        ? 'bg-[#2D7DD2]/15 border-[#2D7DD2]/30 text-[#2D7DD2] shadow-[0_0_12px_rgba(45,125,210,0.15)]'
                         : 'bg-black/20 border-white/5 text-[#52525B] hover:text-white hover:border-white/10'
                     }`}
                   >
@@ -290,7 +291,7 @@ export default function CosmeticsPage() {
                   showFeedback(next ? 'Kanatlar aktif edildi.' : 'Kanatlar gizlendi.');
                 }}
                 className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 relative focus:outline-none ${
-                  wingsEnabled ? 'bg-[#8B5CF6]' : 'bg-[#131622] border border-white/5'
+                  wingsEnabled ? 'bg-[#2D7DD2]' : 'bg-[#070b19] border border-white/5'
                 }`}
               >
                 <div
@@ -389,9 +390,9 @@ export default function CosmeticsPage() {
                   <button
                     key={cape.name}
                     onClick={() => handleCapeClick(idx)}
-                    className={`aspect-[3/4] rounded-2xl border-2 flex flex-col justify-between p-3.5 bg-[#0a0a0a]/50 hover:bg-[#0c0c0c] transition-all duration-300 relative group overflow-hidden ${
+                    className={`aspect-[3/4] rounded-2xl border-2 flex flex-col justify-between p-3.5 bg-[#070b19]/50 hover:bg-[#0f172a]/80 transition-all duration-300 relative group overflow-hidden ${
                       isActive
-                        ? 'border-[#8B5CF6] shadow-[0_0_20px_rgba(139,92,246,0.25)] scale-[1.03] bg-[#120f1a]/80'
+                        ? 'border-[#2D7DD2] shadow-[0_0_20px_rgba(45,125,210,0.25)] scale-[1.03] bg-[#0f172a]/90'
                         : 'border-white/[0.04] hover:border-white/15'
                     }`}
                   >
@@ -410,7 +411,7 @@ export default function CosmeticsPage() {
                     <div className="text-center w-full min-w-0">
                       <span className="text-[8px] font-black text-white/80 group-hover:text-white truncate block uppercase tracking-wider">{cape.name}</span>
                       {isActive ? (
-                        <span className="text-[6.5px] text-[#c084fc] font-black uppercase tracking-widest block mt-1">Kuşanıldı</span>
+                        <span className="text-[6.5px] text-[#4A9AE8] font-black uppercase tracking-widest block mt-1">Kuşanıldı</span>
                       ) : (
                         <span className="text-[6.5px] text-[#52525B] font-bold uppercase tracking-widest block mt-1">Kuşan</span>
                       )}
@@ -430,9 +431,9 @@ export default function CosmeticsPage() {
                   <button
                     key={style.id}
                     onClick={() => handleWingStyleClick(style.id)}
-                    className={`p-5 rounded-2xl border-2 flex items-center gap-4 bg-[#0a0a0a]/50 hover:bg-[#0c0c0c] transition-all duration-300 text-left relative group ${
+                    className={`p-5 rounded-2xl border-2 flex items-center gap-4 bg-[#070b19]/50 hover:bg-[#0f172a]/80 transition-all duration-300 text-left relative group ${
                       isActive
-                        ? 'border-[#8B5CF6] shadow-[0_0_20px_rgba(139,92,246,0.2)] scale-[1.01] bg-[#120f1a]/80'
+                        ? 'border-[#2D7DD2] shadow-[0_0_20px_rgba(45,125,210,0.2)] scale-[1.01] bg-[#0f172a]/90'
                         : 'border-white/[0.04] hover:border-white/10'
                     }`}
                   >
@@ -447,7 +448,7 @@ export default function CosmeticsPage() {
                       <h4 className="text-[10px] font-black text-white uppercase tracking-wider mb-1 flex items-center gap-2">
                         <span>{style.name}</span>
                         {isActive && (
-                          <span className="px-1.5 py-0.5 bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[6.5px] font-black text-[#c084fc] rounded uppercase">AKTİF</span>
+                          <span className="px-1.5 py-0.5 bg-[#2D7DD2]/25 border border-[#2D7DD2]/30 text-[6.5px] font-black text-[#4A9AE8] rounded uppercase">AKTİF</span>
                         )}
                       </h4>
                       <p className="text-[9px] text-[#52525B] font-medium leading-relaxed">{style.desc}</p>
@@ -463,7 +464,7 @@ export default function CosmeticsPage() {
             <div className="space-y-6 animate-[fadeIn_0.25s_ease-out]">
               
               {/* Custom Search Form */}
-              <form onSubmit={handleCustomSkinSubmit} className="bg-[#0a0a0a]/50 border border-white/[0.04] p-5 rounded-2xl flex gap-3 items-center">
+              <form onSubmit={handleCustomSkinSubmit} className="bg-[#070b19]/50 border border-white/[0.04] p-5 rounded-2xl flex gap-3 items-center">
                 <div className="flex-1 relative">
                   <Search className="w-4 h-4 text-[#52525B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
@@ -471,12 +472,12 @@ export default function CosmeticsPage() {
                     placeholder="Premium Minecraft Kullanıcı Adı Girin... (Örn: notch, dream)"
                     value={customUsername}
                     onChange={(e) => setCustomUsername(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/[0.06] text-xs font-semibold text-white focus:outline-none focus:border-[#8B5CF6]"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/[0.06] text-xs font-semibold text-white focus:outline-none focus:border-[#2D7DD2]"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="px-5 py-3 rounded-xl bg-[#8B5CF6] hover:bg-[#a78bfa] text-white text-[9.5px] font-black uppercase tracking-wider transition-all shadow-[0_4px_12px_rgba(139,92,246,0.25)] flex items-center gap-1.5 shrink-0"
+                  className="px-5 py-3 rounded-xl bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white text-[9.5px] font-black uppercase tracking-wider transition-all shadow-[0_4px_12px_rgba(45,125,210,0.25)] flex items-center gap-1.5 shrink-0"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Kostümü Çek</span>
@@ -491,20 +492,20 @@ export default function CosmeticsPage() {
                     <button
                       key={skin.user}
                       onClick={() => handleSkinPresetClick(skin.user)}
-                      className={`rounded-2xl border-2 flex flex-col justify-between p-3 bg-[#0a0a0a]/50 hover:bg-[#0c0c0c] transition-all duration-300 relative group overflow-hidden ${
+                      className={`rounded-2xl border-2 flex flex-col justify-between p-3 bg-[#070b19]/50 hover:bg-[#0f172a]/80 transition-all duration-300 relative group overflow-hidden ${
                         isActive
-                          ? 'border-[#8B5CF6] shadow-[0_0_15px_rgba(139,92,246,0.2)] scale-[1.03] bg-[#120f1a]/80'
+                          ? 'border-[#2D7DD2] shadow-[0_0_15px_rgba(45,125,210,0.2)] scale-[1.03] bg-[#0f172a]/90'
                           : 'border-white/[0.04] hover:border-white/10'
                       }`}
                     >
                       {/* Character body render */}
                       <div className="flex-grow flex items-center justify-center p-1.5 h-[110px] relative z-10">
                         <img
-                          src={`https://mc-heads.net/body/${skin.user}/90`}
+                          src={`https://minotar.net/body/${skin.user}/90`}
                           alt={skin.name}
                           className="max-h-full object-contain filter drop-shadow-md group-hover:scale-[1.04] transition-transform duration-300"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://mc-heads.net/body/Steve/90';
+                            (e.target as HTMLImageElement).src = STEVE_BODY_FALLBACK;
                           }}
                         />
                       </div>
@@ -512,7 +513,7 @@ export default function CosmeticsPage() {
                       <div className="text-center w-full mt-3 relative z-10 min-w-0">
                         <p className="text-[7.5px] font-black text-white/80 group-hover:text-white truncate uppercase tracking-wider block leading-none">{skin.name}</p>
                         {isActive ? (
-                          <span className="text-[5px] text-[#c084fc] font-black uppercase tracking-widest block mt-1">Seçildi</span>
+                          <span className="text-[5px] text-[#4A9AE8] font-black uppercase tracking-widest block mt-1">Seçildi</span>
                         ) : (
                           <span className="text-[5px] text-[#52525B] font-bold uppercase tracking-widest block mt-1">Seç</span>
                         )}

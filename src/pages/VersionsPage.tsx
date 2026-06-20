@@ -132,7 +132,7 @@ export default function VersionsPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-6 overflow-y-auto no-drag custom-scrollbar bg-[#060305] text-[#d2d2d2] select-none h-full w-full">
+    <div className="flex-1 flex flex-col p-6 overflow-y-auto no-drag custom-scrollbar bg-[#070b19] text-[#d2d2d2] select-none h-full w-full">
       {/* Title */}
       <div className="mb-5 flex justify-between items-center">
         <h1 className="text-sm font-extrabold tracking-widest text-white uppercase">CHANGE VERSION</h1>
@@ -152,8 +152,8 @@ export default function VersionsPage() {
               onClick={() => isActive && handleSelectVersion(ver.num, currentSub)}
               className={`h-[145px] rounded-2xl border p-4 flex flex-col justify-between relative overflow-hidden group transition-all duration-300 ${
                 isSelected
-                  ? 'border-[#208390] bg-[#060305] shadow-[0_0_20px_rgba(32,131,144,0.25)]'
-                  : 'border-white/[0.04] bg-[#060305]'
+                  ? 'border-[#2D7DD2] bg-[#070b19] shadow-[0_0_20px_rgba(45,125,210,0.25)]'
+                  : 'border-white/[0.04] bg-[#070b19]'
               } ${!isActive ? 'opacity-50 pointer-events-none select-none' : 'cursor-pointer'}`}
             >
               {/* Coming soon badge */}
@@ -171,7 +171,7 @@ export default function VersionsPage() {
               />
               
               {/* Dark Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#060305] via-[#060305]/65 to-[#060305]/40 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#070b19] via-[#070b19]/65 to-[#070b19]/40 pointer-events-none" />
 
               {/* Card Top: Subversion Selector Badge */}
               <div className="flex justify-between items-start z-10">
@@ -191,7 +191,7 @@ export default function VersionsPage() {
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
-                        className="absolute top-6.5 left-0 bg-[#060305] border border-white/10 rounded-lg py-1 z-30 flex flex-col min-w-[75px] shadow-2xl text-[9px] font-bold max-h-24 overflow-y-auto custom-scrollbar"
+                        className="absolute top-6.5 left-0 bg-[#070b19] border border-white/10 rounded-lg py-1 z-30 flex flex-col min-w-[75px] shadow-2xl text-[9px] font-bold max-h-24 overflow-y-auto custom-scrollbar"
                       >
                         {ver.subs.map((sub) => (
                           <button
@@ -248,7 +248,7 @@ export default function VersionsPage() {
                     }}
                     className={`w-[68px] h-[26px] rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center justify-center transition-all duration-300 ${
                       isSelected
-                        ? 'bg-[#208390] hover:bg-[#2aa4b5] text-white shadow-[0_4px_12px_rgba(32,131,144,0.2)]'
+                        ? 'bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white shadow-[0_4px_12px_rgba(45,125,210,0.2)]'
                         : 'bg-black/40 border border-white/5 text-[#52525B] hover:text-white hover:bg-white/5'
                     }`}
                   >

@@ -27,7 +27,7 @@ export default function MarinLogo({ className = '', size = 24, glyphOnly = false
   return (
     <div className={`relative ${className}`} style={{ width: size, height: size }}>
       {/* Rounded background */}
-      <div className="absolute inset-0 rounded-[20%] border border-[#2D7DD2]/30 bg-gradient-to-br from-[#0c0a10] to-[#060305] flex items-center justify-center">
+      <div className="absolute inset-0 rounded-[20%] border border-[#2D7DD2]/30 bg-gradient-to-br from-[#080d1a] to-[#070b19] flex items-center justify-center">
         <img
           src={logoSrc}
           className="w-[60%] h-[60%] object-contain"

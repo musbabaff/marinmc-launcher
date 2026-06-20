@@ -199,7 +199,7 @@ export default function GalleryPage() {
   return (
     <div className="flex-grow flex h-full overflow-hidden select-none">
       {/* ===== MAIN CONTENT ===== */}
-      <div className="flex-1 flex flex-col bg-[#060305] h-full">
+      <div className="flex-1 flex flex-col bg-[#070b19] h-full">
         {/* Top bar */}
         <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
@@ -231,7 +231,7 @@ export default function GalleryPage() {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-xl px-3 py-2 w-[180px]">
+            <div className="flex items-center gap-2 bg-[#0f172a]/70 border border-white/[0.06] rounded-xl px-3 py-2 w-[180px]">
               <Search className="w-3.5 h-3.5 text-[#52525B]" />
               <input
                 type="text"
@@ -296,7 +296,7 @@ export default function GalleryPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: idx * 0.04 }}
                   onClick={() => setPreviewScreenshot(shot)}
-                  className="aspect-video bg-[#0a0a0a] border border-white/[0.04] rounded-xl overflow-hidden cursor-pointer group relative"
+                  className="aspect-video bg-[#0f172a]/40 border border-white/[0.04] rounded-xl overflow-hidden cursor-pointer group relative"
                 >
                   <img
                     src={shot.url}
@@ -369,7 +369,7 @@ export default function GalleryPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.03 }}
                   onClick={() => setPreviewScreenshot(shot)}
-                  className="flex items-center gap-3 p-2.5 bg-[#0a0a0a] border border-white/[0.04] rounded-xl hover:border-white/10 transition-all cursor-pointer relative group"
+                  className="flex items-center gap-3 p-2.5 bg-[#0f172a]/40 border border-white/[0.04] rounded-xl hover:border-white/10 transition-all cursor-pointer relative group"
                 >
                   <img src={shot.url} alt={shot.title} className="w-16 h-10 rounded-lg object-cover opacity-70" />
                   <div className="flex-1 min-w-0">
@@ -424,7 +424,7 @@ export default function GalleryPage() {
       </div>
 
       {/* ===== RIGHT PANEL — Filters ===== */}
-      <div className="w-[240px] shrink-0 bg-[#0a080a] border-l border-white/[0.04] p-4 overflow-y-auto custom-scrollbar space-y-5">
+      <div className="w-[240px] shrink-0 bg-[#070b19] border-l border-white/[0.04] p-4 overflow-y-auto custom-scrollbar space-y-5">
         {/* View */}
         <div>
           <span className="text-[9px] font-black text-[#52525B] uppercase tracking-widest block mb-2">{t('gallery.view')}</span>
@@ -477,7 +477,7 @@ export default function GalleryPage() {
               <User className="w-3 h-3 inline mr-1" />
               {t('gallery.filterByPlayer')}
             </span>
-            <div className="flex items-center gap-2 bg-[#111111] border border-white/[0.06] rounded-lg px-2.5 py-1.5 mb-2">
+            <div className="flex items-center gap-2 bg-[#0f172a]/70 border border-white/[0.06] rounded-lg px-2.5 py-1.5 mb-2">
               <Search className="w-3 h-3 text-[#52525B]" />
               <input
                 type="text"
@@ -549,7 +549,7 @@ export default function GalleryPage() {
               <ChevronDown className={`w-2.5 h-2.5 transition-transform ${showCalendar ? 'rotate-180' : ''}`} />
             </button>
             {showCalendar && (
-              <div className="bg-[#111111] border border-white/[0.06] rounded-xl p-3">
+              <div className="bg-[#0f172a]/70 border border-white/[0.06] rounded-xl p-3">
                 <div className="text-center text-[10px] font-bold text-white mb-2">{t('gallery.monthYear')}</div>
                 <div className="grid grid-cols-7 gap-0.5 text-center">
                   {t('gallery.weekdays').split(',').map((d, i) => (
@@ -580,7 +580,7 @@ export default function GalleryPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-[#0b080b] border border-white/10 rounded-2xl w-[450px] overflow-hidden shadow-2xl"
+              className="bg-[#070b19] border border-white/10 rounded-2xl w-[450px] overflow-hidden shadow-2xl"
             >
               {/* Header */}
               <div className="px-5 py-4 border-b border-white/[0.04] flex items-center justify-between">
@@ -601,7 +601,7 @@ export default function GalleryPage() {
 
               {/* Body */}
               <div className="p-5 space-y-4">
-                <div className="aspect-video bg-[#050305] border border-white/[0.04] rounded-xl overflow-hidden relative">
+                <div className="aspect-video bg-[#070b19]/60 border border-white/[0.04] rounded-xl overflow-hidden relative">
                   <img
                     src={selectedLocalScreenshot.url}
                     alt="Preview"
@@ -621,7 +621,7 @@ export default function GalleryPage() {
                     onChange={(e) => setShareTitle(e.target.value)}
                     placeholder="Bu ekran görüntüsüne bir isim ver..."
                     maxLength={50}
-                    className="w-full bg-[#111] border border-white/[0.06] rounded-xl px-3 py-2 text-[10px] text-white outline-none focus:border-[#2D7DD2]/50 font-medium"
+                    className="w-full bg-[#0f172a] border border-white/[0.06] rounded-xl px-3 py-2 text-[10px] text-white outline-none focus:border-[#2D7DD2]/50 font-medium"
                   />
                 </div>
               </div>
@@ -669,7 +669,7 @@ export default function GalleryPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-[800px] w-full bg-[#0a080a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative"
+              className="max-w-[800px] w-full bg-[#070b19] border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close button */}
@@ -690,7 +690,7 @@ export default function GalleryPage() {
                 </div>
                 
                 {/* Meta Details Footer */}
-                <div className="p-4 bg-[#0e0c0e] border-t border-white/[0.04] flex items-center justify-between">
+                <div className="p-4 bg-[#0f172a]/80 border-t border-white/[0.04] flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {previewScreenshot.username ? (
                       <img

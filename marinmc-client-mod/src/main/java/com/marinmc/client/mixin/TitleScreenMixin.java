@@ -11,6 +11,8 @@ import net.minecraft.client.gui.screen.option.LanguageOptionsScreen;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.client.resource.language.I18n;
+
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.util.Util;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,6 +23,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(TitleScreen.class)
 public class TitleScreenMixin extends Screen {
     private static final Identifier LOGO_TEXTURE = Identifier.of("marinmc-client", "textures/gui/logo.png");
+    private static final Identifier DISCORD_ICON = Identifier.of("marinmc-client", "textures/gui/discord.png");
+    private static final Identifier INSTAGRAM_ICON = Identifier.of("marinmc-client", "textures/gui/instagram.png");
+    private static final Identifier TIKTOK_ICON = Identifier.of("marinmc-client", "textures/gui/tiktok.png");
+    private static final Identifier YOUTUBE_ICON = Identifier.of("marinmc-client", "textures/gui/youtube.png");
 
     private int hoveredIconIndex = -1;
 
@@ -81,10 +87,10 @@ public class TitleScreenMixin extends Screen {
             context.fill(0, this.height - i - 1, this.width, this.height - i, col);
         }
 
-        // 2. Central Logo ONLY (icon.png, no text below)
-        int logoSize = 64;
+        // 2. Central Logo — enlarged and moved higher for premium look
+        int logoSize = 96;
         int logoX = this.width / 2 - logoSize / 2;
-        int logoY = this.height / 2 - 90;
+        int logoY = this.height / 2 - 125;
         context.drawTexture(
             RenderPipelines.GUI_TEXTURED,
             LOGO_TEXTURE,
@@ -94,16 +100,15 @@ public class TitleScreenMixin extends Screen {
             logoSize, logoSize
         );
 
-        // 3. Top-Left Logo + Text (Altın/beyaz çerçeveli küçük logo ve mavi "MarinMC" yazısı)
-        int logoSizeSmall = 16;
+        // 3. Top-Left Logo + Brand Signature — premium bold glow style
+        int logoSizeSmall = 20;
         int logoSmallX = 14;
-        int logoSmallY = 13;
+        int logoSmallY = 10;
 
-        // Draw gold/white container border
-        context.fill(10, 10, 115, 32, 0x50000000);
-        context.drawBorder(10, 10, 105, 22, 0xFFFFD700); // Gold border
+        // Subtle glass background behind brand
+        context.fill(10, 7, 100, 34, 0x18FFFFFF);
 
-        // Draw the logo inside it
+        // Draw the logo icon
         context.drawTexture(
             RenderPipelines.GUI_TEXTURED,
             LOGO_TEXTURE,
@@ -113,40 +118,70 @@ public class TitleScreenMixin extends Screen {
             logoSizeSmall, logoSizeSmall
         );
 
-        // Draw "MarinMC" text in blue
-        context.drawTextWithShadow(this.textRenderer, "MarinMC", logoSmallX + 22, logoSmallY + 4, 0xFF2D7DD2);
+        // Draw bold two-tone brand text with double render for thickness
+        int textX = logoSmallX + 24;
+        int textY = logoSmallY + 6;
+        int marinWidth = this.textRenderer.getWidth("MARIN");
+        // Glow layer (offset by 1px for bold effect)
+        context.drawTextWithShadow(this.textRenderer, "MARIN", textX + 1, textY, 0x9055FFFF);
+        context.drawTextWithShadow(this.textRenderer, "MC", textX + marinWidth + 1, textY, 0x902D7DD2);
+        // Main layer
+        context.drawTextWithShadow(this.textRenderer, "MARIN", textX, textY, 0xFF55FFFF);
+        context.drawTextWithShadow(this.textRenderer, "MC", textX + marinWidth, textY, 0xFF2D7DD2);
+        // Subtle glow underline
+        int totalTextW = this.textRenderer.getWidth("MARINMC");
+        context.fill(textX, textY + 11, textX + totalTextW, textY + 12, 0x3055FFFF);
 
-        // 5. Horizontal Social Media Bar (Discord, Instagram, TikTok, YouTube)
-        int socialBarW = 140;
-        int socialBarH = 28;
-        int socialBarX = this.width / 2 - socialBarW / 2;
-        int socialBarY = this.height / 2 + 68;
+        // 5. Social Media — clean minimal circular buttons
+        int socialBtnSize = 30;
+        int socialIconSize = 16;
+        int socialGap = 14;
+        int totalSocialW = 4 * socialBtnSize + 3 * socialGap;
+        int socialStartX = this.width / 2 - totalSocialW / 2;
+        int socialStartY = this.height / 2 + 72;
 
-        // Deep glass background with theme blue border
-        context.fill(socialBarX, socialBarY, socialBarX + socialBarW, socialBarY + socialBarH, 0x60000000);
-        context.drawBorder(socialBarX, socialBarY, socialBarW, socialBarH, 0x802D7DD2); // Theme blue border
-
-        int buttonSize = 22;
-        int gap = 8;
-        int startX = socialBarX + 12;
-        int startY = socialBarY + 3;
+        Identifier[] socialIcons = { DISCORD_ICON, INSTAGRAM_ICON, TIKTOK_ICON, YOUTUBE_ICON };
 
         for (int i = 0; i < 4; i++) {
-            int bx = startX + i * (buttonSize + gap);
-            boolean btnHovered = mouseX >= bx && mouseX <= bx + buttonSize && mouseY >= startY && mouseY <= startY + buttonSize;
+            int bx = socialStartX + i * (socialBtnSize + socialGap);
+            int by = socialStartY;
+            boolean btnHovered = mouseX >= bx && mouseX <= bx + socialBtnSize && mouseY >= by && mouseY <= by + socialBtnSize;
 
-            // Hover background
-            context.fill(bx, startY, bx + buttonSize, startY + buttonSize, btnHovered ? 0x802D7DD2 : 0x20FFFFFF);
-            context.drawBorder(bx, startY, buttonSize, buttonSize, btnHovered ? 0xFFFFD700 : 0x30FFFFFF); // Gold on hover
+            // Clean circular glass button
+            int bgColor = btnHovered ? 0x50FFFFFF : 0x18FFFFFF;
+            int borderColor = btnHovered ? 0x80FFFFFF : 0x20FFFFFF;
 
-            int color = btnHovered ? 0xFFFFFFFF : 0xFFA1A1AA;
-            String letter = "";
-            if (i == 0) letter = "D"; // Discord
-            else if (i == 1) letter = "I"; // Instagram
-            else if (i == 2) letter = "T"; // TikTok
-            else if (i == 3) letter = "Y"; // YouTube
+            // Rounded button shape using layered fills
+            context.fill(bx + 3, by, bx + socialBtnSize - 3, by + socialBtnSize, bgColor);
+            context.fill(bx, by + 3, bx + socialBtnSize, by + socialBtnSize - 3, bgColor);
+            context.fill(bx + 1, by + 1, bx + socialBtnSize - 1, by + socialBtnSize - 1, bgColor);
 
-            context.drawCenteredTextWithShadow(this.textRenderer, letter, bx + buttonSize / 2, startY + 7, color);
+            // Thin rounded border
+            context.fill(bx + 3, by, bx + socialBtnSize - 3, by + 1, borderColor);
+            context.fill(bx + 3, by + socialBtnSize - 1, bx + socialBtnSize - 3, by + socialBtnSize, borderColor);
+            context.fill(bx, by + 3, bx + 1, by + socialBtnSize - 3, borderColor);
+            context.fill(bx + socialBtnSize - 1, by + 3, bx + socialBtnSize, by + socialBtnSize - 3, borderColor);
+            context.fill(bx + 1, by + 1, bx + 2, by + 2, borderColor);
+            context.fill(bx + socialBtnSize - 2, by + 1, bx + socialBtnSize - 1, by + 2, borderColor);
+            context.fill(bx + 1, by + socialBtnSize - 2, bx + 2, by + socialBtnSize - 1, borderColor);
+            context.fill(bx + socialBtnSize - 2, by + socialBtnSize - 2, bx + socialBtnSize - 1, by + socialBtnSize - 1, borderColor);
+
+            // Hover: bottom accent glow line
+            if (btnHovered) {
+                context.fill(bx + 4, by + socialBtnSize, bx + socialBtnSize - 4, by + socialBtnSize + 2, 0x602D7DD2);
+            }
+
+            // Draw social icon centered
+            int iconOffX = bx + (socialBtnSize - socialIconSize) / 2;
+            int iconOffY = by + (socialBtnSize - socialIconSize) / 2;
+            context.drawTexture(
+                RenderPipelines.GUI_TEXTURED,
+                socialIcons[i],
+                iconOffX, iconOffY,
+                0f, 0f,
+                socialIconSize, socialIconSize,
+                socialIconSize, socialIconSize
+            );
         }
 
         // Render widgets (3 glass center buttons)
@@ -195,8 +230,8 @@ public class TitleScreenMixin extends Screen {
                 "marinmc.subtitle.external"
             };
 
-            String title = Text.translatable(titleKeys[hoveredIconIndex]).getString();
-            String subtitle = Text.translatable(subtitleKeys[hoveredIconIndex]).getString();
+            String title = I18n.translate(titleKeys[hoveredIconIndex]);
+            String subtitle = I18n.translate(subtitleKeys[hoveredIconIndex]);
 
             int tw = Math.max(90, this.textRenderer.getWidth(title) + 16);
             int th = 28;
@@ -214,18 +249,16 @@ public class TitleScreenMixin extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        // Social Media Bar click handlers
-        int socialBarW = 140;
-        int socialBarH = 28;
-        int socialBarX = this.width / 2 - socialBarW / 2;
-        int socialBarY = this.height / 2 + 68;
-        if (mouseY >= socialBarY + 3 && mouseY <= socialBarY + 25) {
-            int buttonSize = 22;
-            int gap = 8;
-            int startX = socialBarX + 12;
+        // Social Media circular buttons click handlers
+        int socialBtnSize = 30;
+        int socialGap = 14;
+        int totalSocialW = 4 * socialBtnSize + 3 * socialGap;
+        int socialStartX = this.width / 2 - totalSocialW / 2;
+        int socialStartY = this.height / 2 + 72;
+        if (mouseY >= socialStartY && mouseY <= socialStartY + socialBtnSize) {
             for (int i = 0; i < 4; i++) {
-                int bx = startX + i * (buttonSize + gap);
-                if (mouseX >= bx && mouseX <= bx + buttonSize) {
+                int bx = socialStartX + i * (socialBtnSize + socialGap);
+                if (mouseX >= bx && mouseX <= bx + socialBtnSize) {
                     String[] socialUrls = {
                         "https://marinmc.com/discord",
                         "https://instagram.com/marinmc",

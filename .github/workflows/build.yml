@@ -51,6 +51,10 @@ jobs:
       - name: Build Electron (TypeScript)
         run: npm run build:electron
 
+      - name: Debug - List compiled files
+        run: |
+          node -e "const fs = require('fs'); if (fs.existsSync('dist-electron')) { console.log('dist-electron files:', fs.readdirSync('dist-electron')); } else { console.log('dist-electron folder does not exist!'); }"
+
       - name: Package Application
         run: |
           rm -f .gitignore

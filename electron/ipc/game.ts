@@ -8,6 +8,22 @@ import axios from 'axios';
 import { discordRPC } from '../discord.js';
 import { backendSettings } from '../settings.js';
 
+/**
+ * Clamps the user-requested RAM to a safe ceiling based on total physical memory.
+ * Leaves at least 2 GB (or 40 % of total, whichever is larger) for the OS, JVM
+ * native overhead, and Minecraft off-heap buffers.
+ */
+export function getSafeRamMb(requestedMb: number): number {
+  const totalMb = Math.floor(os.totalmem() / (1024 * 1024));
+  const osReserveMb = Math.max(2048, Math.floor(totalMb * 0.40));
+  const safeCap = Math.max(1024, totalMb - osReserveMb); // never below 1 GB
+  if (requestedMb > safeCap) {
+    console.log(`[SmartJVM] Requested ${requestedMb}M exceeds safe cap ${safeCap}M (total RAM: ${totalMb}M). Clamping.`);
+    return safeCap;
+  }
+  return requestedMb;
+}
+
 export function getSmartJvmArgs(allocatedRamMb: number): string[] {
   const args: string[] = [];
 
@@ -45,7 +61,8 @@ export function getSmartJvmArgs(allocatedRamMb: number): string[] {
   // 3. Experimental & general JVM flags for performance
   args.push('-XX:+ParallelRefProcEnabled');
   args.push('-XX:+DisableExplicitGC');
-  args.push('-XX:+AlwaysPreTouch');
+  // NOTE: AlwaysPreTouch removed — it forces the JVM to physically reserve the
+  // entire heap at startup, which fails on systems with a small page file.
   args.push('-XX:+UseNUMA');
   args.push('-XX:+UseStringDeduplication');
   args.push('-Dsun.rmi.dgc.server.gcInterval=3600000');
@@ -120,6 +137,111 @@ const PERFORMANCE_MODS = [
     md5: 'b5ac5b552279a9adb2d99cbfe7d1edef'
   },
   {
+    name: 'Player Animation Library',
+    filename: 'PlayerAnimationLibFabric-1.1.2+mc.1.21.8.jar',
+    url: 'https://cdn.modrinth.com/data/ha1mEyJS/versions/dIf3Q9r1/PlayerAnimationLibFabric-1.1.2%2Bmc.1.21.8.jar',
+    md5: '3a281adf2405b230c2fe45c1d25c9511'
+  },
+  {
+    name: 'Emotecraft',
+    filename: 'emotecraft-fabric-for-MC1.21.7-3.0.0-b.build.139.jar',
+    url: 'https://cdn.modrinth.com/data/pZ2wrerK/versions/6ftsR5Uf/emotecraft-fabric-for-MC1.21.7-3.0.0-b.build.139.jar',
+    md5: '2ccc3dd6c41e1a6ffc60fb412f2a58aa'
+  },
+  {
+    name: 'Online Emotes',
+    filename: 'online-emotes-3.4.1+mc1.21.8-fabric.jar',
+    url: 'https://cdn.modrinth.com/data/Dc4g4seU/versions/ed0MvWmw/online-emotes-3.4.1%2Bmc1.21.8-fabric.jar',
+    md5: 'a423bf89ad6f64b2bf3ba093dac360e1'
+  },
+  {
+    name: 'Forge Config API Port',
+    filename: 'ForgeConfigAPIPort-v21.8.2-1.21.8-Fabric.jar',
+    url: 'https://cdn.modrinth.com/data/ohNO6lps/versions/YbUUjWdw/ForgeConfigAPIPort-v21.8.2-1.21.8-Fabric.jar',
+    md5: '70a44acea420b7672a5b66e6639e16b5'
+  },
+  {
+    name: 'GeckoLib',
+    filename: 'geckolib-fabric-1.21.8-5.2.2.jar',
+    url: 'https://cdn.modrinth.com/data/8BmcQJ2H/versions/k4Azk0wN/geckolib-fabric-1.21.8-5.2.2.jar',
+    md5: 'dfb2b38528b75e7649b920995fdf7a38'
+  },
+  // --- Optimization Mods ---
+  {
+    name: 'FerriteCore',
+    filename: 'ferritecore-8.0.4-fabric.jar',
+    url: 'https://cdn.modrinth.com/data/uXXizFIs/versions/LdlksamY/ferritecore-8.0.4-fabric.jar',
+    md5: '16a510b25f8c974384f1a3a2d0358cdf'
+  },
+  {
+    name: 'ImmediatelyFast',
+    filename: 'ImmediatelyFast-Fabric-1.12.5+1.21.8.jar',
+    url: 'https://cdn.modrinth.com/data/5ZwdcRci/versions/iNldtLH8/ImmediatelyFast-Fabric-1.12.5%2B1.21.8.jar',
+    md5: 'b87781ed5840add0d80fc68c3a1731f0'
+  },
+  {
+    name: 'Entity Culling',
+    filename: 'entityculling-fabric-1.10.3-mc1.21.8.jar',
+    url: 'https://cdn.modrinth.com/data/NNAgCjsB/versions/FmVJqif3/entityculling-fabric-1.10.3-mc1.21.8.jar',
+    md5: '51ee747411e69f535c8437e1fa109e95'
+  },
+  {
+    name: 'Dynamic FPS',
+    filename: 'dynamic-fps-3.11.4+minecraft-1.21.6-fabric.jar',
+    url: 'https://cdn.modrinth.com/data/LQ3K71Q1/versions/OnRerL4D/dynamic-fps-3.11.4%2Bminecraft-1.21.6-fabric.jar',
+    md5: 'c923a1b56cbe3575b6f1eec2cd5e7f12'
+  },
+  {
+    name: 'Krypton',
+    filename: 'krypton-0.2.9.jar',
+    url: 'https://cdn.modrinth.com/data/fQEb0iXm/versions/neW85eWt/krypton-0.2.9.jar',
+    md5: '1cf6349d30573e851efefd5bb1eb34ed'
+  },
+  {
+    name: 'Debugify',
+    filename: 'debugify-1.21.8+1.0.jar',
+    url: 'https://cdn.modrinth.com/data/QwxR6Gcd/versions/WLSwJeXa/debugify-1.21.8%2B1.0.jar',
+    md5: 'ca4360f1b1526ff6578fe957735a95b3'
+  },
+  {
+    name: 'More Culling',
+    filename: 'moreculling-fabric-1.21.8-1.4.0-beta.2.jar',
+    url: 'https://cdn.modrinth.com/data/51shyZVL/versions/ivOsScf8/moreculling-fabric-1.21.8-1.4.0-beta.2.jar',
+    md5: '87f9710fa1b16968eeb834451400af9e'
+  },
+  {
+    name: 'ThreadTweak',
+    filename: 'threadtweak-fabric-0.1.7+mc1.21.5.jar',
+    url: 'https://cdn.modrinth.com/data/vSEH1ERy/versions/IvtlnXcT/threadtweak-fabric-0.1.7%2Bmc1.21.5.jar',
+    md5: 'be883fc3ca37cec8394213d5271d445a'
+  },
+  {
+    name: 'FastNoise',
+    filename: 'zfastnoise-1.0.11+1+1.21.jar',
+    url: 'https://cdn.modrinth.com/data/OnlVIpq5/versions/e6mPQAQP/zfastnoise-1.0.11%2B1%2B1.21.jar',
+    md5: 'b7e5d6ae6c8b3230e6932dd651f37d4e'
+  },
+  // --- Library Dependencies ---
+  {
+    name: 'Yet Another Config Lib (YACL)',
+    filename: 'yet_another_config_lib_v3-3.8.2+1.21.6-fabric.jar',
+    url: 'https://cdn.modrinth.com/data/1eAoo2KR/versions/iPLhsWMM/yet_another_config_lib_v3-3.8.2%2B1.21.6-fabric.jar',
+    md5: '4cb67f8dbd317cc42dcbd9599687286e'
+  },
+  {
+    name: 'Cloth Config API',
+    filename: 'cloth-config-19.0.147-fabric.jar',
+    url: 'https://cdn.modrinth.com/data/9s6osm5g/versions/cz0b1j8R/cloth-config-19.0.147-fabric.jar',
+    md5: '374787e705220edb15af113964ce96d2'
+  },
+  {
+    name: 'Mod Menu',
+    filename: 'modmenu-15.0.2.jar',
+    url: 'https://cdn.modrinth.com/data/mOgUt4GM/versions/ku5NivOP/modmenu-15.0.2.jar',
+    md5: '0f70ab88677a7404dbc95798604c7833'
+  },
+  // --- MarinMC Custom ---
+  {
     name: 'MarinMC Client Mod',
     filename: 'marinmc-client-mod-1.0.0.jar',
     url: 'https://raw.githubusercontent.com/musbabaff/marinmc-launcher/main/assets/marinmc-client-mod-1.0.0.jar',
@@ -148,6 +270,26 @@ function cleanDuplicateMods(modsDir: string, logCallback: (msg: string) => void)
       { key: 'lithium', target: 'lithium-fabric-0.18.1+mc1.21.8.jar' },
       { key: 'reeses-sodium-options', target: 'reeses-sodium-options-fabric-1.8.4+mc1.21.6.jar' },
       { key: 'sodium-extra', target: 'sodium-extra-fabric-0.7.0+mc1.21.8.jar' },
+      { key: 'playeranimationlib', target: 'PlayerAnimationLibFabric-1.1.2+mc.1.21.8.jar' },
+      { key: 'emotecraft', target: 'emotecraft-fabric-for-MC1.21.7-3.0.0-b.build.139.jar' },
+      { key: 'online-emotes', target: 'online-emotes-3.4.1+mc1.21.8-fabric.jar' },
+      { key: 'forgeconfigapiport', target: 'ForgeConfigAPIPort-v21.8.2-1.21.8-Fabric.jar' },
+      { key: 'geckolib', target: 'geckolib-fabric-1.21.8-5.2.2.jar' },
+      // Optimization mods
+      { key: 'ferritecore', target: 'ferritecore-8.0.4-fabric.jar' },
+      { key: 'immediatelyfast', target: 'ImmediatelyFast-Fabric-1.12.5+1.21.8.jar' },
+      { key: 'entityculling', target: 'entityculling-fabric-1.10.3-mc1.21.8.jar' },
+      { key: 'dynamic-fps', target: 'dynamic-fps-3.11.4+minecraft-1.21.6-fabric.jar' },
+      { key: 'krypton', target: 'krypton-0.2.9.jar' },
+      { key: 'debugify', target: 'debugify-1.21.8+1.0.jar' },
+      { key: 'moreculling', target: 'moreculling-fabric-1.21.8-1.4.0-beta.2.jar' },
+      { key: 'threadtweak', target: 'threadtweak-fabric-0.1.7+mc1.21.5.jar' },
+      { key: 'zfastnoise', target: 'zfastnoise-1.0.11+1+1.21.jar' },
+      { key: 'noisium', target: '' },
+      // Library dependencies
+      { key: 'yet_another_config_lib', target: 'yet_another_config_lib_v3-3.8.2+1.21.6-fabric.jar' },
+      { key: 'cloth-config', target: 'cloth-config-19.0.147-fabric.jar' },
+      { key: 'modmenu', target: 'modmenu-15.0.2.jar' },
       { key: 'marinmc-client-mod', target: 'marinmc-client-mod-1.0.0.jar' }
     ];
 
@@ -316,26 +458,38 @@ function injectResourcePack(gameDir: string, logCallback: (msg: string) => void)
       content = fs.readFileSync(optionsPath, 'utf8');
     }
 
-    const targetLine = 'resourcePacks:["vanilla","programmatic_marinmc_pack.zip"]';
-    let updated = false;
     const lines = content.split(/\r?\n/);
+    
+    // Enforce Resource Pack
+    const targetPackLine = 'resourcePacks:["vanilla","programmatic_marinmc_pack.zip"]';
+    let packUpdated = false;
+    
+    // Enforce Tutorial Off (Prevents sticky tutorial toasts on screen)
+    const targetTutorialLine = 'tutorialStep:none';
+    let tutorialUpdated = false;
+
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].startsWith('resourcePacks:')) {
-        lines[i] = targetLine;
-        updated = true;
-        break;
+        lines[i] = targetPackLine;
+        packUpdated = true;
+      } else if (lines[i].startsWith('tutorialStep:')) {
+        lines[i] = targetTutorialLine;
+        tutorialUpdated = true;
       }
     }
 
-    if (!updated) {
-      lines.push(targetLine);
+    if (!packUpdated) {
+      lines.push(targetPackLine);
+    }
+    if (!tutorialUpdated) {
+      lines.push(targetTutorialLine);
     }
 
     fs.writeFileSync(optionsPath, lines.join('\n'), 'utf8');
-    logCallback(`[MarinMC Launcher] options.txt güncellendi (Kaynak paketi aktif edildi).`);
+    logCallback(`[MarinMC Launcher] options.txt güncellendi (Eğitim adımları kapatıldı, kaynak paketi aktif edildi).`);
   } catch (err: any) {
-    console.error('Failed to inject resource pack options:', err.message);
-    logCallback(`[HATA] options.txt dosyasına kaynak paketi enjekte edilemedi: ${err.message}`);
+    console.error('Failed to inject options:', err.message);
+    logCallback(`[HATA] options.txt dosyası güncellenemedi: ${err.message}`);
   }
 }
 
@@ -346,12 +500,49 @@ function parseCrashLogs(logs: string[]): {
 } {
   const logsText = logs.join('\n');
   
+  // Filter out launcher launch debug/classpath lines to prevent matching classpath jars
+  const cleanLogs = logs.filter(line => {
+    const l = line.toLowerCase();
+    return !l.includes('[debug]') && 
+           !l.includes('-cp') && 
+           !l.includes('-classpath') && 
+           !l.includes('jvm arguments') && 
+           !l.includes('launching with:');
+  });
+  const cleanLogsText = cleanLogs.join('\n');
+
   let suspectedMod = 'Unknown / System';
   let suspectedFilename = 'Java/Minecraft Crash';
-  
+
+  // 1. Out of memory
+  if (logsText.includes('java.lang.OutOfMemoryError') || logsText.includes('OutOfMemory')) {
+    return {
+      suspectedMod: 'Out of Memory',
+      suspectedFilename: 'Insufficient allocated RAM',
+      crashDetails: 'Minecraft run out of memory. Please allocate more RAM in launcher settings.'
+    };
+  }
+
+  // 2. Graphics Driver
+  if (logsText.includes('org.lwjgl.LWJGLException') || logsText.includes('Pixel format not accelerated') || logsText.includes('GLFW error 65542')) {
+    return {
+      suspectedMod: 'Graphics Driver',
+      suspectedFilename: 'OpenGL / GLFW Error',
+      crashDetails: 'Failed to initialize graphics. Please update your GPU drivers.'
+    };
+  }
+
+  // 3. Watchdog timeout
+  if (logsText.includes('Client shutdown watchdog') || logsText.includes('java.lang.Error: Watchdog')) {
+    return {
+      suspectedMod: 'Client Shutdown Watchdog',
+      suspectedFilename: 'System Timeout / Hang',
+      crashDetails: 'The game process took too long to shut down or respond, triggering the Watchdog safety shutdown.'
+    };
+  }
+
+  // 4. JVM / Java Settings
   if (logsText.includes('VM option') || logsText.includes('Java Virtual Machine') || logsText.includes('unlock option') || logsText.includes('unlocking')) {
-    suspectedMod = 'JVM / Java Settings';
-    suspectedFilename = 'JVM Configuration Error';
     const errorLines = logs.filter(line => 
       line.toLowerCase().includes('error:') || 
       line.toLowerCase().includes('vm option') || 
@@ -359,11 +550,77 @@ function parseCrashLogs(logs: string[]): {
       line.toLowerCase().includes('unlocking')
     );
     const details = errorLines.length > 0 ? errorLines.join('\n') : 'Java Virtual Machine failed to start. Check JVM arguments.';
-    return { suspectedMod, suspectedFilename, crashDetails: details };
+    return { suspectedMod: 'JVM / Java Settings', suspectedFilename: 'JVM Configuration Error', crashDetails: details };
   }
-  
-  if (logsText.includes('org.spongepowered.asm') || logsText.includes('mixin') || logsText.includes('FabricLoader') || logsText.includes('fabric-loader')) {
-    const jarMatch = logsText.match(/([a-zA-Z0-9_-]+\.jar)/);
+
+  // 5. Fabric Mod Dependency Mismatch / Missing Mod
+  // Example: Mod 'Online Emotes' (online_emotes) requires version 21.7.0 or later of forgeconfigapiport, which is missing!
+  // Example: Mod 'Noisium' (noisium) 2.7.0+mc1.21.6 requires version 1.21.6 of 'Minecraft' (minecraft), but only the wrong version is present: 1.21.8!
+  const depMatch = cleanLogsText.match(/Mod '([^']+)' \(([^)]+)\)[\s\S]*?requires[\s\S]*?of '?([a-zA-Z0-9_-]+)'?/);
+  if (depMatch) {
+    const modName = depMatch[1];
+    const depId = depMatch[3];
+    const isWrongVersion = cleanLogsText.includes('wrong version is present') || cleanLogsText.includes('is incompatible');
+    return {
+      suspectedMod: modName,
+      suspectedFilename: isWrongVersion ? `Version Mismatch: ${depId}` : `Missing Dependency: ${depId}`,
+      crashDetails: cleanLogs.slice(-12).join('\n')
+    };
+  }
+
+  // Example: [HARD_DEP_NO_CANDIDATE online_emotes ... {depends forgeconfigapiport ...}]
+  const hardDepMatch = cleanLogsText.match(/HARD_DEP_NO_CANDIDATE ([a-zA-Z0-9_-]+)[\s\S]*?\{depends ([a-zA-Z0-9_-]+)/);
+  if (hardDepMatch) {
+    const modId = hardDepMatch[1];
+    const depId = hardDepMatch[2];
+    const modName = modId.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    return {
+      suspectedMod: modName,
+      suspectedFilename: `Missing: ${depId}`,
+      crashDetails: cleanLogs.slice(-12).join('\n')
+    };
+  }
+
+  // Example: Mod 'A' is incompatible with mod 'B'
+  const incompatibilityMatch = cleanLogsText.match(/Mod '([^']+)' \(([^)]+)\) is incompatible with mod '([^']+)'/);
+  if (incompatibilityMatch) {
+    return {
+      suspectedMod: `${incompatibilityMatch[1]} & ${incompatibilityMatch[3]}`,
+      suspectedFilename: 'Mod Conflict',
+      crashDetails: cleanLogs.slice(-12).join('\n')
+    };
+  }
+
+  // 6. Mixin Failures
+  const mixinMatch = cleanLogsText.match(/Mixin apply failed ([a-zA-Z0-9_-]+)\.mixins\.json/);
+  if (mixinMatch) {
+    return {
+      suspectedMod: mixinMatch[1],
+      suspectedFilename: `${mixinMatch[1]}.mixins.json`,
+      crashDetails: cleanLogs.slice(-12).join('\n')
+    };
+  }
+
+  // 7. Check for known package patterns in Java Stack Trace
+  const knownPackages = [
+    { pattern: 'com.marinmc.client', name: 'MarinMC Client Mod', file: 'marinmc-client-mod-1.0.0.jar' },
+    { pattern: 'net.caffeinemc.mods.sodium', name: 'Sodium', file: 'sodium-fabric.jar' },
+    { pattern: 'net.irisshaders.iris', name: 'Iris', file: 'iris-fabric.jar' },
+    { pattern: 'com.kosmx.emotes', name: 'Online Emotes', file: 'online-emotes.jar' },
+    { pattern: 'net.fabricmc.loader', name: 'Fabric Loader', file: 'fabric-loader' },
+    { pattern: 'org.spongepowered.asm.mixin', name: 'Mixin Engine (Mod Conflict)', file: 'mixin' }
+  ];
+  for (const pkg of knownPackages) {
+    if (cleanLogsText.includes(pkg.pattern)) {
+      suspectedMod = pkg.name;
+      suspectedFilename = pkg.file;
+      break;
+    }
+  }
+
+  // 8. General Jar match in clean logs (not in classpath)
+  if (suspectedFilename === 'Java/Minecraft Crash' && (logsText.includes('org.spongepowered.asm') || logsText.includes('mixin') || logsText.includes('FabricLoader') || logsText.includes('fabric-loader'))) {
+    const jarMatch = cleanLogsText.match(/([a-zA-Z0-9_-]+\.jar)/i);
     if (jarMatch && jarMatch[1]) {
       suspectedFilename = jarMatch[1];
       suspectedMod = suspectedFilename
@@ -375,49 +632,27 @@ function parseCrashLogs(logs: string[]): {
       suspectedMod = 'Fabric Loader / Mixin';
       suspectedFilename = 'Mod Conflict or Incompatibility';
     }
-    
-    const crashDetails = logs.slice(-6).join('\n');
-    return { suspectedMod, suspectedFilename, crashDetails };
   }
 
-  if (logsText.includes('java.lang.OutOfMemoryError') || logsText.includes('OutOfMemory')) {
-    suspectedMod = 'Out of Memory';
-    suspectedFilename = 'Insufficient allocated RAM';
-    return {
-      suspectedMod,
-      suspectedFilename,
-      crashDetails: 'Minecraft run out of memory. Please allocate more RAM in launcher settings.'
-    };
-  }
-
-  if (logsText.includes('org.lwjgl.LWJGLException') || logsText.includes('Pixel format not accelerated') || logsText.includes('GLFW error 65542')) {
-    suspectedMod = 'Graphics Driver';
-    suspectedFilename = 'OpenGL / GLFW Error';
-    return {
-      suspectedMod,
-      suspectedFilename,
-      crashDetails: 'Failed to initialize graphics. Please update your GPU drivers.'
-    };
-  }
-
-  const last15Lines = logs.slice(-15);
+  // 9. General stack trace parser
+  const last15Lines = cleanLogs.slice(-15);
+  let stacktraceDetails = '';
   for (let i = last15Lines.length - 1; i >= 0; i--) {
     const line = last15Lines[i];
     if (line.includes('Exception in thread') || line.includes('Caused by:') || line.includes('java.lang.')) {
-      suspectedMod = 'Java Exception';
-      suspectedFilename = line.split(':')[0] || 'Minecraft Crash';
-      return {
-        suspectedMod,
-        suspectedFilename,
-        crashDetails: last15Lines.slice(Math.max(0, i - 1), i + 6).join('\n')
-      };
+      if (suspectedMod === 'Unknown / System') suspectedMod = 'Java Exception';
+      if (suspectedFilename === 'Java/Minecraft Crash') {
+        suspectedFilename = line.split(':')[0].trim().substring(0, 50) || 'Minecraft Crash';
+      }
+      stacktraceDetails = last15Lines.slice(Math.max(0, i - 1), i + 8).join('\n');
+      break;
     }
   }
 
   return {
-    suspectedMod: 'Unknown / Client',
-    suspectedFilename: 'Minecraft Crash',
-    crashDetails: logs.slice(-8).join('\n') || 'Oyun beklenmedik şekilde kapandı (Çıkış kodu: 1).'
+    suspectedMod,
+    suspectedFilename,
+    crashDetails: stacktraceDetails || cleanLogs.slice(-8).join('\n') || 'Oyun beklenmedik şekilde kapandı (Çıkış kodu: 1).'
   };
 }
 
@@ -428,7 +663,16 @@ function isValidUUID(uuidStr?: string): boolean {
 
 let gameProcess: any = null;
 
-export function registerGameHandlers(mainWindow: BrowserWindow) {
+export function registerGameHandlers(rawMainWindow: BrowserWindow) {
+  const mainWindow = {
+    webContents: {
+      send: (channel: string, ...args: any[]) => {
+        if (rawMainWindow && !rawMainWindow.isDestroyed() && !rawMainWindow.webContents.isDestroyed()) {
+          rawMainWindow.webContents.send(channel, ...args);
+        }
+      }
+    }
+  } as unknown as BrowserWindow;
 
   ipcMain.handle('game:launch', async (_event, options: {
     ram: number;
@@ -503,13 +747,17 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
       sendAndLog(`[MarinMC Launcher] Senkronizasyon aşaması başlatıldı (Fabric 1.21.8).`);
 
       // Write cosmetics configuration
-      const cosmeticsConfig = options.cosmetics || { skinType: 'username', capeUrl: '' };
+      const cosmeticsConfig: any = options.cosmetics || { skinType: 'username', capeUrl: '' };
+      if (!cosmeticsConfig.apiUrl) {
+        const isDev = !app.isPackaged;
+        cosmeticsConfig.apiUrl = isDev ? 'http://localhost:3000/api' : 'https://server-two-lyart-67.vercel.app/api';
+      }
       try {
         const configDir = path.join(gameDir, 'config');
         fs.mkdirSync(configDir, { recursive: true });
         const cosmeticsPath = path.join(configDir, 'marinmc-cosmetics.json');
         fs.writeFileSync(cosmeticsPath, JSON.stringify(cosmeticsConfig, null, 2), 'utf8');
-        sendAndLog(`[MarinMC Launcher] Kozmetikler uygulandı (Cilt Tipi: ${cosmeticsConfig.skinType}, Pelerin: ${cosmeticsConfig.capeUrl || 'Yok'}).`);
+        sendAndLog(`[MarinMC Launcher] Kozmetikler uygulandı (Cilt Tipi: ${cosmeticsConfig.skinType}, Pelerin: ${cosmeticsConfig.capeUrl || 'Yok'}, Sunucu: ${cosmeticsConfig.apiUrl}).`);
       } catch (cosmErr: any) {
         console.error('Failed to write cosmetics config:', cosmErr);
         sendAndLog(`[UYARI] Kozmetik konfigürasyonu yazılamadı: ${cosmErr.message}`);
@@ -619,6 +867,13 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
         vanillaVersionNumber = parts[parts.length - 1]; // e.g., '1.21.8'
       }
 
+      // Clamp RAM to a safe value based on total system memory
+      const requestedRam = options.ram || 4096;
+      const safeRam = backendSettings.smartJvmOpt ? getSafeRamMb(requestedRam) : requestedRam;
+      if (safeRam !== requestedRam) {
+        sendAndLog(`[MarinMC Launcher] ⚠️ Bellek limiti güvenli değere düşürüldü: ${requestedRam}M → ${safeRam}M (Toplam RAM yetersiz)`);
+      }
+
       const launchOptions: any = {
         authorization: auth,
         root: gameDir,
@@ -628,7 +883,7 @@ export function registerGameHandlers(mainWindow: BrowserWindow) {
           type: 'release'
         },
         memory: {
-          max: `${options.ram || 4096}M`,
+          max: `${safeRam}M`,
           min: '512M'
         },
         javaPath: javaPathResolved,

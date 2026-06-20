@@ -208,6 +208,10 @@ export const initDb = async () => {
   await addColumnSafe('cosmetics', 'purchased_capes', "TEXT DEFAULT '[]'");
   await addColumnSafe('cosmetics', 'model_type', "VARCHAR(50) DEFAULT 'classic'");
   await addColumnSafe('cosmetics', 'wings_enabled', 'INTEGER DEFAULT 1');
+  await addColumnSafe('cosmetics', 'hat_name', "VARCHAR(100) DEFAULT ''");
+  await addColumnSafe('cosmetics', 'wings_name', "VARCHAR(100) DEFAULT ''");
+  await addColumnSafe('cosmetics', 'staff_name', "VARCHAR(100) DEFAULT ''");
+  await addColumnSafe('cosmetics', 'pet_name', "VARCHAR(100) DEFAULT ''");
 
   console.log('[DB] Database tables successfully initialized.');
 };

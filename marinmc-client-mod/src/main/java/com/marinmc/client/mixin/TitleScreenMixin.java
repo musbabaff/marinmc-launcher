@@ -119,30 +119,40 @@ public class TitleScreenMixin extends Screen {
         context.drawBorder(closeX, trY, 15, 15, closeHovered ? 0xC0EF4444 : 0x30FFFFFF);
         context.drawCenteredTextWithShadow(this.textRenderer, "✖", closeX + 7, trY + 4, closeHovered ? 0xFFFFFFFF : 0xFFA1A1AA);
 
-        // 5. Discord Banner — Premium design with pixel-art Discord logo
-        int dbX = this.width / 2 - 110;
+        // 5. Discord Banner — Redesigned ultra-premium glassmorphic Discord card
+        int dbW = 240;
+        int dbH = 36;
+        int dbX = this.width / 2 - dbW / 2;
         int dbY = this.height / 2 + 68;
-        int dbW = 220;
-        int dbH = 32;
         boolean bannerHovered = mouseX >= dbX && mouseX <= dbX + dbW && mouseY >= dbY && mouseY <= dbY + dbH;
-        // Glass background with Discord purple tint
-        context.fill(dbX, dbY, dbX + dbW, dbY + dbH, bannerHovered ? 0xD05865F2 : 0xA04752C4);
-        context.drawBorder(dbX, dbY, dbW, dbH, bannerHovered ? 0xFF8B9FF2 : 0x805865F2);
-        // Pixel-art Discord logo (simplified gamepad shape)
-        int dix = dbX + 9;
-        int diy = dbY + 8;
-        context.fill(dix + 2, diy, dix + 14, diy + 2, 0xFFFFFFFF);       // top bar
-        context.fill(dix, diy + 2, dix + 4, diy + 10, 0xFFFFFFFF);       // left side
-        context.fill(dix + 12, diy + 2, dix + 16, diy + 10, 0xFFFFFFFF); // right side
-        context.fill(dix + 3, diy + 4, dix + 5, diy + 6, 0xFF5865F2);    // left eye
-        context.fill(dix + 11, diy + 4, dix + 13, diy + 6, 0xFF5865F2);  // right eye
-        context.fill(dix + 2, diy + 10, dix + 6, diy + 14, 0xFFFFFFFF);  // left foot
-        context.fill(dix + 10, diy + 10, dix + 14, diy + 14, 0xFFFFFFFF);// right foot
-        // i18n text
+
+        // Deep glass Discord background with smooth neon purple glow
+        context.fill(dbX, dbY, dbX + dbW, dbY + dbH, bannerHovered ? 0xE55865F2 : 0xAC3E4A8C);
+        context.drawBorder(dbX, dbY, dbW, dbH, bannerHovered ? 0xFFB5C2FF : 0x708B9FF2);
+
+        // Draw soft glow borders on hover
+        if (bannerHovered) {
+            context.drawBorder(dbX - 1, dbY - 1, dbW + 2, dbH + 2, 0x335865F2);
+            context.drawBorder(dbX - 2, dbY - 2, dbW + 4, dbH + 4, 0x115865F2);
+        }
+
+        // Programmatically draw a sleek high-res pixel-art gamepad/Discord logo
+        int dix = dbX + 12;
+        int diy = dbY + 11;
+        context.fill(dix + 2, diy, dix + 14, diy + 11, 0xFFFFFFFF); // body
+        context.fill(dix, diy + 3, dix + 2, diy + 9, 0xFFFFFFFF);   // left ear
+        context.fill(dix + 14, diy + 3, dix + 16, diy + 9, 0xFFFFFFFF); // right ear
+        context.fill(dix + 4, diy + 11, dix + 6, diy + 14, 0xFFFFFFFF); // left leg
+        context.fill(dix + 10, diy + 11, dix + 12, diy + 14, 0xFFFFFFFF); // right leg
+        context.fill(dix + 4, diy + 4, dix + 6, diy + 6, bannerHovered ? 0xFF5865F2 : 0xFF3E4A8C); // left eye
+        context.fill(dix + 10, diy + 4, dix + 12, diy + 6, bannerHovered ? 0xFF5865F2 : 0xFF3E4A8C); // right eye
+        context.fill(dix + 7, diy + 8, dix + 9, diy + 9, bannerHovered ? 0xFF5865F2 : 0xFF3E4A8C); // smile
+
+        // i18n text with shadow, beautifully spaced
         String discordTitle = Text.translatable("marinmc.menu.join_discord").getString();
         String discordDesc = Text.translatable("marinmc.menu.discord_desc").getString();
-        context.drawTextWithShadow(this.textRenderer, discordTitle, dbX + 32, dbY + 5, 0xFFFFFFFF);
-        context.drawTextWithShadow(this.textRenderer, discordDesc, dbX + 32, dbY + 17, 0xFFD0D4FF);
+        context.drawTextWithShadow(this.textRenderer, discordTitle, dbX + 36, dbY + 6, 0xFFFFFFFF);
+        context.drawTextWithShadow(this.textRenderer, discordDesc, dbX + 36, dbY + 19, 0xFFD0D4FF);
 
         // Render widgets (3 glass center buttons)
         super.render(context, mouseX, mouseY, delta);
@@ -296,9 +306,11 @@ public class TitleScreenMixin extends Screen {
         }
 
         // Discord banner → marinmc.com/discord
-        int dbX = this.width / 2 - 110;
+        int dbW_click = 240;
+        int dbH_click = 36;
+        int dbX = this.width / 2 - dbW_click / 2;
         int dbY = this.height / 2 + 68;
-        if (mouseX >= dbX && mouseX <= dbX + 220 && mouseY >= dbY && mouseY <= dbY + 32) {
+        if (mouseX >= dbX && mouseX <= dbX + dbW_click && mouseY >= dbY && mouseY <= dbY + dbH_click) {
             Util.getOperatingSystem().open("https://marinmc.com/discord");
             return true;
         }

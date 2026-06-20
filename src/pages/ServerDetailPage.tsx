@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import logoSvg from '../../assets/logo.svg';
+import { getApiBaseUrl } from '../lib/api.ts';
 
 const translations = {
   tr: {
@@ -274,7 +275,8 @@ export default function ServerDetailPage() {
           discordRpcEnabled: useSettingsStore.getState().discordRpcEnabled,
           cosmetics: {
             skinType: (localStorage.getItem('marinmc_active_skin_type') as any) || 'username',
-            capeUrl: localStorage.getItem('marinmc_active_cape_url') || ''
+            capeUrl: localStorage.getItem('marinmc_active_cape_url') || '',
+            apiUrl: getApiBaseUrl()
           }
         };
 

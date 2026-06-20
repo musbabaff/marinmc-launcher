@@ -16,7 +16,8 @@
     "ItemEntityRendererMixin",
     "TntEntityRendererMixin",
     "CameraMixin",
-    "MouseMixin"
+    "MouseMixin",
+    "OnlineNetworkInstanceMixin"
   ],
   "injectors": {
     "defaultRequire": 1

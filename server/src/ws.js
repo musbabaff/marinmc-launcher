@@ -3,13 +3,41 @@ import { dbAll, dbRun, dbGet } from './db.js';
 
 // Map to store active connections: username -> ws
 const clients = new Map();
+let emoteWss = null;
 
 export const isUserOnline = (username) => clients.has(username.toLowerCase());
 
 export const initWebSocket = (server) => {
   const wss = new WebSocketServer({ noServer: true });
+  emoteWss = new WebSocketServer({ noServer: true });
 
   console.log('[WebSocket] WebSocket Server initialized.');
+  console.log('[WebSocket] Emote WebSocket Server initialized.');
+
+  // Set up emoteWss connection logic
+  emoteWss.on('connection', (ws, request) => {
+    console.log('[EmoteWS] Client connected.');
+    
+    // Send welcome frame to turn off compression
+    ws.send(JSON.stringify({ compression: 0 }));
+
+    ws.on('message', (message, isBinary) => {
+      // Broadcast binary or text frame to all other connected clients
+      emoteWss.clients.forEach((client) => {
+        if (client !== ws && client.readyState === 1) { // 1 = WebSocket.OPEN
+          client.send(message, { binary: isBinary });
+        }
+      });
+    });
+
+    ws.on('close', () => {
+      console.log('[EmoteWS] Client disconnected.');
+    });
+
+    ws.on('error', (err) => {
+      console.error('[EmoteWS] Socket error:', err.message);
+    });
+  });
 
   wss.on('connection', async (ws, request) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
@@ -176,6 +204,11 @@ export const initWebSocket = (server) => {
       console.log('[WebSocket Upgrade] Upgrading socket connection...');
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
+      });
+    } else if (pathname === '/emotes') {
+      console.log('[WebSocket Upgrade] Upgrading emote socket connection...');
+      emoteWss.handleUpgrade(request, socket, head, (ws) => {
+        emoteWss.emit('connection', ws, request);
       });
     } else {
       socket.destroy();

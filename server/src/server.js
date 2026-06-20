@@ -6,8 +6,13 @@ import rateLimit from 'express-rate-limit';
 import hpp from 'hpp';
 import { z } from 'zod';
 import crypto from 'crypto';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { ensureDbInitialized, dbGet, dbRun, dbAll } from './db.js';
 import { initWebSocket, isUserOnline } from './ws.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -36,6 +41,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Serve static cosmetics files
+app.use('/cosmetics', express.static(path.join(__dirname, '../cosmetics')));
 
 // Logger middleware
 app.use((req, res, next) => {
@@ -87,6 +95,10 @@ const cosmeticsSchema = z.object({
   purchasedCapes: z.array(z.string()).optional(),
   modelType: z.enum(['classic', 'slim']).optional(),
   wingsEnabled: z.boolean().optional(),
+  hatName: z.string().max(100).optional(),
+  wingsName: z.string().max(100).optional(),
+  staffName: z.string().max(100).optional(),
+  petName: z.string().max(100).optional(),
   coins: z.number().nonnegative().optional()
 });
 
@@ -456,6 +468,41 @@ router.get('/leaderboard', async (req, res) => {
   }
 });
 
+// --- PUBLIC COSMETICS (for in-game retrieval) ---
+router.get('/public/users/:username/cosmetics', validateUsername, async (req, res) => {
+  const username = req.params.username;
+  try {
+    const cos = await dbGet('SELECT * FROM cosmetics WHERE username = ?', [username]);
+    if (!cos) {
+      res.json({
+        skinType: 'username',
+        skinVal: username,
+        capeUrl: '',
+        modelType: 'classic',
+        wingsEnabled: true,
+        hatName: '',
+        wingsName: '',
+        staffName: '',
+        petName: ''
+      });
+    } else {
+      res.json({
+        skinType: cos.skin_type,
+        skinVal: cos.skin_val,
+        capeUrl: cos.cape_url,
+        modelType: cos.model_type || 'classic',
+        wingsEnabled: cos.wings_enabled !== 0,
+        hatName: cos.hat_name || '',
+        wingsName: cos.wings_name || '',
+        staffName: cos.staff_name || '',
+        petName: cos.pet_name || ''
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- COSMETICS ---
 router.get('/users/:username/cosmetics', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
@@ -475,6 +522,10 @@ router.get('/users/:username/cosmetics', validateUsername, authenticateToken, au
         purchasedCapes: [],
         modelType: 'classic',
         wingsEnabled: true,
+        hatName: '',
+        wingsName: '',
+        staffName: '',
+        petName: '',
         coins
       });
     } else {
@@ -493,6 +544,10 @@ router.get('/users/:username/cosmetics', validateUsername, authenticateToken, au
         purchasedCapes,
         modelType: cos.model_type || 'classic',
         wingsEnabled: cos.wings_enabled !== 0,
+        hatName: cos.hat_name || '',
+        wingsName: cos.wings_name || '',
+        staffName: cos.staff_name || '',
+        petName: cos.pet_name || '',
         coins
       });
     }
@@ -510,7 +565,7 @@ router.put('/users/:username/cosmetics', validateUsername, authenticateToken, au
     return res.status(400).json({ error: 'Geçersiz veri formatı.', details: validation.error.format() });
   }
 
-  const { skinType, skinVal, capeUrl, purchasedCapes, modelType, wingsEnabled, coins } = validation.data;
+  const { skinType, skinVal, capeUrl, purchasedCapes, modelType, wingsEnabled, hatName, wingsName, staffName, petName, coins } = validation.data;
   try {
     if (coins !== undefined) {
       await dbRun('UPDATE users SET coins = ? WHERE username = ?', [coins, username]);
@@ -522,8 +577,8 @@ router.put('/users/:username/cosmetics', validateUsername, authenticateToken, au
     
     if (!cos) {
       await dbRun(`
-        INSERT INTO cosmetics (username, skin_type, skin_val, cape_url, purchased_capes, model_type, wings_enabled)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO cosmetics (username, skin_type, skin_val, cape_url, purchased_capes, model_type, wings_enabled, hat_name, wings_name, staff_name, pet_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         username,
         skinType || 'username',
@@ -531,12 +586,16 @@ router.put('/users/:username/cosmetics', validateUsername, authenticateToken, au
         capeUrl || '',
         purchasedStr || '[]',
         modelType || 'classic',
-        wingsVal !== null ? wingsVal : 1
+        wingsVal !== null ? wingsVal : 1,
+        hatName || '',
+        wingsName || '',
+        staffName || '',
+        petName || ''
       ]);
     } else {
       await dbRun(`
         UPDATE cosmetics
-        SET skin_type = ?, skin_val = ?, cape_url = ?, purchased_capes = ?, model_type = ?, wings_enabled = ?
+        SET skin_type = ?, skin_val = ?, cape_url = ?, purchased_capes = ?, model_type = ?, wings_enabled = ?, hat_name = ?, wings_name = ?, staff_name = ?, pet_name = ?
         WHERE username = ?
       `, [
         skinType || cos.skin_type,
@@ -545,6 +604,10 @@ router.put('/users/:username/cosmetics', validateUsername, authenticateToken, au
         purchasedStr !== null ? purchasedStr : cos.purchased_capes,
         modelType || cos.model_type,
         wingsVal !== null ? wingsVal : cos.wings_enabled,
+        hatName !== undefined ? hatName : cos.hat_name,
+        wingsName !== undefined ? wingsName : cos.wings_name,
+        staffName !== undefined ? staffName : cos.staff_name,
+        petName !== undefined ? petName : cos.pet_name,
         username
       ]);
     }

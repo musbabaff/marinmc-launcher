@@ -6,7 +6,7 @@ import { useSettingsStore } from '../stores/settingsStore.ts';
 import { useSocialStore } from '../stores/socialStore.ts';
 import { useAppStore } from '../stores/appStore.ts';
 import { sanitizeUrl, sanitizeParam } from '../lib/security.ts';
-import { api } from '../lib/api.ts';
+import { api, getApiBaseUrl } from '../lib/api.ts';
 import VersionModal from '../components/VersionModal.tsx';
 import ProfileSettingsModal from '../components/ProfileSettingsModal.tsx';
 import {
@@ -334,7 +334,8 @@ export default function HomePage() {
           fullscreen: settings.fullscreen,
           cosmetics: {
             skinType: (localStorage.getItem('marinmc_active_skin_type') as any) || 'username',
-            capeUrl: localStorage.getItem('marinmc_active_cape_url') || ''
+            capeUrl: localStorage.getItem('marinmc_active_cape_url') || '',
+            apiUrl: getApiBaseUrl()
           }
         };
 

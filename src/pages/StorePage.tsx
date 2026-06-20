@@ -3,7 +3,7 @@ import { ShoppingBag, Sparkles, CreditCard, Shield } from 'lucide-react';
 
 export default function StorePage() {
   return (
-    <div className="flex-1 flex flex-col p-6 overflow-hidden bg-[#060305] text-[#d2d2d2] select-none h-full relative justify-between">
+    <div className="flex-1 flex flex-col p-6 overflow-hidden bg-[#080d1a] text-[#d2d2d2] select-none h-full relative justify-between">
       {/* Top action bar */}
       <div className="flex items-center justify-between mb-5 shrink-0">
         <div>
@@ -23,16 +23,16 @@ export default function StorePage() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-[580px] bg-gradient-to-br from-[#0c080e] via-[#09070a] to-[#0c080e] border border-white/[0.05] rounded-3xl p-8 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] text-center flex flex-col items-center"
+          className="w-full max-w-[580px] bg-gradient-to-br from-[#0c152b] via-[#080d1a] to-[#0c152b] border border-white/[0.05] rounded-3xl p-8 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] text-center flex flex-col items-center"
         >
           {/* Neon background glows */}
           <div className="absolute top-0 left-1/4 w-32 h-32 bg-[#2D7DD2]/10 rounded-full blur-[40px] pointer-events-none" />
-          <div className="absolute bottom-0 right-1/4 w-32 h-32 bg-[#8B5CF6]/10 rounded-full blur-[40px] pointer-events-none" />
+          <div className="absolute bottom-0 right-1/4 w-32 h-32 bg-[#EAB308]/10 rounded-full blur-[40px] pointer-events-none" />
           
           {/* Lock Icon inside glowing ring */}
-          <div className="w-16 h-16 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/25 flex items-center justify-center mb-5 relative group">
-            <div className="absolute inset-0 bg-[#8B5CF6]/5 rounded-2xl blur-lg group-hover:bg-[#8B5CF6]/10 transition-all" />
-            <Shield className="w-7 h-7 text-[#8B5CF6] animate-pulse" />
+          <div className="w-16 h-16 rounded-2xl bg-[#EAB308]/10 border border-[#EAB308]/25 flex items-center justify-center mb-5 relative group">
+            <div className="absolute inset-0 bg-[#EAB308]/5 rounded-2xl blur-lg group-hover:bg-[#EAB308]/10 transition-all" />
+            <Shield className="w-7 h-7 text-[#EAB308] animate-pulse" />
           </div>
 
           <span className="px-3.5 py-1 bg-[#2D7DD2]/10 border border-[#2D7DD2]/30 text-[#2D7DD2] text-[8px] font-black tracking-widest rounded-full uppercase mb-3.5 animate-bounce">
@@ -51,7 +51,7 @@ export default function StorePage() {
           <div className="grid grid-cols-3 gap-3.5 w-full text-left mb-6">
             {[
               { title: 'Rütbeler & VIP', desc: 'VIP, MVP ve özel lobi uçuş yetkileri.', icon: Sparkles, color: 'text-emerald-400 bg-emerald-400/5 border-emerald-400/15' },
-              { title: '3D Kozmetikler', desc: 'Özel pelerinler ve kanat modelleri.', icon: ShoppingBag, color: 'text-[#8B5CF6] bg-[#8B5CF6]/5 border-[#8B5CF6]/15' },
+              { title: '3D Kozmetikler', desc: 'Özel pelerinler ve kanat modelleri.', icon: ShoppingBag, color: 'text-[#EAB308] bg-[#EAB308]/5 border-[#EAB308]/15' },
               { title: 'Kasa Anahtarları', desc: 'Gizemli kutular ve şans ödülleri.', icon: CreditCard, color: 'text-amber-400 bg-amber-400/5 border-amber-400/15' },
             ].map((feat, idx) => {
               const Icon = feat.icon;

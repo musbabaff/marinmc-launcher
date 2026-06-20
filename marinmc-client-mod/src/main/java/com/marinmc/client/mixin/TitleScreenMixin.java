@@ -22,7 +22,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class TitleScreenMixin extends Screen {
     private static final Identifier LOGO_TEXTURE = Identifier.of("marinmc-client", "textures/gui/logo.png");
 
-    private boolean accountDropdownOpen = false;
     private int hoveredIconIndex = -1;
 
     protected TitleScreenMixin(Text title) {
@@ -95,64 +94,60 @@ public class TitleScreenMixin extends Screen {
             logoSize, logoSize
         );
 
-        // 3. Top-Left Account Card — REAL username from session
-        String playerName = "Player";
-        if (this.client != null && this.client.getSession() != null) {
-            playerName = this.client.getSession().getUsername();
+        // 3. Top-Left Logo + Text (Altın/beyaz çerçeveli küçük logo ve mavi "MarinMC" yazısı)
+        int logoSizeSmall = 16;
+        int logoSmallX = 14;
+        int logoSmallY = 13;
+
+        // Draw gold/white container border
+        context.fill(10, 10, 115, 32, 0x50000000);
+        context.drawBorder(10, 10, 105, 22, 0xFFFFD700); // Gold border
+
+        // Draw the logo inside it
+        context.drawTexture(
+            RenderPipelines.GUI_TEXTURED,
+            LOGO_TEXTURE,
+            logoSmallX, logoSmallY,
+            0f, 0f,
+            logoSizeSmall, logoSizeSmall,
+            logoSizeSmall, logoSizeSmall
+        );
+
+        // Draw "MarinMC" text in blue
+        context.drawTextWithShadow(this.textRenderer, "MarinMC", logoSmallX + 22, logoSmallY + 4, 0xFF2D7DD2);
+
+        // 5. Horizontal Social Media Bar (Discord, Instagram, TikTok, YouTube)
+        int socialBarW = 140;
+        int socialBarH = 28;
+        int socialBarX = this.width / 2 - socialBarW / 2;
+        int socialBarY = this.height / 2 + 68;
+
+        // Deep glass background with theme blue border
+        context.fill(socialBarX, socialBarY, socialBarX + socialBarW, socialBarY + socialBarH, 0x60000000);
+        context.drawBorder(socialBarX, socialBarY, socialBarW, socialBarH, 0x802D7DD2); // Theme blue border
+
+        int buttonSize = 22;
+        int gap = 8;
+        int startX = socialBarX + 12;
+        int startY = socialBarY + 3;
+
+        for (int i = 0; i < 4; i++) {
+            int bx = startX + i * (buttonSize + gap);
+            boolean btnHovered = mouseX >= bx && mouseX <= bx + buttonSize && mouseY >= startY && mouseY <= startY + buttonSize;
+
+            // Hover background
+            context.fill(bx, startY, bx + buttonSize, startY + buttonSize, btnHovered ? 0x802D7DD2 : 0x20FFFFFF);
+            context.drawBorder(bx, startY, buttonSize, buttonSize, btnHovered ? 0xFFFFD700 : 0x30FFFFFF); // Gold on hover
+
+            int color = btnHovered ? 0xFFFFFFFF : 0xFFA1A1AA;
+            String letter = "";
+            if (i == 0) letter = "D"; // Discord
+            else if (i == 1) letter = "I"; // Instagram
+            else if (i == 2) letter = "T"; // TikTok
+            else if (i == 3) letter = "Y"; // YouTube
+
+            context.drawCenteredTextWithShadow(this.textRenderer, letter, bx + buttonSize / 2, startY + 7, color);
         }
-        int alX = 10;
-        int alY = 10;
-        int alW = Math.max(85, this.textRenderer.getWidth(playerName) + 30);
-        int alH = 22;
-        boolean userCardHovered = mouseX >= alX && mouseX <= alX + alW && mouseY >= alY && mouseY <= alY + alH;
-        context.fill(alX, alY, alX + alW, alY + alH, userCardHovered ? 0x70553388 : 0x50000000);
-        context.drawBorder(alX, alY, alW, alH, userCardHovered ? 0xA0B180E8 : 0x30FFFFFF);
-        drawSteveFace(context, alX + 4, alY + 5, 12);
-        context.drawTextWithShadow(this.textRenderer, playerName, alX + 20, alY + 7, 0xFFFFFFFF);
-        context.drawTextWithShadow(this.textRenderer, "▼", alX + alW - 12, alY + 7, 0xFFA1A1AA);
-
-        // 4. Top-Right — ONLY close button (no coins, no theme)
-        int trY = 10;
-        int closeX = this.width - 25;
-        boolean closeHovered = mouseX >= closeX && mouseX <= closeX + 15 && mouseY >= trY && mouseY <= trY + 15;
-        context.fill(closeX, trY, closeX + 15, trY + 15, closeHovered ? 0x80EF4444 : 0x40000000);
-        context.drawBorder(closeX, trY, 15, 15, closeHovered ? 0xC0EF4444 : 0x30FFFFFF);
-        context.drawCenteredTextWithShadow(this.textRenderer, "✖", closeX + 7, trY + 4, closeHovered ? 0xFFFFFFFF : 0xFFA1A1AA);
-
-        // 5. Discord Banner — Redesigned ultra-premium glassmorphic Discord card
-        int dbW = 240;
-        int dbH = 36;
-        int dbX = this.width / 2 - dbW / 2;
-        int dbY = this.height / 2 + 68;
-        boolean bannerHovered = mouseX >= dbX && mouseX <= dbX + dbW && mouseY >= dbY && mouseY <= dbY + dbH;
-
-        // Deep glass Discord background with smooth neon purple glow
-        context.fill(dbX, dbY, dbX + dbW, dbY + dbH, bannerHovered ? 0xE55865F2 : 0xAC3E4A8C);
-        context.drawBorder(dbX, dbY, dbW, dbH, bannerHovered ? 0xFFB5C2FF : 0x708B9FF2);
-
-        // Draw soft glow borders on hover
-        if (bannerHovered) {
-            context.drawBorder(dbX - 1, dbY - 1, dbW + 2, dbH + 2, 0x335865F2);
-            context.drawBorder(dbX - 2, dbY - 2, dbW + 4, dbH + 4, 0x115865F2);
-        }
-
-        // Programmatically draw a sleek high-res pixel-art gamepad/Discord logo
-        int dix = dbX + 12;
-        int diy = dbY + 11;
-        context.fill(dix + 2, diy, dix + 14, diy + 11, 0xFFFFFFFF); // body
-        context.fill(dix, diy + 3, dix + 2, diy + 9, 0xFFFFFFFF);   // left ear
-        context.fill(dix + 14, diy + 3, dix + 16, diy + 9, 0xFFFFFFFF); // right ear
-        context.fill(dix + 4, diy + 11, dix + 6, diy + 14, 0xFFFFFFFF); // left leg
-        context.fill(dix + 10, diy + 11, dix + 12, diy + 14, 0xFFFFFFFF); // right leg
-        context.fill(dix + 4, diy + 4, dix + 6, diy + 6, bannerHovered ? 0xFF5865F2 : 0xFF3E4A8C); // left eye
-        context.fill(dix + 10, diy + 4, dix + 12, diy + 6, bannerHovered ? 0xFF5865F2 : 0xFF3E4A8C); // right eye
-        context.fill(dix + 7, diy + 8, dix + 9, diy + 9, bannerHovered ? 0xFF5865F2 : 0xFF3E4A8C); // smile
-
-        // i18n text with shadow, beautifully spaced
-        String discordTitle = Text.translatable("marinmc.menu.join_discord").getString();
-        String discordDesc = Text.translatable("marinmc.menu.discord_desc").getString();
-        context.drawTextWithShadow(this.textRenderer, discordTitle, dbX + 36, dbY + 6, 0xFFFFFFFF);
-        context.drawTextWithShadow(this.textRenderer, discordDesc, dbX + 36, dbY + 19, 0xFFD0D4FF);
 
         // Render widgets (3 glass center buttons)
         super.render(context, mouseX, mouseY, delta);
@@ -172,8 +167,8 @@ public class TitleScreenMixin extends Screen {
             boolean iconHovered = mouseX >= ix && mouseX <= ix + iconSize && mouseY >= ibY && mouseY <= ibY + iconSize;
 
             // Glass background
-            context.fill(ix, ibY, ix + iconSize, ibY + iconSize, iconHovered ? 0x70553388 : 0x40000000);
-            context.drawBorder(ix, ibY, iconSize, iconSize, iconHovered ? 0xA0B180E8 : 0x25FFFFFF);
+            context.fill(ix, ibY, ix + iconSize, ibY + iconSize, iconHovered ? 0x70132247 : 0x40000000);
+            context.drawBorder(ix, ibY, iconSize, iconSize, iconHovered ? 0xFFFFD700 : 0x25FFFFFF);
 
             int symColor = iconHovered ? 0xFFFFFFFF : 0xFFA1A1AA;
             context.drawCenteredTextWithShadow(this.textRenderer, symbols[i], ix + iconSize / 2, ibY + 8, symColor);
@@ -184,7 +179,7 @@ public class TitleScreenMixin extends Screen {
         }
 
         // Tooltips for bottom icons — i18n
-        if (hoveredIconIndex != -1 && !accountDropdownOpen) {
+        if (hoveredIconIndex != -1) {
             String[] titleKeys = {
                 "marinmc.menu.marinmc_settings",
                 "marinmc.menu.minecraft_settings",
@@ -208,47 +203,10 @@ public class TitleScreenMixin extends Screen {
             int tx = ibX + hoveredIconIndex * (iconSize + iconGap) + iconSize / 2 - tw / 2;
             int ty = ibY - th - 8;
 
-            context.fill(tx, ty, tx + tw, ty + th, 0xF0070408);
-            context.drawBorder(tx, ty, tw, th, 0x60B180E8);
+            context.fill(tx, ty, tx + tw, ty + th, 0xF0080D1A);
+            context.drawBorder(tx, ty, tw, th, 0x802D7DD2);
             context.drawCenteredTextWithShadow(this.textRenderer, title, tx + tw / 2, ty + 4, 0xFFFFFFFF);
             context.drawCenteredTextWithShadow(this.textRenderer, subtitle, tx + tw / 2, ty + 15, 0xFF64748B);
-        }
-
-        // 7. Account Dropdown Panel (if open) — REAL data + premium/cracked detection
-        if (accountDropdownOpen) {
-            String dropdownName = "Player";
-            boolean isPremium = false;
-            if (this.client != null && this.client.getSession() != null) {
-                dropdownName = this.client.getSession().getUsername();
-                // Detect account type: MSA = premium, anything else = cracked/offline
-                try {
-                    String accType = this.client.getSession().getAccountType().getName();
-                    isPremium = "msa".equalsIgnoreCase(accType);
-                } catch (Exception e) {
-                    isPremium = false;
-                }
-            }
-
-            int adX = 10;
-            int adY = 34;
-            int adW = 170;
-            int adH = 80;
-            context.fill(adX, adY, adX + adW, adY + adH, 0xF0070408);
-            context.drawBorder(adX, adY, adW, adH, 0x60B180E8);
-
-            drawSteveFace(context, adX + 12, adY + 12, 32);
-            context.drawTextWithShadow(this.textRenderer, dropdownName, adX + 50, adY + 16, 0xFFFFFFFF);
-            // Show Premium or Cracked based on actual account type
-            String accLabel = isPremium ? Text.translatable("marinmc.menu.premium").getString() : Text.translatable("marinmc.menu.cracked").getString();
-            int accColor = isPremium ? 0xFF22C55E : 0xFFF59E0B;
-            context.drawTextWithShadow(this.textRenderer, accLabel, adX + 50, adY + 28, accColor);
-
-            int btnY = adY + 48;
-            String accSettingsText = Text.translatable("marinmc.menu.account_settings").getString();
-            boolean b1Hover = mouseX >= adX + 10 && mouseX <= adX + adW - 10 && mouseY >= btnY && mouseY <= btnY + 16;
-            context.fill(adX + 10, btnY, adX + adW - 10, btnY + 16, b1Hover ? 0x60553388 : 0x30555555);
-            context.drawBorder(adX + 10, btnY, adW - 20, 16, b1Hover ? 0xA0B180E8 : 0x20FFFFFF);
-            context.drawCenteredTextWithShadow(this.textRenderer, "⚙ " + accSettingsText, adX + adW / 2, btnY + 4, 0xFFFFFFFF);
         }
 
         ci.cancel();
@@ -256,63 +214,28 @@ public class TitleScreenMixin extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        // Close dropdown if open and clicked outside
-        if (accountDropdownOpen) {
-            int adX = 10;
-            int adY = 34;
-            int adW = 170;
-            int adH = 80;
-            if (!(mouseX >= adX && mouseX <= adX + adW && mouseY >= adY && mouseY <= adY + adH)) {
-                int alX = 10;
-                int alY = 10;
-                int alW = 85;
-                int alH = 22;
-                if (!(mouseX >= alX && mouseX <= alX + alW && mouseY >= alY && mouseY <= alY + alH)) {
-                    accountDropdownOpen = false;
-                }
-            } else {
-                int btnY = adY + 48;
-                if (mouseX >= adX + 10 && mouseX <= adX + adW - 10 && mouseY >= btnY && mouseY <= btnY + 16) {
-                    accountDropdownOpen = false;
-                    // Open Minecraft Options as account settings
-                    if (this.client != null) {
-                        this.client.setScreen(new OptionsScreen(this, this.client.options));
-                    }
+        // Social Media Bar click handlers
+        int socialBarW = 140;
+        int socialBarH = 28;
+        int socialBarX = this.width / 2 - socialBarW / 2;
+        int socialBarY = this.height / 2 + 68;
+        if (mouseY >= socialBarY + 3 && mouseY <= socialBarY + 25) {
+            int buttonSize = 22;
+            int gap = 8;
+            int startX = socialBarX + 12;
+            for (int i = 0; i < 4; i++) {
+                int bx = startX + i * (buttonSize + gap);
+                if (mouseX >= bx && mouseX <= bx + buttonSize) {
+                    String[] socialUrls = {
+                        "https://marinmc.com/discord",
+                        "https://instagram.com/marinmc",
+                        "https://tiktok.com/@marinmc",
+                        "https://youtube.com/@marinmc"
+                    };
+                    Util.getOperatingSystem().open(socialUrls[i]);
                     return true;
                 }
-                return true;
             }
-        }
-
-        // Account card toggle
-        int alX = 10;
-        int alY = 10;
-        int alH = 22;
-        String playerName = "Player";
-        if (this.client != null && this.client.getSession() != null) {
-            playerName = this.client.getSession().getUsername();
-        }
-        int alW = Math.max(85, this.textRenderer.getWidth(playerName) + 30);
-        if (mouseX >= alX && mouseX <= alX + alW && mouseY >= alY && mouseY <= alY + alH) {
-            accountDropdownOpen = !accountDropdownOpen;
-            return true;
-        }
-
-        // Close button
-        int closeX = this.width - 25;
-        if (mouseX >= closeX && mouseX <= closeX + 15 && mouseY >= 10 && mouseY <= 25) {
-            if (this.client != null) this.client.scheduleStop();
-            return true;
-        }
-
-        // Discord banner → marinmc.com/discord
-        int dbW_click = 240;
-        int dbH_click = 36;
-        int dbX = this.width / 2 - dbW_click / 2;
-        int dbY = this.height / 2 + 68;
-        if (mouseX >= dbX && mouseX <= dbX + dbW_click && mouseY >= dbY && mouseY <= dbY + dbH_click) {
-            Util.getOperatingSystem().open("https://marinmc.com/discord");
-            return true;
         }
 
         // Bottom icon bar
@@ -365,33 +288,5 @@ public class TitleScreenMixin extends Screen {
                 }
                 break;
         }
-    }
-
-    // Helper to draw a pixel-perfect Steve Face
-    private void drawSteveFace(DrawContext context, int x, int y, int size) {
-        int p = size / 8;
-        if (p < 1) p = 1;
-        context.fill(x, y, x + size, y + p, 0xFF2D1606);
-        context.fill(x, y + p, x + size, y + p * 2, 0xFF2D1606);
-        context.fill(x, y + p * 2, x + p, y + p * 3, 0xFF2D1606);
-        context.fill(x + p, y + p * 2, x + p * 7, y + p * 3, 0xFFF6C095);
-        context.fill(x + p * 7, y + p * 2, x + size, y + p * 3, 0xFF2D1606);
-        context.fill(x, y + p * 3, x + p, y + p * 4, 0xFF2D1606);
-        context.fill(x + p, y + p * 3, x + size - p, y + p * 4, 0xFFF6C095);
-        context.fill(x + size - p, y + p * 3, x + size, y + p * 4, 0xFF2D1606);
-        context.fill(x, y + p * 4, x + p, y + p * 5, 0xFFF6C095);
-        context.fill(x + p, y + p * 4, x + p * 2, y + p * 5, 0xFFFFFFFF);
-        context.fill(x + p * 2, y + p * 4, x + p * 3, y + p * 5, 0xFF2A5AA8);
-        context.fill(x + p * 3, y + p * 4, x + p * 5, y + p * 5, 0xFFF6C095);
-        context.fill(x + p * 5, y + p * 4, x + p * 6, y + p * 5, 0xFFFFFFFF);
-        context.fill(x + p * 6, y + p * 4, x + p * 7, y + p * 5, 0xFF2A5AA8);
-        context.fill(x + p * 7, y + p * 4, x + size, y + p * 5, 0xFFF6C095);
-        context.fill(x, y + p * 5, x + p * 3, y + p * 6, 0xFFF6C095);
-        context.fill(x + p * 3, y + p * 5, x + p * 5, y + p * 6, 0xFF863B2B);
-        context.fill(x + p * 5, y + p * 5, x + size, y + p * 6, 0xFFF6C095);
-        context.fill(x, y + p * 6, x + p * 2, y + p * 7, 0xFFF6C095);
-        context.fill(x + p * 2, y + p * 6, x + p * 6, y + p * 7, 0xFF863B2B);
-        context.fill(x + p * 6, y + p * 6, x + size, y + p * 7, 0xFFF6C095);
-        context.fill(x, y + p * 7, x + size, y + p * 8, 0xFFF6C095);
     }
 }

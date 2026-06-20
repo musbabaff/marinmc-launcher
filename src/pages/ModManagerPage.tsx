@@ -385,7 +385,7 @@ export default function ModManagerPage() {
                           </div>
                           {/* Install button */}
                           {isSystemMod(hit.slug) ? (
-                            <span className="text-[7px] bg-purple-500/15 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded font-black uppercase shrink-0 flex items-center gap-1">
+                            <span className="text-[7px] bg-yellow-500/15 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded font-black uppercase shrink-0 flex items-center gap-1">
                               <Lock className="w-2 h-2" /> Sistem Modu
                             </span>
                           ) : isInstalled(hit.project_id) ? (
@@ -467,14 +467,14 @@ export default function ModManagerPage() {
                 onClick={() => setSystemModsExpanded(!systemModsExpanded)}
                 className="flex items-center gap-2 w-full mb-2 group"
               >
-                <Shield className="w-3.5 h-3.5 text-purple-400" />
-                <span className="text-[8px] font-black text-purple-400 uppercase tracking-widest">Zorunlu Sistem Modları</span>
-                <span className="text-[7px] bg-purple-500/15 text-purple-400 px-1.5 py-0.5 rounded-full font-black">{SYSTEM_MODS.length}</span>
-                <div className="flex-1 h-[1px] bg-purple-500/10" />
+                <Shield className="w-3.5 h-3.5 text-yellow-400" />
+                <span className="text-[8px] font-black text-yellow-400 uppercase tracking-widest">Zorunlu Sistem Modları</span>
+                <span className="text-[7px] bg-yellow-500/15 text-yellow-400 px-1.5 py-0.5 rounded-full font-black">{SYSTEM_MODS.length}</span>
+                <div className="flex-1 h-[1px] bg-yellow-500/10" />
                 {systemModsExpanded ? (
-                  <ChevronUp className="w-3 h-3 text-purple-400/50" />
+                  <ChevronUp className="w-3 h-3 text-yellow-400/50" />
                 ) : (
-                  <ChevronDown className="w-3 h-3 text-purple-400/50" />
+                  <ChevronDown className="w-3 h-3 text-yellow-400/50" />
                 )}
               </button>
               <AnimatePresence>
@@ -491,16 +491,16 @@ export default function ModManagerPage() {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.02 }}
-                        className="bg-[#0a0a0a] border border-purple-500/[0.08] rounded-xl px-3 py-2.5 flex items-center gap-3 group"
+                        className="bg-[#0a0a0a] border border-yellow-500/[0.08] rounded-xl px-3 py-2.5 flex items-center gap-3 group"
                       >
-                        <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
-                          <Lock className="w-3 h-3 text-purple-400" />
+                        <div className="w-7 h-7 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0">
+                          <Lock className="w-3 h-3 text-yellow-400" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-[10px] font-black text-white truncate">{mod.name}</h3>
-                          <span className="text-[7px] bg-purple-500/10 text-purple-400/70 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">{mod.category}</span>
+                          <span className="text-[7px] bg-yellow-500/10 text-yellow-400/70 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">{mod.category}</span>
                         </div>
-                        <span className="text-[6.5px] text-purple-400/40 font-black uppercase tracking-wider shrink-0">Kaldırılamaz</span>
+                        <span className="text-[6.5px] text-yellow-400/40 font-black uppercase tracking-wider shrink-0">Kaldırılamaz</span>
                       </motion.div>
                     ))}
                   </motion.div>
@@ -655,7 +655,7 @@ export default function ModManagerPage() {
             <span className="text-[8px] text-[#52525B] font-black uppercase tracking-wider block mb-0.5">TOPLAM MOD</span>
             <span className="text-xs text-white font-extrabold">{SYSTEM_MODS.length + installedMods.length}</span>
             <div className="flex items-center justify-center gap-3 mt-1">
-              <span className="text-[6.5px] text-purple-400/70 font-black"><Lock className="w-2 h-2 inline mr-0.5" />{SYSTEM_MODS.length} Sistem</span>
+              <span className="text-[6.5px] text-yellow-400/70 font-black"><Lock className="w-2 h-2 inline mr-0.5" />{SYSTEM_MODS.length} Sistem</span>
               <span className="text-[6.5px] text-[#2D7DD2]/70 font-black"><Package className="w-2 h-2 inline mr-0.5" />{installedMods.filter((m: any) => m.enabled !== false).length} Kullanıcı</span>
             </div>
           </div>

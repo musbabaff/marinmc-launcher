@@ -24,7 +24,7 @@ import heroBg from '../../assets/home-hero-bg.png';
 const defaultNews = [
   {
     category: 'GÜNCELLEME',
-    tagColor: 'text-[#8B5CF6] border-[#8B5CF6]/30 bg-[#8B5CF6]/10',
+    tagColor: 'text-[#EAB308] border-[#EAB308]/30 bg-[#EAB308]/10',
     title: 'MarinMC Client v1.0.8 Yayınlandı!',
     description: 'Yeni 1.21.8 optimizasyonları, 1.7 vuruş animasyonları, Toggle Sneak ve eşya fizik özellikleri eklendi.',
     date: '16 Haziran 2026',
@@ -125,7 +125,7 @@ export default function HomePage() {
       const mapped = newsData.map((item, idx) => {
         const categories = ['GÜNCELLEME', 'DUYURU', 'ETKİNLİK', 'MAĞAZA', 'SİSTEM', 'TOPLULUK'];
         const tagColors = [
-          'text-[#8B5CF6] border-[#8B5CF6]/30 bg-[#8B5CF6]/10',
+          'text-[#2D7DD2] border-[#2D7DD2]/30 bg-[#2D7DD2]/10',
           'text-[#259457] border-[#259457]/30 bg-[#259457]/10',
           'text-[#F59E0B] border-[#F59E0B]/30 bg-[#F59E0B]/10',
           'text-[#EC4899] border-[#EC4899]/30 bg-[#EC4899]/10',
@@ -733,16 +733,16 @@ export default function HomePage() {
           </div>
 
           {/* Redesigned Sleek Lunar-style Launch Panel */}
-          <div className="w-full rounded-2xl bg-gradient-to-br from-[#0c0910] via-[#050406] to-[#0c0910] border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center py-20 px-12 shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(139,92,246,0.1)] group">
+          <div className="w-full rounded-2xl bg-gradient-to-br from-[#080d1a] via-[#05060d] to-[#080d1a] border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center py-20 px-12 shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(45,125,210,0.1)] group">
             {/* Background particles and radial gradient */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.08),transparent_70%)] pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(45,125,210,0.08),transparent_70%)] pointer-events-none" />
             <div className="absolute -top-12 -left-12 w-48 h-48 bg-[#2D7DD2]/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-[#8B5CF6]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
 
             {/* Dynamic Minecraft-style floating pixel particles */}
             {[...Array(24)].map((_, i) => {
               const size = Math.random() * 4 + 2; // 2px to 6px
-              const isPurple = Math.random() > 0.5;
+              const isGold = Math.random() > 0.5;
               const delay = Math.random() * 8;
               const duration = Math.random() * 10 + 6;
               const left = Math.random() * 90 + 5; // 5% to 95%
@@ -750,8 +750,8 @@ export default function HomePage() {
                 <motion.div
                   key={i}
                   className={`absolute rounded-sm pointer-events-none ${
-                    isPurple 
-                      ? 'bg-purple-500/35 shadow-[0_0_10px_rgba(168,85,247,0.6)]' 
+                    isGold 
+                      ? 'bg-yellow-500/35 shadow-[0_0_10px_rgba(234,179,8,0.6)]' 
                       : 'bg-emerald-500/25 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
                   }`}
                   style={{
@@ -938,12 +938,12 @@ export default function HomePage() {
         </div>
 
         {/* Bottom Pinned News Feed Area */}
-        <div className="shrink-0 bg-[#070508]/85 border-t border-white/[0.04] p-6 relative z-10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+        <div className="shrink-0 bg-[#080d1a]/85 border-t border-white/[0.04] p-6 relative z-10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
           {/* News Feed Header */}
           <div className="space-y-1.5 pb-4">
-            <span className="text-[10px] font-black text-[#8B5CF6] uppercase tracking-wider">MARINMC HABERLERİ</span>
+            <span className="text-[10px] font-black text-[#EAB308] uppercase tracking-wider">MARINMC HABERLERİ</span>
             <h2 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#8B5CF6] animate-pulse" />
+              <Sparkles className="w-4 h-4 text-[#EAB308] animate-pulse" />
               <span>Gelişmeler & Güncellemeler</span>
             </h2>
           </div>

@@ -661,6 +661,71 @@ function isValidUUID(uuidStr?: string): boolean {
   return /^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$/.test(uuidStr);
 }
 
+function syncModsFolder(gameDir: string, targetVersion: string, is121Version: boolean, log: (msg: string) => void) {
+  const modsDir = path.join(gameDir, 'mods');
+  const versionFile = path.join(modsDir, '.version');
+  
+  let cleanTargetVersion = targetVersion;
+  if (targetVersion.startsWith('fabric-loader-')) {
+    const parts = targetVersion.split('-');
+    cleanTargetVersion = parts[parts.length - 1]; // e.g. "1.21.8"
+  }
+  
+  let currentModsVersion = '';
+  if (fs.existsSync(versionFile)) {
+    try {
+      currentModsVersion = fs.readFileSync(versionFile, 'utf8').trim();
+    } catch (err) {
+      console.error('Failed to read .version file:', err);
+    }
+  } else if (fs.existsSync(modsDir)) {
+    currentModsVersion = '1.21.8';
+    try {
+      fs.writeFileSync(versionFile, currentModsVersion, 'utf8');
+    } catch {}
+  }
+  
+  if (currentModsVersion && currentModsVersion !== cleanTargetVersion) {
+    log(`[Mods Ayrıştırıcı] Sürüm değişti (${currentModsVersion} → ${cleanTargetVersion}). Mod klasörleri ayrıştırılıyor...`);
+    const backupDir = path.join(gameDir, `mods_backup_${currentModsVersion}`);
+    
+    if (fs.existsSync(modsDir)) {
+      try {
+        if (fs.existsSync(backupDir)) {
+          fs.rmSync(backupDir, { recursive: true, force: true });
+        }
+        fs.renameSync(modsDir, backupDir);
+        log(`[Mods Ayrıştırıcı] Eski sürüm modları yedeklendi: ${path.basename(backupDir)}`);
+      } catch (err: any) {
+        log(`[HATA] Mod klasörü yedeklenemedi: ${err.message}`);
+        return;
+      }
+    }
+    
+    const targetBackupDir = path.join(gameDir, `mods_backup_${cleanTargetVersion}`);
+    if (fs.existsSync(targetBackupDir)) {
+      try {
+        fs.renameSync(targetBackupDir, modsDir);
+        log(`[Mods Ayrıştırıcı] Hedef sürüm modları geri yüklendi.`);
+      } catch (err: any) {
+        log(`[HATA] Hedef sürüm modları geri yüklenemedi: ${err.message}. Yeni klasör oluşturuluyor.`);
+        fs.mkdirSync(modsDir, { recursive: true });
+      }
+    } else {
+      fs.mkdirSync(modsDir, { recursive: true });
+    }
+    
+    try {
+      fs.writeFileSync(versionFile, cleanTargetVersion, 'utf8');
+    } catch {}
+  } else if (!fs.existsSync(modsDir)) {
+    fs.mkdirSync(modsDir, { recursive: true });
+    try {
+      fs.writeFileSync(versionFile, cleanTargetVersion, 'utf8');
+    } catch {}
+  }
+}
+
 let gameProcess: any = null;
 
 export function registerGameHandlers(rawMainWindow: BrowserWindow) {
@@ -763,33 +828,40 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
         sendAndLog(`[UYARI] Kozmetik konfigürasyonu yazılamadı: ${cosmErr.message}`);
       }
 
-      // Geliştirici modunda yerel istemci modunu derle ve kopyala
-      if (!app.isPackaged) {
-        await compileAndCopyClientModDev(gameDir, (msg) => {
-          sendAndLog(msg);
-        });
-      }
-
-      // 1. Verify performance mods
-      await verifyPerformanceMods(gameDir, (msg) => {
-        sendAndLog(msg);
-      });
-
-      // 2. Download resource pack
-      await downloadResourcePack(gameDir, (msg) => {
-        sendAndLog(msg);
-      });
-
-      // 3. Inject resource pack
-      injectResourcePack(gameDir, (msg) => {
-        sendAndLog(msg);
-      });
-
       // Resolve Fabric Loader version if 1.21 or 1.21.8 is selected (or an old fabric-loader version of it)
       let versionToLaunch = options.version || '1.21';
       const is121Version = versionToLaunch === '1.21' || 
                             versionToLaunch === '1.21.8' || 
                             (versionToLaunch.startsWith('fabric-loader-') && (versionToLaunch.endsWith('-1.21.8') || versionToLaunch.endsWith('-1.21')));
+
+      // Separating mods folders for different versions
+      syncModsFolder(gameDir, versionToLaunch, is121Version, (msg) => {
+        sendAndLog(msg);
+      });
+
+      if (is121Version) {
+        // Geliştirici modunda yerel istemci modunu derle ve kopyala
+        if (!app.isPackaged) {
+          await compileAndCopyClientModDev(gameDir, (msg) => {
+            sendAndLog(msg);
+          });
+        }
+
+        // 1. Verify performance mods
+        await verifyPerformanceMods(gameDir, (msg) => {
+          sendAndLog(msg);
+        });
+
+        // 2. Download resource pack
+        await downloadResourcePack(gameDir, (msg) => {
+          sendAndLog(msg);
+        });
+
+        // 3. Inject resource pack
+        injectResourcePack(gameDir, (msg) => {
+          sendAndLog(msg);
+        });
+      }
 
       if (is121Version) {
         const gameVersion = '1.21.8';
@@ -846,8 +918,20 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
         ? options.javaPath
         : 'java';
 
+      if (process.platform === 'win32') {
+        if (javaPathResolved === 'java') {
+          javaPathResolved = 'javaw';
+        } else {
+          if (javaPathResolved.toLowerCase().endsWith('java.exe')) {
+            javaPathResolved = javaPathResolved.slice(0, -8) + 'javaw.exe';
+          } else if (javaPathResolved.toLowerCase().endsWith('java')) {
+            javaPathResolved = javaPathResolved.slice(0, -4) + 'javaw';
+          }
+        }
+      }
+
       // Security check on custom javaPath
-      if (javaPathResolved !== 'java') {
+      if (javaPathResolved !== 'java' && javaPathResolved !== 'javaw') {
         const normalized = javaPathResolved.toLowerCase().trim();
         const base = path.basename(normalized);
         if (base !== 'java.exe' && base !== 'java' && base !== 'javaw.exe' && base !== 'javaw') {
@@ -991,6 +1075,9 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
       launcher.on('close', (code: number) => {
         console.log('[game.ts] Minecraft process exited with code:', code);
         gameProcess = null;
+        if (rawMainWindow && !rawMainWindow.isDestroyed()) {
+          rawMainWindow.show();
+        }
         mainWindow.webContents.send('game:status', 'IDLE');
         sendAndLog(`[MarinMC Launcher] Minecraft kapandı (çıkış kodu: ${code}).`);
         mainWindow.webContents.send('game:progress', 0);
@@ -1029,6 +1116,10 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
       // The launch() resolves when the Java process is spawned
       mainWindow.webContents.send('game:status', 'RUNNING');
       sendAndLog(`[MarinMC Launcher] Java Sanal Makinesi (JVM) aktif edildi. Minecraft başlatıldı.`);
+
+      if (rawMainWindow && !rawMainWindow.isDestroyed()) {
+        rawMainWindow.hide();
+      }
 
       return { success: true };
 

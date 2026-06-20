@@ -500,7 +500,7 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                     className={`w-full py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
                       saveSuccess
                         ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
-                        : 'bg-gradient-to-r from-brand-accent to-blue-600 text-white shadow-glow-purple hover:scale-[1.02]'
+                        : 'bg-gradient-to-r from-brand-accent to-blue-600 text-white shadow-[0_4px_15px_rgba(45,125,210,0.3)] hover:scale-[1.02]'
                     }`}
                   >
                     {saveSuccess ? '✓ Kaydedildi' : t('settings.applyBtn')}

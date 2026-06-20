@@ -435,7 +435,7 @@ export default function ServerDetailPage() {
       case 'IDLE':
       default:
         return (
-          <button onClick={handleLaunch} className="w-full py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-extrabold text-[11px] rounded-xl tracking-wider transition-all flex items-center justify-center space-x-2 shadow-glow-purple">
+          <button onClick={handleLaunch} className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-[#2D7DD2] hover:from-blue-500 hover:to-[#4A9AE8] text-white font-extrabold text-[11px] rounded-xl tracking-wider transition-all flex items-center justify-center space-x-2 shadow-[0_4px_20px_rgba(45,125,210,0.3)]">
             <Play className="w-3.5 h-3.5 fill-white" />
             <span>{t.playBtn}</span>
           </button>
@@ -626,7 +626,7 @@ export default function ServerDetailPage() {
           onClick={() => setIsConsoleOpen(!isConsoleOpen)}
           className={`flex items-center space-x-1.5 px-3 py-1.5 border rounded-xl transition-all duration-200 uppercase font-bold text-[9px] tracking-wide ${
             isConsoleOpen 
-              ? 'bg-blue-600 border-blue-500 text-white shadow-glow-purple' 
+              ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_15px_rgba(45,125,210,0.4)]' 
               : 'bg-[#161925]/90 border-white/5 hover:bg-white/[0.03] text-gray-400 hover:text-white'
           }`}
         >

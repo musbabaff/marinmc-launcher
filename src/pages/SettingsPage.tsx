@@ -674,10 +674,10 @@ export default function SettingsPage() {
 
                     {/* RAM Card */}
                     <div className="bg-[#0a0a0a] border border-white/[0.04] p-5 rounded-2xl flex flex-col items-center justify-between relative overflow-hidden group">
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#2D7DD2]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       
                       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#52525B] self-start w-full">
-                        <Activity className="w-4 h-4 text-[#8B5CF6]" />
+                        <Activity className="w-4 h-4 text-[#2D7DD2]" />
                         <span>Sistem Belleği (RAM)</span>
                       </div>
 
@@ -695,7 +695,7 @@ export default function SettingsPage() {
                             cx="50"
                             cy="50"
                             r="40"
-                            className="stroke-[#8B5CF6]"
+                            className="stroke-[#2D7DD2]"
                             strokeWidth="8"
                             fill="transparent"
                             strokeDasharray={251.3}
@@ -760,7 +760,7 @@ export default function SettingsPage() {
                         </div>
                         <div className="w-full h-1.5 bg-[#131622] rounded-full overflow-hidden border border-white/5">
                           <motion.div
-                            className="h-full bg-gradient-to-r from-[#2D7DD2] to-[#8B5CF6]"
+                            className="h-full bg-gradient-to-r from-[#2D7DD2] to-[#EAB308]"
                             initial={{ width: '0%' }}
                             animate={{ width: `${optimizationProgress}%` }}
                             transition={{ duration: 0.1 }}

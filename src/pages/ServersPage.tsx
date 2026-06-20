@@ -62,13 +62,13 @@ const colorMap: Record<string, {
     shadow: 'shadow-teal-900/10'
   },
   purple: {
-    glow: 'hover:shadow-[0_0_20px_rgba(139,92,246,0.25)]',
-    border: 'hover:border-purple-500/40',
-    activeBorder: 'border-purple-500 ring-2 ring-purple-500/20',
-    text: 'text-purple-400',
-    badgeBg: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
-    gradient: 'from-purple-600/15 to-transparent',
-    shadow: 'shadow-purple-900/10'
+    glow: 'hover:shadow-[0_0_20px_rgba(234,179,8,0.25)]',
+    border: 'hover:border-yellow-500/40',
+    activeBorder: 'border-yellow-500 ring-2 ring-yellow-500/20',
+    text: 'text-yellow-400',
+    badgeBg: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
+    gradient: 'from-yellow-600/15 to-transparent',
+    shadow: 'shadow-yellow-900/10'
   },
   orange: {
     glow: 'hover:shadow-[0_0_20px_rgba(249,115,22,0.25)]',

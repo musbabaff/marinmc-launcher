@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore.ts';
-import { Clock, Calendar, Heart, Edit2, Check, Trophy, User, Loader2, Award, CheckCircle2, Lock } from 'lucide-react';
+import { Clock, Calendar, Heart, Trophy, User, Loader2, Award, CheckCircle2, Lock } from 'lucide-react';
 import { api, Achievement } from '../lib/api';
 
 interface PlaySession {
@@ -30,7 +30,6 @@ interface LeaderboardItem {
 
 export default function ProfilePage() {
   const session = useAuthStore((state) => state.session);
-  const setSession = useAuthStore((state) => state.setSession);
 
   const [activeTab, setActiveTab] = useState<'profile' | 'leaderboard' | 'achievements'>('profile');
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -58,7 +57,6 @@ export default function ProfilePage() {
     api.getUserProfile(session.name)
       .then((data) => {
         setProfile(data);
-        setUsernameInput(data.username);
       })
       .catch((err) => console.error('Failed to load profile:', err))
       .finally(() => setLoadingProfile(false));
@@ -89,45 +87,10 @@ export default function ProfilePage() {
     }
   }, [activeTab, session]);
 
-  const handleEditToggle = async () => {
-    if (editing && session && profile) {
-      const trimmed = usernameInput.trim();
-      if (trimmed.length >= 3 && trimmed !== session.name) {
-        setSaving(true);
-        try {
-          // Update via API
-          await api.updateUserProfile(session.name, {
-            ...profile,
-            lastLogin: new Date().toLocaleString('tr-TR')
-          });
-          
-          // Switch session name in authStore
-          setSession({
-            ...session,
-            name: trimmed,
-            avatar: `https://minotar.net/avatar/${trimmed}/48`
-          });
-          
-          setSuccessMsg(true);
-          setTimeout(() => setSuccessMsg(false), 2000);
-        } catch (err) {
-          console.error('Failed to update username:', err);
-        } finally {
-          setSaving(false);
-        }
-      }
-    }
-    setEditing(!editing);
-  };
-
   const totalPlayMinutes = profile ? profile.totalPlayTime : 0;
   const totalPlayTimeText = totalPlayMinutes >= 60 
     ? `${Math.round(totalPlayMinutes / 60)} Saat` 
     : `${totalPlayMinutes} dk`;
-
-  const favoriteServer = profile && profile.playSessions.length > 0 
-    ? profile.playSessions[0].server.replace('MarinMC ', '') 
-    : 'Towny';
 
   return (
     <div className="flex-grow flex flex-col p-6 overflow-y-auto no-drag custom-scrollbar space-y-5 select-none bg-[#0A0A0A]">
@@ -209,7 +172,7 @@ export default function ProfilePage() {
                     <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest block mb-1">Oyuncu Kimliği</span>
                     <div className="flex items-center gap-2">
                       <h3 className="text-lg font-black text-white leading-none">{session?.name || 'Player'}</h3>
-                      <Lock className="w-3.5 h-3.5 text-[#52525B]" title="Oyuncu adı değiştirilemez" />
+                      <span title="Oyuncu adı değiştirilemez"><Lock className="w-3.5 h-3.5 text-[#52525B]" /></span>
                     </div>
                   </div>
 
@@ -305,26 +268,26 @@ export default function ProfilePage() {
                 key={a.id} 
                 className={`bg-[#111111] border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
                   a.completed 
-                    ? 'border-purple-500/30 bg-gradient-to-br from-[#111111] to-purple-950/10 shadow-[0_0_15px_rgba(139,92,246,0.05)]' 
+                    ? 'border-[#2D7DD2]/30 bg-gradient-to-br from-[#111111] to-[#2D7DD2]/10 shadow-[0_0_15px_rgba(45,125,210,0.05)]' 
                     : 'border-white/[0.04] opacity-50'
                 }`}
               >
                 {a.completed && (
-                  <div className="absolute -top-6 -right-6 w-12 h-12 bg-purple-500/10 rounded-full blur-xl" />
+                  <div className="absolute -top-6 -right-6 w-12 h-12 bg-[#2D7DD2]/10 rounded-full blur-xl" />
                 )}
 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border ${
                       a.completed 
-                        ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' 
+                        ? 'bg-[#2D7DD2]/10 border-[#2D7DD2]/20 text-[#2D7DD2]' 
                         : 'bg-white/5 border-white/10 text-[#52525B]'
                     }`}>
                       {a.completed ? <Trophy className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
                     </div>
                     
                     {a.completed ? (
-                      <span className="text-[7.5px] font-extrabold bg-purple-500/15 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                      <span className="text-[7.5px] font-extrabold bg-[#2D7DD2]/15 text-[#2D7DD2] border border-[#2D7DD2]/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">
                         Açıldı ({a.date})
                       </span>
                     ) : (
@@ -344,8 +307,8 @@ export default function ProfilePage() {
 
                 <div className="mt-4 pt-3 border-t border-white/[0.02] flex items-center gap-1.5 text-[8.5px] font-bold">
                   {a.completed ? (
-                    <span className="text-purple-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-purple-400" />
+                    <span className="text-[#2D7DD2] flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-[#2D7DD2]" />
                       Rozet Kazanıldı
                     </span>
                   ) : (

@@ -17,13 +17,11 @@ public class GlassButtonWidget extends ButtonWidget {
 
         boolean hovered = this.isSelected() || (mouseX >= this.getX() && mouseX <= this.getX() + this.width && mouseY >= this.getY() && mouseY <= this.getY() + this.height);
 
-        // Glassmorphic background: deep dark translucent panel with premium purple glow on hover
-        // 0x50130A18: Translucent purple tint, 0x902A123C: Brighter purple tint on hover
-        int bgColor = hovered ? 0x902A123C : 0x60070408; 
+        // Glassmorphic background: deep dark translucent panel with premium blue glow on hover
+        int bgColor = hovered ? 0x90132247 : 0x60070408; 
         
-        // Border: sharp dark border, glows neon purple/lavender on hover
-        // 0xFFB180E8: Neon purple, 0x30FFFFFF: Subtle white border
-        int borderColor = hovered ? 0xFFB180E8 : 0x25FFFFFF; 
+        // Border: sharp dark border, glows gold on hover
+        int borderColor = hovered ? 0xFFFFD700 : 0x25FFFFFF; 
 
         // Draw background
         context.fill(this.getX(), this.getY(), this.getX() + this.width, this.getY() + this.height, bgColor);

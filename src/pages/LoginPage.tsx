@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore.ts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ChevronRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import MarinLogo from '../components/MarinLogo.tsx';
 
@@ -10,14 +10,13 @@ import loginBg from '../../assets/login-bg.png';
 
 export default function LoginPage() {
   const { t } = useTranslation();
-  const [showOfflineForm, setShowOfflineForm] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const { session, loginWithCracked, loginWithMicrosoft, isLoading, error, clearError } = useAuthStore();
+  const { session, loginWithCracked, isLoading, error, clearError } = useAuthStore();
 
   // Redirect if already logged in
   useEffect(() => {
@@ -25,16 +24,6 @@ export default function LoginPage() {
       navigate('/home');
     }
   }, [session, navigate]);
-
-  const handleMicrosoftLogin = async () => {
-    clearError();
-    setLocalError(null);
-    try {
-      await loginWithMicrosoft();
-    } catch (err: any) {
-      setLocalError(err.message || t('login.microsoftError'));
-    }
-  };
 
   const handleOfflineSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

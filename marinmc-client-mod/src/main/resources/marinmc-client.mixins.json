@@ -9,6 +9,7 @@
     "InGameHudMixin",
     "GameMenuScreenMixin",
     "TitleScreenMixin",
+    "MultiplayerScreenMixin",
     "BlockOutlineMixin",
     "AbstractClientPlayerEntityMixin",
     "ClientPlayerEntityMixin",

@@ -66,20 +66,20 @@ export default function NotificationsPage() {
   });
 
   return (
-    <div className="flex-grow flex flex-col p-8 overflow-y-auto no-drag custom-scrollbar space-y-6 select-none bg-[#070408]/95 text-[#e0e0e0] h-full w-full relative">
+    <div className="flex-grow flex flex-col p-8 overflow-y-auto no-drag custom-scrollbar space-y-6 select-none bg-[#080d1a]/95 text-[#e0e0e0] h-full w-full relative">
       {/* Background Glow Effect */}
-      <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none -z-10" />
-      <div className="absolute bottom-10 left-1/4 w-[300px] h-[300px] bg-pink-600/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+      <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-[#2D7DD2]/10 rounded-full blur-[100px] pointer-events-none -z-10" />
+      <div className="absolute bottom-10 left-1/4 w-[300px] h-[300px] bg-[#EAB308]/5 rounded-full blur-[120px] pointer-events-none -z-10" />
 
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.04] pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-purple-400 tracking-wider uppercase">
+            <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-[#2D7DD2] tracking-wider uppercase">
               {t('notifications.title')}
             </h2>
             {getUnreadCount() > 0 && (
-              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black bg-purple-600 text-white shadow-[0_0_12px_rgba(139,92,246,0.5)] animate-pulse">
+              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black bg-[#2D7DD2] text-white shadow-[0_0_12px_rgba(45,125,210,0.5)] animate-pulse">
                 {getUnreadCount()} {t('notifications.unread').toUpperCase()}
               </span>
             )}
@@ -87,7 +87,7 @@ export default function NotificationsPage() {
           <p className="text-[11px] text-[#71717A] mt-2 flex items-center gap-2 font-medium">
             <span>{t('notifications.total')}: <strong className="text-white/80">{notifications.length}</strong></span>
             <span className="text-white/10">•</span>
-            <span className="text-purple-400">{getUnreadCount()} {t('notifications.unread')}</span>
+            <span className="text-[#2D7DD2]">{getUnreadCount()} {t('notifications.unread')}</span>
           </p>
         </div>
 
@@ -95,9 +95,9 @@ export default function NotificationsPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={markAllAsRead}
-              className="px-4 py-2 bg-white/[0.03] hover:bg-purple-600/10 border border-white/[0.05] hover:border-purple-500/30 rounded-xl text-[10px] text-white font-extrabold uppercase transition-all duration-300 flex items-center gap-2 hover:shadow-[0_0_15px_rgba(139,92,246,0.15)] group"
+              className="px-4 py-2 bg-white/[0.03] hover:bg-[#2D7DD2]/10 border border-white/[0.05] hover:border-[#2D7DD2]/30 rounded-xl text-[10px] text-white font-extrabold uppercase transition-all duration-300 flex items-center gap-2 hover:shadow-[0_0_15px_rgba(45,125,210,0.15)] group"
             >
-              <Eye className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
+              <Eye className="w-3.5 h-3.5 text-[#2D7DD2] group-hover:scale-110 transition-transform" />
               {t('notifications.markAllRead')}
             </button>
             <button
@@ -129,14 +129,14 @@ export default function NotificationsPage() {
             };
 
             const colors = {
-              all: 'hover:text-purple-400',
+              all: 'hover:text-[#2D7DD2]',
               urgent: 'hover:text-[#EF4444]',
               info: 'hover:text-[#06B6D4]',
               success: 'hover:text-[#10B981]'
             };
 
             const activeColors = {
-              all: 'bg-purple-600/15 text-purple-400 border border-purple-500/20 shadow-[0_0_10px_rgba(139,92,246,0.1)]',
+              all: 'bg-[#2D7DD2]/15 text-[#2D7DD2] border border-[#2D7DD2]/20 shadow-[0_0_10px_rgba(45,125,210,0.1)]',
               urgent: 'bg-red-500/15 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]',
               info: 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.1)]',
               success: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
@@ -175,8 +175,8 @@ export default function NotificationsPage() {
               className="flex flex-col items-center justify-center text-[#71717A] py-24 bg-white/[0.01] border border-white/[0.02] rounded-3xl"
             >
               <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] flex items-center justify-center mb-4 relative group">
-                <div className="absolute inset-0 bg-purple-600/10 rounded-3xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <BellOff className="w-8 h-8 text-[#52525B] group-hover:text-purple-400 transition-colors duration-300" />
+                <div className="absolute inset-0 bg-[#2D7DD2]/10 rounded-3xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <BellOff className="w-8 h-8 text-[#52525B] group-hover:text-[#2D7DD2] transition-colors duration-300" />
               </div>
               <span className="text-sm font-black uppercase tracking-widest text-white/60 mb-2">
                 {t('notifications.noNotifications')}
@@ -228,7 +228,7 @@ export default function NotificationsPage() {
                     }}
                     className={`group relative overflow-hidden bg-gradient-to-r ${
                       not.unread 
-                        ? 'from-purple-950/10 to-purple-900/5 border-purple-500/20 shadow-[0_0_20px_rgba(139,92,246,0.05)]' 
+                        ? 'from-blue-950/10 to-blue-900/5 border-[#2D7DD2]/20 shadow-[0_0_20px_rgba(45,125,210,0.05)]' 
                         : 'from-white/[0.02] to-white/[0.005] border-white/[0.03]'
                     } border rounded-2xl p-5 flex items-start gap-4 transition-all duration-300 cursor-pointer ${
                       currentConfig.border
@@ -247,11 +247,11 @@ export default function NotificationsPage() {
                     {/* Middle Text Details */}
                     <div className="flex-grow min-w-0 pr-12">
                       <div className="flex items-center gap-2.5 mb-1.5">
-                        <h4 className="text-[12px] font-black text-white leading-none tracking-wide group-hover:text-purple-300 transition-colors duration-200">
+                        <h4 className="text-[12px] font-black text-white leading-none tracking-wide group-hover:text-[#4a9ae8] transition-colors duration-200">
                           {getLocalizedTitle(not)}
                         </h4>
                         {not.unread && (
-                          <span className="w-2 h-2 bg-purple-500 rounded-full shrink-0 shadow-[0_0_10px_#8b5cf6]" />
+                          <span className="w-2 h-2 bg-[#2D7DD2] rounded-full shrink-0 shadow-[0_0_10px_#2d7dd2]" />
                         )}
                       </div>
                       <p className="text-[10.5px] text-[#A1A1AA] leading-relaxed mb-3 font-semibold">
@@ -272,7 +272,7 @@ export default function NotificationsPage() {
                             markAsRead(not.id);
                           }}
                           title={t('notifications.markAllRead') || 'Okundu İşaretle'}
-                          className="p-2 bg-white/[0.03] hover:bg-purple-600/20 border border-white/[0.05] hover:border-purple-500/40 rounded-xl text-purple-400 hover:text-purple-300 transition-all duration-200"
+                          className="p-2 bg-white/[0.03] hover:bg-[#2D7DD2]/20 border border-white/[0.05] hover:border-[#2D7DD2]/40 rounded-xl text-[#2D7DD2] hover:text-blue-300 transition-all duration-200"
                         >
                           <Check className="w-3.5 h-3.5" />
                         </button>
@@ -291,7 +291,7 @@ export default function NotificationsPage() {
 
                     {/* Unread Glow Border overlay */}
                     {not.unread && (
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none -z-10" />
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-[#2D7DD2]/5 rounded-full blur-2xl pointer-events-none -z-10" />
                     )}
                   </motion.div>
                 );

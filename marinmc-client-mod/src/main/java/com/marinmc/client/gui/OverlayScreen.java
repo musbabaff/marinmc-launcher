@@ -32,6 +32,10 @@ public class OverlayScreen extends Screen {
     private static final File CONFIG_FILE = new File("marinmc-client-config.json");
     private static final File STRINGS_CONFIG_FILE = new File("marinmc-client-strings.json");
     private static final File WAYPOINTS_FILE = new File("marinmc-waypoints.json");
+    private static final File PROFILES_LIST_FILE = new File(
+        net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().toFile(),
+        "marinmc-profiles-list.json"
+    );
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Identifier BACKGROUND_TEXTURE = Identifier.of("marinmc-client", "textures/gui/background.png");
     private static final Identifier LOGO_TEXTURE = Identifier.of("marinmc-client", "textures/gui/logo.png");
@@ -39,26 +43,27 @@ public class OverlayScreen extends Screen {
     public static final Map<String, Boolean> configStates = new HashMap<>();
     public static final Map<String, String> configStrings = new HashMap<>();
     public static final List<Waypoint> waypoints = new ArrayList<>();
+    public static final List<String> profileList = new ArrayList<>();
     
     static {
         // Load default values
-        configStates.put("fps", true);
-        configStates.put("cps", true);
-        configStates.put("keystrokes", true);
-        configStates.put("armor", true);
-        configStates.put("compass", true);
-        configStates.put("coords", true);
-        configStates.put("ping", true);
-        configStates.put("speed", true);
-        configStates.put("replay", true);
-        configStates.put("potion_status", true);
+        configStates.put("fps", false);
+        configStates.put("cps", false);
+        configStates.put("keystrokes", false);
+        configStates.put("armor", false);
+        configStates.put("compass", false);
+        configStates.put("coords", false);
+        configStates.put("ping", false);
+        configStates.put("speed", false);
+        configStates.put("replay", false);
+        configStates.put("potion_status", false);
         configStates.put("crosshair", false);
         
         configStates.put("toggle_sneak", false);
-        configStates.put("zoom", true);
+        configStates.put("zoom", false);
         configStates.put("visuals_1_7", false);
-        configStates.put("block_outline", true);
-        configStates.put("item_physics", true);
+        configStates.put("block_outline", false);
+        configStates.put("item_physics", false);
         configStates.put("freelook", false);
         configStates.put("freelook_invert_y", false);
         configStates.put("fullbright", false);
@@ -85,9 +90,9 @@ public class OverlayScreen extends Screen {
         configStates.put("disable_block_animations", false);
 
         configStrings.put("active_theme", "classic");
-        configStrings.put("active_profile", "Default");
+        configStrings.put("active_profile", "MarinMC");
         configStrings.put("freelook_perspective", "third_back");
-        configStrings.put("outline_color", "purple");
+        configStrings.put("outline_color", "gold");
         configStrings.put("outline_thickness", "1");
         
         loadConfigStatic();
@@ -165,6 +170,38 @@ public class OverlayScreen extends Screen {
         }
     }
 
+    public static void loadProfilesList() {
+        profileList.clear();
+        profileList.add("MarinMC");
+        if (!PROFILES_LIST_FILE.exists()) {
+            profileList.add("Testing");
+            profileList.add("PvP Settings");
+            saveProfilesList();
+            return;
+        }
+        try (FileReader reader = new FileReader(PROFILES_LIST_FILE)) {
+            Type type = new TypeToken<List<String>>(){}.getType();
+            List<String> loaded = GSON.fromJson(reader, type);
+            if (loaded != null) {
+                for (String p : loaded) {
+                    if (!p.equalsIgnoreCase("MarinMC") && !profileList.contains(p)) {
+                        profileList.add(p);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void saveProfilesList() {
+        try (FileWriter writer = new FileWriter(PROFILES_LIST_FILE)) {
+            GSON.toJson(profileList, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static Identifier getThemeTexture() {
         String theme = configStrings.getOrDefault("active_theme", "classic").toLowerCase();
         if (theme.equals("lunar")) {
@@ -182,7 +219,7 @@ public class OverlayScreen extends Screen {
     
     // UI states
     private String activeTab = "MODS"; // MODS, SETTINGS, WAYPOINTS
-    private String activeProfile = "Main"; // Main, Testing, Latest Version PvP
+    private String activeProfile = "MarinMC";
     private String activeCategory = "ALL"; // ALL, NEW, HUD, SERVER, MECHANIC
     private String settingsSubTab = "GENERAL"; // GENERAL, PERFORMANCE, CONTROLS
     
@@ -200,6 +237,11 @@ public class OverlayScreen extends Screen {
     private String wpName = "";
     private String wpColor = "green";
     private boolean wpNameFocused = false;
+
+    // Profile Add Modal state
+    private boolean showProfileAdd = false;
+    private String newProfileName = "";
+    private boolean profileNameFocused = false;
     
     public OverlayScreen() {
         super(Text.literal("MarinMC Mod Config"));
@@ -229,6 +271,14 @@ public class OverlayScreen extends Screen {
     @Override
     protected void init() {
         this.clearChildren();
+        loadProfilesList();
+        
+        // Sync activeProfile from loaded configs
+        this.activeProfile = configStrings.getOrDefault("active_profile", "MarinMC");
+        if (!profileList.contains(this.activeProfile)) {
+            this.activeProfile = "MarinMC";
+        }
+        
         // Sync configs with HudManager upon opening the screen
         for (HudElement el : HudManager.getInstance().getElements()) {
             Boolean state = configStates.get(el.getId());
@@ -246,26 +296,18 @@ public class OverlayScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // 1. Draw custom background
-        context.drawTexture(
-            RenderPipelines.GUI_TEXTURED,
-            BACKGROUND_TEXTURE,
-            0, 0,
-            0f, 0f,
-            this.width, this.height,
-            this.width, this.height
-        );
-        context.fill(0, 0, this.width, this.height, 0x40000000); // Overlay tint
+        // 1. Draw 60% transparent backdrop
+        context.fill(0, 0, this.width, this.height, 0x66000000);
 
         // 2. Define Card Dimensions (Centered Window)
-        int w = Math.min(this.width - 20, 520);
-        int h = Math.min(this.height - 20, 320);
+        int w = Math.min(this.width - 20, 420);
+        int h = Math.min(this.height - 20, 260);
         int x = (this.width - w) / 2;
         int y = (this.height - h) / 2;
 
-        // Draw outer glassmorphic window panel - premium dark purple
-        context.fill(x, y, x + w, y + h, 0xF20E0A1A);
-        context.drawBorder(x, y, w, h, 0xFFB180E8); // neon lavender border
+        // Draw outer glassmorphic window panel - premium navy blue/dark blue
+        context.fill(x, y, x + w, y + h, 0xF2050914);
+        context.drawBorder(x, y, w, h, 0xFFFFD700); // gold border
 
         // Draw Moon Logo on Header
         int logoSize = 14;
@@ -294,8 +336,8 @@ public class OverlayScreen extends Screen {
             
             // Draw tab pill - premium glass style
             if (active) {
-                context.fill(tx, ty, tx + tw, ty + th, 0x60B180E8);
-                context.drawBorder(tx, ty, tw, th, 0xFFB180E8);
+                context.fill(tx, ty, tx + tw, ty + th, 0x602D7DD2);
+                context.drawBorder(tx, ty, tw, th, 0xFFFFD700);
             } else {
                 context.fill(tx, ty, tx + tw, ty + th, 0x15FFFFFF);
                 context.drawBorder(tx, ty, tw, th, 0x10FFFFFF);
@@ -309,23 +351,28 @@ public class OverlayScreen extends Screen {
         int closeX = x + w - 18;
         int closeY = y + 8;
         boolean closeHovered = mouseX >= closeX && mouseX <= closeX + 10 && mouseY >= closeY && mouseY <= closeY + 10;
-        context.drawTextWithShadow(this.textRenderer, "✖", closeX, closeY, closeHovered ? 0xFFEF4444 : 0xFFA1A1AA);
+        context.drawTextWithShadow(this.textRenderer, "✖", closeX, closeY, closeHovered ? 0xFFC62828 : 0xFFA1A1AA);
 
         // 4. Render Sidebar (Left) - always visible - premium glass
         int sbX = x + 6;
         int sbY = y + 30;
         int sbW = 105;
         int sbH = h - 36;
-        context.fill(sbX, sbY, sbX + sbW, sbY + sbH, 0x300E0A1A);
-        context.drawBorder(sbX, sbY, sbW, sbH, 0x20B180E8);
+        context.fill(sbX, sbY, sbX + sbW, sbY + sbH, 0x30050914);
+        context.drawBorder(sbX, sbY, sbW, sbH, 0x202D7DD2);
 
         // i18n sidebar title
         context.drawTextWithShadow(this.textRenderer, Text.translatable("marinmc.sidebar.profiles").getString(), sbX + 8, sbY + 8, 0xFF94A3B8);
 
+        // (+) Add Profile button
+        int addProfX = sbX + sbW - 14;
+        int addProfY = sbY + 8;
+        boolean addProfHovered = mouseX >= addProfX && mouseX <= addProfX + 10 && mouseY >= addProfY && mouseY <= addProfY + 16;
+        context.drawTextWithShadow(this.textRenderer, "+", addProfX, addProfY, addProfHovered ? 0xFFFFD700 : 0xFF94A3B8);
+
         // Profiles list
-        String[] profiles = {"Main", "Testing", "PvP Settings"};
-        for (int i = 0; i < profiles.length; i++) {
-            String prof = profiles[i];
+        for (int i = 0; i < profileList.size(); i++) {
+            String prof = profileList.get(i);
             int px = sbX + 6;
             int py = sbY + 22 + i * 18;
             int pw = sbW - 12;
@@ -333,15 +380,25 @@ public class OverlayScreen extends Screen {
             boolean active = activeProfile.equals(prof);
             
             if (active) {
-                context.fill(px, py, px + pw, py + ph, 0x60B180E8);
-                context.drawBorder(px, py, pw, ph, 0xFFB180E8);
+                context.fill(px, py, px + pw, py + ph, 0x602D7DD2);
+                context.drawBorder(px, py, pw, ph, 0xFFFFD700);
             } else {
                 boolean profHovered = mouseX >= px && mouseX <= px + pw && mouseY >= py && mouseY <= py + ph;
-                context.fill(px, py, px + pw, py + ph, profHovered ? 0x30B180E8 : 0x15FFFFFF);
-                context.drawBorder(px, py, pw, ph, profHovered ? 0x40B180E8 : 0x08FFFFFF);
+                context.fill(px, py, px + pw, py + ph, profHovered ? 0x302D7DD2 : 0x15FFFFFF);
+                context.drawBorder(px, py, pw, ph, profHovered ? 0x402D7DD2 : 0x08FFFFFF);
             }
             int color = active ? 0xFFFFFFFF : 0xFF94A3B8;
-            context.drawCenteredTextWithShadow(this.textRenderer, prof, px + pw / 2, py + 3, color);
+            // Draw profile name slightly shifted left to leave room for X button
+            int nameOffsetX = (i > 0) ? -4 : 0;
+            context.drawCenteredTextWithShadow(this.textRenderer, prof, px + pw / 2 + nameOffsetX, py + 3, color);
+
+            // Draw small X delete button for custom profiles on hover
+            if (i > 0) {
+                int delX = px + pw - 10;
+                int delY = py + 3;
+                boolean delHovered = mouseX >= delX && mouseX <= delX + 8 && mouseY >= delY && mouseY <= delY + 11;
+                context.drawTextWithShadow(this.textRenderer, "✖", delX, delY, delHovered ? 0xFFC62828 : 0x40FFFFFF);
+            }
         }
 
         // Sidebar Bottom Pill Button: EDIT HUD - i18n, premium glass
@@ -350,8 +407,8 @@ public class OverlayScreen extends Screen {
         int hudW = sbW - 12;
         int hudH = 16;
         boolean hudHovered = mouseX >= hudX && mouseX <= hudX + hudW && mouseY >= hudY && mouseY <= hudY + hudH;
-        context.fill(hudX, hudY, hudX + hudW, hudY + hudH, hudHovered ? 0x80B180E8 : 0x40B180E8);
-        context.drawBorder(hudX, hudY, hudW, hudH, hudHovered ? 0xFFB180E8 : 0x60B180E8);
+        context.fill(hudX, hudY, hudX + hudW, hudY + hudH, hudHovered ? 0x802D7DD2 : 0x402D7DD2);
+        context.drawBorder(hudX, hudY, hudW, hudH, hudHovered ? 0xFFFFD700 : 0x602D7DD2);
         context.drawCenteredTextWithShadow(this.textRenderer, Text.translatable("marinmc.sidebar.edithud").getString(), hudX + hudW / 2, hudY + 4, 0xFFFFFFFF);
 
         // 5. Render Content Area (Right) based on active tab
@@ -400,12 +457,12 @@ public class OverlayScreen extends Screen {
             boolean active = activeCategory.equals(cat);
             
             if (active) {
-                context.fill(cx, cy, cx + cw, cy + ch, 0x60B180E8);
-                context.drawBorder(cx, cy, cw, ch, 0xFFB180E8);
+                context.fill(cx, cy, cx + cw, cy + ch, 0x602D7DD2);
+                context.drawBorder(cx, cy, cw, ch, 0xFFFFD700);
             } else {
                 boolean catHov = mouseX >= cx && mouseX <= cx + cw && mouseY >= cy && mouseY <= cy + ch;
-                context.fill(cx, cy, cx + cw, cy + ch, catHov ? 0x30B180E8 : 0x15FFFFFF);
-                context.drawBorder(cx, cy, cw, ch, catHov ? 0x40B180E8 : 0x08FFFFFF);
+                context.fill(cx, cy, cx + cw, cy + ch, catHov ? 0x302D7DD2 : 0x15FFFFFF);
+                context.drawBorder(cx, cy, cw, ch, catHov ? 0x402D7DD2 : 0x08FFFFFF);
             }
             int color = active ? 0xFFFFFFFF : 0xFF94A3B8;
             context.drawCenteredTextWithShadow(this.textRenderer, catLabel, cx + cw / 2, cy + 2, color);
@@ -417,7 +474,7 @@ public class OverlayScreen extends Screen {
         int searchW = 70;
         int searchH = 14;
         context.fill(searchX, searchY, searchX + searchW, searchY + searchH, searchFocused ? 0x900F172A : 0x500F172A);
-        context.drawBorder(searchX, searchY, searchW, searchH, searchFocused ? 0xFFBF5BFF : 0x20FFFFFF);
+        context.drawBorder(searchX, searchY, searchW, searchH, searchFocused ? 0xFFFFD700 : 0x20FFFFFF);
         String searchPlaceholder = Text.translatable("marinmc.menu.search").getString();
         String displayText = searchQuery.isEmpty() ? (searchFocused ? "" : searchPlaceholder) : searchQuery;
         int displayColor = searchQuery.isEmpty() && !searchFocused ? 0xFF64748B : 0xFFFFFFFF;
@@ -457,8 +514,8 @@ public class OverlayScreen extends Screen {
             
             boolean cardHovered = mouseX >= cx && mouseX <= cx + colWidth && mouseY >= cy && mouseY <= cy + cardHeight;
             // Card bg: dark glass with hover glow
-            context.fill(cx, cy, cx + colWidth, cy + cardHeight, cardHovered ? 0x80160E28 : 0x65160E28);
-            int borderColor = isEnabled ? 0x4010B981 : (cardHovered ? 0x40B180E8 : 0x10FFFFFF);
+            context.fill(cx, cy, cx + colWidth, cy + cardHeight, cardHovered ? 0x800B0F19 : 0x650B0F19);
+            int borderColor = isEnabled ? 0x402E7D32 : (cardHovered ? 0x402D7DD2 : 0x10FFFFFF);
             context.drawBorder(cx, cy, colWidth, cardHeight, borderColor);
 
             // Icon circle
@@ -478,7 +535,7 @@ public class OverlayScreen extends Screen {
             int gearX = cx + colWidth - 14;
             int gearY = cy + 7;
             boolean gearHovered = mouseX >= gearX && mouseX <= gearX + 8 && mouseY >= gearY && mouseY <= gearY + 8;
-            context.drawTextWithShadow(this.textRenderer, "⚙", gearX, gearY, gearHovered ? 0xFFB180E8 : 0xFF64748B);
+            context.drawTextWithShadow(this.textRenderer, "⚙", gearX, gearY, gearHovered ? 0xFFFFD700 : 0xFF64748B);
 
             // Status Pill Button - glass style
             int btnX = cx + 6;
@@ -490,8 +547,8 @@ public class OverlayScreen extends Screen {
             // Glass-style enabled/disabled with i18n
             String enabledText = Text.translatable("marinmc.menu.enabled").getString();
             String disabledText = Text.translatable("marinmc.menu.disabled").getString();
-            int statusBg = isEnabled ? (btnHovered ? 0x8010B981 : 0x6010B981) : (btnHovered ? 0x80EF4444 : 0x60EF4444);
-            int statusBorder = isEnabled ? 0xFF10B981 : 0xFFEF4444;
+            int statusBg = isEnabled ? (btnHovered ? 0x802E7D32 : 0x602E7D32) : (btnHovered ? 0x80C62828 : 0x60C62828);
+            int statusBorder = isEnabled ? 0xFF2E7D32 : 0xFFC62828;
             context.fill(btnX, btnY, btnX + btnW, btnY + btnH, statusBg);
             context.drawBorder(btnX, btnY, btnW, btnH, statusBorder);
             context.drawCenteredTextWithShadow(this.textRenderer, isEnabled ? enabledText : disabledText, btnX + btnW / 2, btnY + 3, 0xFFFFFFFF);
@@ -519,12 +576,12 @@ public class OverlayScreen extends Screen {
             boolean active = settingsSubTab.equals(st);
             
             if (active) {
-                context.fill(sx, sy, sx + sw, sy + sh, 0x60B180E8);
-                context.drawBorder(sx, sy, sw, sh, 0xFFB180E8);
+                context.fill(sx, sy, sx + sw, sy + sh, 0x602D7DD2);
+                context.drawBorder(sx, sy, sw, sh, 0xFFFFD700);
             } else {
                 boolean stHov = mouseX >= sx && mouseX <= sx + sw && mouseY >= sy && mouseY <= sy + sh;
-                context.fill(sx, sy, sx + sw, sy + sh, stHov ? 0x30B180E8 : 0x15FFFFFF);
-                context.drawBorder(sx, sy, sw, sh, stHov ? 0x40B180E8 : 0x08FFFFFF);
+                context.fill(sx, sy, sx + sw, sy + sh, stHov ? 0x302D7DD2 : 0x15FFFFFF);
+                context.drawBorder(sx, sy, sw, sh, stHov ? 0x402D7DD2 : 0x08FFFFFF);
             }
             int color = active ? 0xFFFFFFFF : 0xFF94A3B8;
             context.drawCenteredTextWithShadow(this.textRenderer, stLabel, sx + sw / 2, sy + 2, color);
@@ -560,8 +617,8 @@ public class OverlayScreen extends Screen {
             boolean isOn = configStates.getOrDefault(entry.configKey, false);
             
             // Track - glass style
-            context.fill(toggleX, toggleY, toggleX + toggleW, toggleY + toggleH, isOn ? 0x6010B981 : 0x40374151);
-            context.drawBorder(toggleX, toggleY, toggleW, toggleH, isOn ? 0xFF10B981 : 0xFF4B5563);
+            context.fill(toggleX, toggleY, toggleX + toggleW, toggleY + toggleH, isOn ? 0x602E7D32 : 0x40374151);
+            context.drawBorder(toggleX, toggleY, toggleW, toggleH, isOn ? 0xFF2E7D32 : 0xFF4B5563);
             
             // Knob
             int knobX = isOn ? toggleX + toggleW - 12 : toggleX + 1;
@@ -629,8 +686,8 @@ public class OverlayScreen extends Screen {
         int addBtnW = 74;
         int addBtnH = 14;
         boolean addHovered = mouseX >= addBtnX && mouseX <= addBtnX + addBtnW && mouseY >= addBtnY && mouseY <= addBtnY + addBtnH;
-        context.fill(addBtnX, addBtnY, addBtnX + addBtnW, addBtnY + addBtnH, addHovered ? 0x8010B981 : 0x6010B981);
-        context.drawBorder(addBtnX, addBtnY, addBtnW, addBtnH, 0xFF10B981);
+        context.fill(addBtnX, addBtnY, addBtnX + addBtnW, addBtnY + addBtnH, addHovered ? 0x802E7D32 : 0x602E7D32);
+        context.drawBorder(addBtnX, addBtnY, addBtnW, addBtnH, 0xFF2E7D32);
         context.drawCenteredTextWithShadow(this.textRenderer, "+ ADD", addBtnX + addBtnW / 2, addBtnY + 3, 0xFFFFFFFF);
 
         // Waypoint list
@@ -686,7 +743,7 @@ public class OverlayScreen extends Screen {
                 int delX = listX + listW - 18;
                 int delY = ry + 8;
                 boolean delHovered = mouseX >= delX && mouseX <= delX + 12 && mouseY >= delY && mouseY <= delY + 10;
-                context.drawTextWithShadow(this.textRenderer, "✖", delX, delY, delHovered ? 0xFFEF4444 : 0xFF64748B);
+                context.drawTextWithShadow(this.textRenderer, "✖", delX, delY, delHovered ? 0xFFC62828 : 0xFF64748B);
             }
         }
 
@@ -717,9 +774,9 @@ public class OverlayScreen extends Screen {
         int px = (this.width - pw) / 2;
         int py = (this.height - ph) / 2;
 
-        // Popup background - premium glass
-        context.fill(px, py, px + pw, py + ph, 0xF80E0A1A);
-        context.drawBorder(px, py, pw, ph, 0xFFB180E8);
+        // Popup background - premium navy blue
+        context.fill(px, py, px + pw, py + ph, 0xF8050914);
+        context.drawBorder(px, py, pw, ph, 0xFFFFD700); // Gold border
 
         // Header - dark glass
         context.fill(px + 1, py + 1, px + pw - 1, py + 26, 0x30160E28);
@@ -739,7 +796,7 @@ public class OverlayScreen extends Screen {
         int clX = px + pw - 18;
         int clY = py + 8;
         boolean clHov = mouseX >= clX && mouseX <= clX + 10 && mouseY >= clY && mouseY <= clY + 10;
-        context.drawTextWithShadow(this.textRenderer, "✖", clX, clY, clHov ? 0xFFEF4444 : 0xFFA1A1AA);
+        context.drawTextWithShadow(this.textRenderer, "✖", clX, clY, clHov ? 0xFFC62828 : 0xFFA1A1AA);
 
         // Description - i18n
         String modDescKey = "marinmc.mod." + detailMod.id + ".desc";
@@ -756,9 +813,9 @@ public class OverlayScreen extends Screen {
         boolean tbHov = mouseX >= tbX && mouseX <= tbX + tbW && mouseY >= tbY && mouseY <= tbY + tbH;
         String enabledText = Text.translatable("marinmc.menu.enabled").getString();
         String disabledText = Text.translatable("marinmc.menu.disabled").getString();
-        int tbColor = isEnabled ? (tbHov ? 0x8010B981 : 0x6010B981) : (tbHov ? 0x80EF4444 : 0x60EF4444);
+        int tbColor = isEnabled ? (tbHov ? 0x802E7D32 : 0x602E7D32) : (tbHov ? 0x80C62828 : 0x60C62828);
         context.fill(tbX, tbY, tbX + tbW, tbY + tbH, tbColor);
-        context.drawBorder(tbX, tbY, tbW, tbH, isEnabled ? 0xFF10B981 : 0xFFEF4444);
+        context.drawBorder(tbX, tbY, tbW, tbH, isEnabled ? 0xFF2E7D32 : 0xFFC62828);
         context.drawCenteredTextWithShadow(this.textRenderer, isEnabled ? enabledText : disabledText, tbX + tbW / 2, tbY + 5, 0xFFFFFFFF);
 
         // Settings: Customization options specific to HUD elements
@@ -781,7 +838,7 @@ public class OverlayScreen extends Screen {
             int sliderY = settingsY + 2;
             context.fill(sliderX, sliderY, sliderX + sliderW, sliderY + 8, 0xFF374151);
             int filled = (int) ((scale - 0.5f) / 2.0f * sliderW);
-            context.fill(sliderX, sliderY, sliderX + Math.min(filled, sliderW), sliderY + 8, 0xFFB180E8);
+            context.fill(sliderX, sliderY, sliderX + Math.min(filled, sliderW), sliderY + 8, 0xFF2D7DD2);
             context.drawBorder(sliderX, sliderY, sliderW, 8, 0xFF4B5563);
             String scaleText = String.format("%.1fx", scale);
             context.drawTextWithShadow(this.textRenderer, scaleText, sliderX + sliderW + 4, settingsY, 0xFFA1A1AA);
@@ -809,7 +866,7 @@ public class OverlayScreen extends Screen {
             int opSliderW = pw - 110;
             context.fill(opSliderX, settingsY + 2, opSliderX + opSliderW, settingsY + 10, 0xFF374151);
             int opFilled = (int) ((float) opacity / 255f * opSliderW);
-            context.fill(opSliderX, settingsY + 2, opSliderX + Math.min(opFilled, opSliderW), settingsY + 10, 0xFF22C55E);
+            context.fill(opSliderX, settingsY + 2, opSliderX + Math.min(opFilled, opSliderW), settingsY + 10, 0xFF2E7D32);
             context.drawBorder(opSliderX, settingsY + 2, opSliderW, 8, 0xFF4B5563);
             String opText = String.format("%d%%", (int)((float) opacity / 255f * 100));
             context.drawTextWithShadow(this.textRenderer, opText, opSliderX + opSliderW + 4, settingsY, 0xFFA1A1AA);
@@ -820,8 +877,8 @@ public class OverlayScreen extends Screen {
             boolean shadow = configStates.getOrDefault(detailMod.id + "_shadow", true);
             int swX = px + pw - 44;
             int swY = settingsY - 1;
-            context.fill(swX, swY, swX + 26, swY + 12, shadow ? 0x6010B981 : 0x40374151);
-            context.drawBorder(swX, swY, 26, 12, shadow ? 0xFF10B981 : 0xFF4B5563);
+            context.fill(swX, swY, swX + 26, swY + 12, shadow ? 0x602E7D32 : 0x40374151);
+            context.drawBorder(swX, swY, 26, 12, shadow ? 0xFF2E7D32 : 0xFF4B5563);
             int knobX = shadow ? swX + 15 : swX + 1;
             context.fill(knobX, swY + 1, knobX + 10, swY + 11, 0xFFFFFFFF);
             settingsY += 20;
@@ -835,8 +892,8 @@ public class OverlayScreen extends Screen {
                 int bx = px + 90 + i * 26;
                 int by = settingsY - 1;
                 boolean bActive = currentBracket.equals(brackets[i]);
-                context.fill(bx, by, bx + 22, by + 12, bActive ? 0x40BF5BFF : 0x15FFFFFF);
-                context.drawBorder(bx, by, 22, 12, bActive ? 0xFFBF5BFF : 0x15FFFFFF);
+                context.fill(bx, by, bx + 22, by + 12, bActive ? 0x402D7DD2 : 0x15FFFFFF);
+                context.drawBorder(bx, by, 22, 12, bActive ? 0xFF2D7DD2 : 0x15FFFFFF);
                 context.drawCenteredTextWithShadow(this.textRenderer, bracketLabels[i], bx + 11, by + 2, bActive ? 0xFFFFFFFF : 0xFF94A3B8);
             }
         } else {
@@ -854,8 +911,8 @@ public class OverlayScreen extends Screen {
                     int bx = px + 90 + i * 56;
                     int by = settingsY - 1;
                     boolean bActive = current.equals(perspectives[i]);
-                    context.fill(bx, by, bx + 52, by + 12, bActive ? 0x40BF5BFF : 0x15FFFFFF);
-                    context.drawBorder(bx, by, 52, 12, bActive ? 0xFFBF5BFF : 0x15FFFFFF);
+                    context.fill(bx, by, bx + 52, by + 12, bActive ? 0x402D7DD2 : 0x15FFFFFF);
+                    context.drawBorder(bx, by, 52, 12, bActive ? 0xFF2D7DD2 : 0x15FFFFFF);
                     context.drawCenteredTextWithShadow(this.textRenderer, perspLabels[i], bx + 26, by + 2, bActive ? 0xFFFFFFFF : 0xFF94A3B8);
                 }
                 settingsY += 20;
@@ -865,15 +922,15 @@ public class OverlayScreen extends Screen {
                 boolean invertY = configStates.getOrDefault("freelook_invert_y", false);
                 int swX = px + pw - 44;
                 int swY = settingsY - 1;
-                context.fill(swX, swY, swX + 26, swY + 12, invertY ? 0xFF22C55E : 0xFF374151);
-                context.drawBorder(swX, swY, 26, 12, invertY ? 0xFF4ADE80 : 0xFF4B5563);
+                context.fill(swX, swY, swX + 26, swY + 12, invertY ? 0xFF2E7D32 : 0xFF374151);
+                context.drawBorder(swX, swY, 26, 12, invertY ? 0xFF2E7D32 : 0xFF4B5563);
                 int knobX2 = invertY ? swX + 15 : swX + 1;
                 context.fill(knobX2, swY + 1, knobX2 + 10, swY + 11, 0xFFFFFFFF);
             } else if (detailMod.id.equals("block_outline")) {
                 context.drawTextWithShadow(this.textRenderer, "Outline Color:", px + 10, settingsY, 0xFFE2E8F0);
-                String[] colors = {"purple", "red", "green", "blue", "orange", "white"};
-                int[] colorVals = {0xFFBF5BFF, 0xFFEF4444, 0xFF22C55E, 0xFF3B82F6, 0xFFF97316, 0xFFFFFFFF};
-                String current = configStrings.getOrDefault("outline_color", "purple");
+                String[] colors = {"gold", "red", "green", "blue", "orange", "white"};
+                int[] colorVals = {0xFFFFD700, 0xFFEF4444, 0xFF22C55E, 0xFF3B82F6, 0xFFF97316, 0xFFFFFFFF};
+                String current = configStrings.getOrDefault("outline_color", "gold");
                 for (int i = 0; i < colors.length; i++) {
                     int tx = px + 90 + i * 22;
                     int ty = settingsY - 1;
@@ -981,8 +1038,13 @@ public class OverlayScreen extends Screen {
             return handleWaypointAddClick(mouseX, mouseY);
         }
 
-        int w = Math.min(this.width - 20, 520);
-        int h = Math.min(this.height - 20, 320);
+        // Handle profile add modal clicks
+        if (showProfileAdd) {
+            return handleProfileAddClick(mouseX, mouseY);
+        }
+
+        int w = Math.min(this.width - 20, 420);
+        int h = Math.min(this.height - 20, 260);
         int x = (this.width - w) / 2;
         int y = (this.height - h) / 2;
 
@@ -1010,17 +1072,62 @@ public class OverlayScreen extends Screen {
         // Profile Sidebar click
         int sbX = x + 6;
         int sbY = y + 30;
-        String[] profiles = {"Main", "Testing", "PvP Settings"};
-        for (int i = 0; i < profiles.length; i++) {
+        int sbW = 105;
+        
+        // (+) Add Profile click
+        int addProfX = sbX + sbW - 14;
+        int addProfY = sbY + 8;
+        if (mouseX >= addProfX && mouseX <= addProfX + 10 && mouseY >= addProfY && mouseY <= addProfY + 16) {
+            showProfileAdd = true;
+            newProfileName = "";
+            profileNameFocused = false;
+            return true;
+        }
+
+        for (int i = 0; i < profileList.size(); i++) {
+            String prof = profileList.get(i);
             int px = sbX + 6;
             int py = sbY + 22 + i * 18;
-            if (mouseX >= px && mouseX <= px + sbW(w) && mouseY >= py && mouseY <= py + 14) {
-                if (!activeProfile.equals(profiles[i])) {
-                    // Save current profile
+            int pw = sbW - 12;
+            
+            // Delete button (X) click for custom profiles
+            if (i > 0) {
+                int delX = px + pw - 10;
+                int delY = py + 3;
+                if (mouseX >= delX && mouseX <= delX + 8 && mouseY >= delY && mouseY <= delY + 11) {
+                    profileList.remove(i);
+                    saveProfilesList();
+                    
+                    if (activeProfile.equals(prof)) {
+                        activeProfile = "MarinMC";
+                        loadProfileConfig("MarinMC");
+                        configStrings.put("active_profile", "MarinMC");
+                        saveStringsConfigStatic();
+                    }
+                    
+                    try {
+                        java.io.File configDir = net.fabricmc.loader.api.FabricLoader.getInstance()
+                            .getConfigDir().toFile();
+                        String safeProfileName = prof.replace(" ", "_").toLowerCase();
+                        java.io.File profileFile = new java.io.File(configDir, "marinmc-profile-" + safeProfileName + ".json");
+                        if (profileFile.exists()) {
+                            profileFile.delete();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    return true;
+                }
+            }
+
+            // Profile row selection click
+            if (mouseX >= px && mouseX <= px + pw - 12 && mouseY >= py && mouseY <= py + 14) {
+                if (!activeProfile.equals(prof)) {
                     saveProfileConfig(activeProfile);
-                    // Switch and load new profile
-                    activeProfile = profiles[i];
+                    activeProfile = prof;
                     loadProfileConfig(activeProfile);
+                    configStrings.put("active_profile", activeProfile);
+                    saveStringsConfigStatic();
                 }
                 return true;
             }
@@ -1029,7 +1136,7 @@ public class OverlayScreen extends Screen {
         // EDIT HUD click
         int hudX = sbX + 6;
         int hudY = sbY + h - 36 - 22;
-        if (mouseX >= hudX && mouseX <= hudX + sbW(w) && mouseY >= hudY && mouseY <= hudY + 16) {
+        if (mouseX >= hudX && mouseX <= hudX + (sbW - 12) && mouseY >= hudY && mouseY <= hudY + 16) {
             if (this.client != null) {
                 this.client.setScreen(new HudEditorScreen());
             }
@@ -1430,10 +1537,72 @@ public class OverlayScreen extends Screen {
         return true;
     }
 
+    private boolean handleProfileAddClick(double mouseX, double mouseY) {
+        int pw = 200;
+        int ph = 90;
+        int px = (this.width - pw) / 2;
+        int py = (this.height - ph) / 2;
+
+        // Close button
+        int clX = px + pw - 18;
+        int clY = py + 8;
+        if (mouseX >= clX && mouseX <= clX + 10 && mouseY >= clY && mouseY <= clY + 10) {
+            showProfileAdd = false;
+            return true;
+        }
+
+        // Click outside to close
+        if (mouseX < px || mouseX > px + pw || mouseY < py || mouseY > py + ph) {
+            showProfileAdd = false;
+            return true;
+        }
+
+        // Name field click
+        int nameFieldX = px + 45;
+        int nameFieldY = py + 25;
+        int nameFieldW = pw - 55;
+        int nameFieldH = 14;
+        if (mouseX >= nameFieldX && mouseX <= nameFieldX + nameFieldW && mouseY >= nameFieldY && mouseY <= nameFieldY + nameFieldH) {
+            profileNameFocused = true;
+        } else {
+            profileNameFocused = false;
+        }
+
+        // Confirm button
+        int confirmX = px + 10;
+        int confirmY = py + ph - 26;
+        int confirmW = pw - 20;
+        int confirmH = 16;
+        if (mouseX >= confirmX && mouseX <= confirmX + confirmW && mouseY >= confirmY && mouseY <= confirmY + confirmH) {
+            if (!newProfileName.isEmpty()) {
+                String cleanName = newProfileName.trim();
+                if (!profileList.contains(cleanName)) {
+                    profileList.add(cleanName);
+                    saveProfilesList();
+                    
+                    saveProfileConfig(activeProfile);
+                    activeProfile = cleanName;
+                    loadProfileConfig(activeProfile);
+                    configStrings.put("active_profile", activeProfile);
+                    saveStringsConfigStatic();
+                    
+                    showProfileAdd = false;
+                }
+            }
+            return true;
+        }
+
+        return true;
+    }
+
     @Override
     public boolean charTyped(char chr, int modifiers) {
         if (showWaypointAdd && wpNameFocused) {
             wpName += chr;
+            return true;
+        }
+        if (showProfileAdd && profileNameFocused) {
+            newProfileName += chr;
             return true;
         }
         if (searchFocused) {
@@ -1457,6 +1626,28 @@ public class OverlayScreen extends Screen {
                 return true;
             } else if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
                 showWaypointAdd = false;
+                return true;
+            }
+        }
+
+        if (showProfileAdd && profileNameFocused) {
+            if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+                if (!newProfileName.isEmpty()) {
+                    newProfileName = newProfileName.substring(0, newProfileName.length() - 1);
+                }
+                return true;
+            } else if (keyCode == GLFW.GLFW_KEY_ENTER) {
+                profileNameFocused = false;
+                return true;
+            } else if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                showProfileAdd = false;
+                return true;
+            }
+        }
+
+        if (showProfileAdd) {
+            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                showProfileAdd = false;
                 return true;
             }
         }
@@ -1628,13 +1819,13 @@ public class OverlayScreen extends Screen {
             int accentColor = 0;
 
             if (text.contains("ENABLED")) {
-                bgColor = hovered ? 0x6022C55E : 0x3022C55E;
-                borderColor = hovered ? 0xC022C55E : 0x6022C55E;
-                if (hovered) accentColor = 0xFF22C55E;
+                bgColor = hovered ? 0x602E7D32 : 0x302E7D32;
+                borderColor = hovered ? 0xC02E7D32 : 0x602E7D32;
+                if (hovered) accentColor = 0xFF2E7D32;
             } else if (text.contains("DISABLED")) {
-                bgColor = hovered ? 0x60EF4444 : 0x30EF4444;
-                borderColor = hovered ? 0xC0EF4444 : 0x60EF4444;
-                if (hovered) accentColor = 0xFFEF4444;
+                bgColor = hovered ? 0x60C62828 : 0x30C62828;
+                borderColor = hovered ? 0xC0C62828 : 0x60C62828;
+                if (hovered) accentColor = 0xFFC62828;
             } else {
                 bgColor = hovered ? 0x452D7DD2 : 0x65111111;
                 borderColor = hovered ? 0x902D7DD2 : 0x25FFFFFF;

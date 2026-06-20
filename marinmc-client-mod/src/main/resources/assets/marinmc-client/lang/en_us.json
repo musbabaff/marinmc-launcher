@@ -91,6 +91,10 @@
   "marinmc.menu.hud_editor_desc": "Left click & drag to move. Right click to customize. Press ESC to exit.",
   "marinmc.menu.reset_pos": "Reset Position",
 
+  "marinmc.profile.add_title": "Create Profile",
+  "marinmc.profile.add_placeholder": "Profile name...",
+  "marinmc.profile.add_btn": "CREATE PROFILE",
+
   "marinmc.settings.general": "GENERAL",
   "marinmc.settings.performance": "PERFORMANCE",
   "marinmc.settings.controls": "CONTROLS"

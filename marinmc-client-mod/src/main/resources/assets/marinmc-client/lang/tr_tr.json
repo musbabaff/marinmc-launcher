@@ -91,6 +91,10 @@
   "marinmc.menu.hud_editor_desc": "Sürüklemek için sol tık basılı tutun. Özelleştirmek için sağ tıklayın. ESC ile çıkın.",
   "marinmc.menu.reset_pos": "Pozisyonu Sıfırla",
 
+  "marinmc.profile.add_title": "Profil Oluştur",
+  "marinmc.profile.add_placeholder": "Profil adı...",
+  "marinmc.profile.add_btn": "PROFİL OLUŞTUR",
+
   "marinmc.settings.general": "GENEL",
   "marinmc.settings.performance": "PERFORMANS",
   "marinmc.settings.controls": "KONTROLLER"

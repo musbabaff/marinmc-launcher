@@ -34,6 +34,7 @@ export default function Sidebar() {
   ];
 
   const handleNav = (item: SidebarItem) => {
+    if (item.path === '/cosmetics') return;
     setActivePage(item.path);
     navigate(item.path);
   };
@@ -90,13 +91,16 @@ export default function Sidebar() {
             {group2.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
+              const isLocked = item.path === '/cosmetics';
 
               return (
                 <div key={item.path} className="relative group w-full flex justify-center">
                   <button
                     onClick={() => handleNav(item)}
                     className={`p-2 rounded-lg transition-all duration-300 relative ${
-                      active
+                      isLocked
+                        ? 'opacity-40 cursor-not-allowed text-[#3f3f46]'
+                        : active
                         ? 'text-white bg-[#2D7DD2]/20 border border-[#2D7DD2]/40 shadow-[0_0_12px_rgba(45,125,210,0.25)]'
                         : 'text-[#52525B] hover:text-[#d2d2d2] hover:bg-white/5'
                     }`}
@@ -106,7 +110,7 @@ export default function Sidebar() {
 
                   {/* Tooltip */}
                   <div className="absolute left-[55px] top-1/2 -translate-y-1/2 bg-[#060305] border border-[#2A2A2A] text-[#d2d2d2] text-[9px] font-bold px-2 py-1 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
-                    {item.label}
+                    {isLocked ? 'Gardırop (Yakında!)' : item.label}
                   </div>
                 </div>
               );

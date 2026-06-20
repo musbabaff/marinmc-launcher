@@ -33,7 +33,7 @@ export default function CrashModal({
   const suspectedFile = suspectedFilename || 'Java/Minecraft Crash';
   const fileTypeBadge = suspectedFile.toLowerCase().endsWith('.jar') ? 'JAR' : 'ERR';
   const badgeBgColor = fileTypeBadge === 'JAR'
-    ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/20 text-[#8B5CF6]'
+    ? 'bg-[#2D7DD2]/10 border-[#2D7DD2]/20 text-[#2D7DD2]'
     : 'bg-amber-500/10 border-amber-500/20 text-amber-400';
 
   const handleCopyLog = async () => {

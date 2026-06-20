@@ -162,13 +162,13 @@ export default function TitleBar() {
             onClick={() => setInboxOpen(!inboxOpen)}
             className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all relative ${
               inboxOpen 
-                ? 'bg-[#8B5CF6]/15 border-[#8B5CF6]/30 text-white' 
+                ? 'bg-[#2D7DD2]/15 border-[#2D7DD2]/30 text-white' 
                 : 'bg-white/5 border-white/[0.05] text-[#A1A1AA] hover:bg-white/10 hover:text-white'
             }`}
           >
             <Bell className="w-3.5 h-3.5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#8B5CF6] rounded-full border-2 border-[#060305] shadow-[0_0_6px_#8B5CF6]" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#2D7DD2] rounded-full border-2 border-[#060305] shadow-[0_0_6px_#2D7DD2]" />
             )}
           </button>
           

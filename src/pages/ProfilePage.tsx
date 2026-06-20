@@ -37,10 +37,15 @@ export default function ProfilePage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   
-  const [usernameInput, setUsernameInput] = useState(session?.name || 'Player');
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [successMsg, setSuccessMsg] = useState(false);
+  const [favoriteGame, setFavoriteGame] = useState(() => {
+    return localStorage.getItem('favorite_game') || 'Towny';
+  });
+
+  const handleFavoriteGameChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setFavoriteGame(val);
+    localStorage.setItem('favorite_game', val);
+  };
   
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
@@ -141,7 +146,7 @@ export default function ProfilePage() {
             onClick={() => setActiveTab('profile')}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
               activeTab === 'profile'
-                ? 'bg-[#8B5CF6] text-white shadow-[0_0_12px_rgba(139,92,246,0.25)]'
+                ? 'bg-[#2D7DD2] text-white shadow-[0_0_12px_rgba(45,125,210,0.25)]'
                 : 'text-[#52525B] hover:text-white'
             }`}
           >
@@ -153,7 +158,7 @@ export default function ProfilePage() {
             onClick={() => setActiveTab('achievements')}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
               activeTab === 'achievements'
-                ? 'bg-[#8B5CF6] text-white shadow-[0_0_12px_rgba(139,92,246,0.25)]'
+                ? 'bg-[#2D7DD2] text-white shadow-[0_0_12px_rgba(45,125,210,0.25)]'
                 : 'text-[#52525B] hover:text-white'
             }`}
           >
@@ -164,7 +169,7 @@ export default function ProfilePage() {
             onClick={() => setActiveTab('leaderboard')}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
               activeTab === 'leaderboard'
-                ? 'bg-[#8B5CF6] text-white shadow-[0_0_12px_rgba(139,92,246,0.25)]'
+                ? 'bg-[#2D7DD2] text-white shadow-[0_0_12px_rgba(45,125,210,0.25)]'
                 : 'text-[#52525B] hover:text-white'
             }`}
           >
@@ -177,7 +182,7 @@ export default function ProfilePage() {
       {activeTab === 'profile' ? (
         loadingProfile ? (
           <div className="flex-grow flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-[#8B5CF6] animate-spin" />
+            <Loader2 className="w-6 h-6 text-[#2D7DD2] animate-spin" />
           </div>
         ) : (
           /* Profil Tab */
@@ -202,40 +207,14 @@ export default function ProfilePage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[9px] font-extrabold text-[#52525B] uppercase tracking-widest block mb-1">Oyuncu Kimliği</span>
-                    {editing ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={usernameInput}
-                          onChange={(e) => setUsernameInput(e.target.value)}
-                          className="px-3 py-1.5 rounded-lg bg-[#0A0A0A] border border-[#2A2A2A] text-xs font-bold text-white focus:outline-none"
-                        />
-                        <button
-                          onClick={handleEditToggle}
-                          disabled={saving}
-                          className="p-2 bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg text-white font-bold transition-all disabled:opacity-50"
-                        >
-                          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-black text-white leading-none">{session?.name || 'Player'}</h3>
-                        <button
-                          onClick={handleEditToggle}
-                          className="p-1 text-[#52525B] hover:text-white transition-colors"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                    {successMsg && (
-                      <span className="text-[9px] text-emerald-400 font-semibold block mt-1">Değişiklikler kaydedildi.</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-black text-white leading-none">{session?.name || 'Player'}</h3>
+                      <Lock className="w-3.5 h-3.5 text-[#52525B]" title="Oyuncu adı değiştirilemez" />
+                    </div>
                   </div>
 
                   <div className="flex flex-col items-end gap-1.5">
-                    <span className="text-[9px] font-extrabold bg-[#8B5CF6]/15 border border-[#8B5CF6]/20 text-[#8B5CF6] px-2.5 py-0.5 rounded-lg uppercase tracking-wider">
+                    <span className="text-[9px] font-extrabold bg-[#2D7DD2]/15 border border-[#2D7DD2]/20 text-[#2D7DD2] px-2.5 py-0.5 rounded-lg uppercase tracking-wider">
                       {session?.type === 'ms' ? 'Premium Microsoft' : 'Ücretsiz'} Hesap
                     </span>
                   </div>
@@ -245,7 +224,7 @@ export default function ProfilePage() {
               {/* Stats Cards */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-[#111111] border border-[#1E1E1E] p-4 rounded-2xl flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#8B5CF6]/10 text-[#8B5CF6] flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-xl bg-[#2D7DD2]/10 text-[#2D7DD2] flex items-center justify-center">
                     <Clock className="w-5 h-5" />
                   </div>
                   <div>
@@ -268,9 +247,20 @@ export default function ProfilePage() {
                   <div className="w-9 h-9 rounded-xl bg-emerald-400/10 text-emerald-400 flex items-center justify-center">
                     <Heart className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <span className="text-[8px] font-extrabold text-[#52525B] uppercase tracking-widest block leading-none mb-1">Favori Oda</span>
-                    <span className="text-xs font-black text-white leading-none">{favoriteServer}</span>
+                    <select
+                      value={favoriteGame}
+                      onChange={handleFavoriteGameChange}
+                      className="bg-[#0A0A0A] border border-[#2A2A2A] text-[10px] font-bold text-white rounded px-1 py-0.5 outline-none focus:border-[#2D7DD2] cursor-pointer"
+                    >
+                      <option value="Towny">Towny</option>
+                      <option value="Skyblock">Skyblock</option>
+                      <option value="Factions">Factions</option>
+                      <option value="Survival">Survival</option>
+                      <option value="Bedwars">Bedwars</option>
+                      <option value="Creative">Creative</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -283,7 +273,7 @@ export default function ProfilePage() {
                     profile.playSessions.map((item) => (
                       <div key={item.id} className="flex justify-between items-center p-2.5 hover:bg-white/[0.01] rounded-xl">
                         <div className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#8B5CF6]" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#2D7DD2]" />
                           <span className="text-xs font-bold text-white/90">{item.server}</span>
                         </div>
                         <div className="flex gap-4 text-[9px] text-[#A1A1AA] font-bold">
@@ -306,7 +296,7 @@ export default function ProfilePage() {
       ) : activeTab === 'achievements' ? (
         loadingAchievements ? (
           <div className="flex-grow flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-[#8B5CF6] animate-spin" />
+            <Loader2 className="w-6 h-6 text-[#2D7DD2] animate-spin" />
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-4 animate-[fadeIn_0.25s_ease-out]">
@@ -373,7 +363,7 @@ export default function ProfilePage() {
         /* Leaderboard Tab */
         loadingLeaderboard ? (
           <div className="flex-grow flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-[#8B5CF6] animate-spin" />
+            <Loader2 className="w-6 h-6 text-[#2D7DD2] animate-spin" />
           </div>
         ) : (
           <div className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-5 overflow-hidden flex flex-col flex-grow animate-[fadeIn_0.25s_ease-out] max-h-[460px]">
@@ -399,7 +389,7 @@ export default function ProfilePage() {
                         key={player.username} 
                         className={`hover:bg-white/[0.02] transition-colors ${
                           player.username.toLowerCase() === session?.name?.toLowerCase() 
-                            ? 'bg-[#8B5CF6]/5 text-white border-l-2 border-l-[#8B5CF6]' 
+                            ? 'bg-[#2D7DD2]/5 text-white border-l-2 border-l-[#2D7DD2]' 
                             : 'text-white/80'
                         }`}
                       >

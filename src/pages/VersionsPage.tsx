@@ -21,31 +21,38 @@ interface VersionItem {
 
 const VERSION_LIST: VersionItem[] = [
   {
-    num: '26.1',
-    label: 'Fabric 🔷 26.1.x',
-    subs: ['26.1.1', '26.1.0'],
-    bgUrl: vBg1,
-    iconType: 'tag'
-  },
-  {
     num: '1.21',
-    label: 'Fabric 🔷 1.21.8',
-    subs: ['1.21.8'],
+    label: 'Fabric 🔷 1.21.x',
+    subs: ['1.21.11', '1.21.8', '1.21'],
     bgUrl: vBg2,
     iconType: 'tag'
   },
   {
     num: '1.20',
-    label: 'Forge 🛠️ 1.20.x',
-    subs: ['1.20.4', '1.20.2', '1.20.1', '1.20.0'],
+    label: 'Fabric 🔷 1.20.x',
+    subs: ['1.20.4', '1.20.2', '1.20.1', '1.20'],
     bgUrl: vBg3,
     iconType: 'tag'
   },
   {
     num: '1.19',
-    label: 'OptiFine 🌟 1.19.x',
-    subs: ['1.19.1', '1.19.4', '1.19.3', '1.19.2'],
+    label: 'Fabric 🔷 1.19.x',
+    subs: ['1.19.4', '1.19.2', '1.19'],
     bgUrl: vBg4,
+    iconType: 'tag'
+  },
+  {
+    num: '1.18',
+    label: 'Fabric 🔷 1.18.x',
+    subs: ['1.18.2', '1.18.1', '1.18'],
+    bgUrl: vBg1,
+    iconType: 'tag'
+  },
+  {
+    num: '1.17',
+    label: 'Fabric 🔷 1.17.x',
+    subs: ['1.17.1', '1.17'],
+    bgUrl: vBg5,
     iconType: 'tag'
   },
   {
@@ -134,15 +141,15 @@ export default function VersionsPage() {
       {/* Grid of Version Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pb-6">
         {VERSION_LIST.map((ver) => {
-          const isActive = ver.num === '1.21';
+          const isActive = ['1.21', '1.20', '1.19', '1.18', '1.17'].includes(ver.num);
           const isSelected = settings.selectedVersion === ver.num && isActive;
-          const currentSub = isActive ? '1.21.8' : ver.subs[0];
+          const currentSub = settings.selectedVersion === ver.num ? settings.selectedSubVersion : ver.subs[0];
           const isOpen = activeDropdown === ver.num && isActive;
 
           return (
             <div
               key={ver.num}
-              onClick={() => isActive && handleSelectVersion(ver.num, '1.21.8')}
+              onClick={() => isActive && handleSelectVersion(ver.num, currentSub)}
               className={`h-[145px] rounded-2xl border p-4 flex flex-col justify-between relative overflow-hidden group transition-all duration-300 ${
                 isSelected
                   ? 'border-[#208390] bg-[#060305] shadow-[0_0_20px_rgba(32,131,144,0.25)]'

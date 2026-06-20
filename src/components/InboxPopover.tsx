@@ -50,7 +50,7 @@ export default function InboxPopover({ onClose }: InboxPopoverProps) {
         <div className="flex items-center gap-1.5">
           <span className="text-white text-[11px] font-black uppercase tracking-wider">Gelen Kutusu</span>
           {unreadCount > 0 && (
-            <span className="bg-[#8B5CF6]/20 text-[#a855f7] border border-[#8B5CF6]/30 px-1.5 py-0.2 rounded text-[7.5px] uppercase">
+            <span className="bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30 px-1.5 py-0.2 rounded text-[7.5px] uppercase">
               {unreadCount} Yeni
             </span>
           )}
@@ -80,7 +80,7 @@ export default function InboxPopover({ onClose }: InboxPopoverProps) {
               onClick={() => markAsRead(not.id)}
               className={`p-2 rounded-lg flex items-start gap-2.5 cursor-pointer transition-all border ${
                 not.unread 
-                  ? 'bg-[#120e1e]/40 border-[#8B5CF6]/20 hover:bg-[#120e1e]/60' 
+                  ? 'bg-[#0a0f1d]/40 border-[#2D7DD2]/20 hover:bg-[#0a0f1d]/60' 
                   : 'bg-white/[0.01] border-transparent hover:bg-white/5'
               }`}
             >
@@ -94,7 +94,7 @@ export default function InboxPopover({ onClose }: InboxPopoverProps) {
                 <div className="flex justify-between items-baseline gap-1">
                   <span className="text-white truncate font-extrabold text-[9px] leading-tight">{not.title}</span>
                   {not.unread && (
-                    <span className="w-1.5 h-1.5 bg-[#8B5CF6] rounded-full shrink-0 shadow-[0_0_6px_#8B5CF6]" />
+                    <span className="w-1.5 h-1.5 bg-[#2D7DD2] rounded-full shrink-0 shadow-[0_0_6px_#2D7DD2]" />
                   )}
                 </div>
                 <p className="text-[#A1A1AA] text-[8px] font-medium leading-relaxed truncate mt-0.5">{not.description}</p>

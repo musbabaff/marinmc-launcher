@@ -7,8 +7,8 @@ directories:
   buildResources: build
 
 files:
-  - dist
-  - dist-electron
+  - dist/**/*
+  - dist-electron/**/*
   - package.json
 
 extraFiles:

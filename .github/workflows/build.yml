@@ -57,7 +57,7 @@ jobs:
 
       - name: Package Application
         run: |
-          rm -f .gitignore
+          node -e "const fs = require('fs'); if (fs.existsSync('.gitignore')) { fs.unlinkSync('.gitignore'); console.log('.gitignore removed'); }"
           npx electron-builder --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -193,7 +193,7 @@ public class CosmeticProfile {
             // Fetch another player's skin
             CompletableFuture.runAsync(() -> {
                 try {
-                    URL url = new URL("https://mc-heads.net/skin/" + skinVal);
+                    URL url = new URL("https://minotar.net/skin/" + skinVal);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("GET");
                     conn.setConnectTimeout(5000);

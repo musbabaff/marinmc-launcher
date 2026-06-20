@@ -114,5 +114,43 @@ This builds both the frontend renderer and the Electron main process, packaging 
 
 ---
 
+## 🛡️ Antivirus & SmartScreen Notice
+
+> **⚠️ Important:** When downloading the launcher, your browser or Windows Defender may show a security warning. **This is a false positive** — the application is completely safe.
+
+This happens because the installer is not yet digitally signed with a code signing certificate. This is common for open-source Electron applications and does **not** mean the software contains malware.
+
+### ✅ VirusTotal Scan Result
+
+The latest release has been scanned and verified clean by **70+ antivirus engines** on VirusTotal:
+
+🔗 **[View Full VirusTotal Report](https://www.virustotal.com/gui/file/2714530da39f04cec7b9c13202d1931318dd1db1e14e19d77791633b3ca6bc32?nocache=1)**
+
+### 💻 How to Install on Windows
+
+If Windows SmartScreen blocks the installer:
+
+1. Click **"More info"** on the SmartScreen popup
+2. Click **"Run anyway"**
+3. The installer will proceed normally
+
+If Windows Defender flags the file:
+
+1. Open **Windows Security** → **Virus & threat protection**
+2. Go to **Protection history**
+3. Find the MarinMC Launcher entry and select **"Allow on device"**
+
+### 🔍 Why Does This Happen?
+
+| Reason | Explanation |
+|---|---|
+| **No Code Signing Certificate** | The `.exe` is not digitally signed, which triggers SmartScreen warnings for all unsigned apps |
+| **Low Reputation** | New/unknown publishers start with zero reputation on Microsoft SmartScreen |
+| **Electron Framework** | Some antivirus engines flag Electron-based apps due to the bundled Chromium runtime |
+
+> 💡 **Tip:** You can always verify the source code yourself — this project is fully open source under the MIT license. Build it from source using `npm run build` if you prefer.
+
+---
+
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

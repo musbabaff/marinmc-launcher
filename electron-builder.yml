@@ -1,7 +1,6 @@
 appId: com.marinmc.launcher
 productName: MarinMC Launcher
 copyright: Copyright © 2026 MarinMC
-useGitIgnore: false
 
 directories:
   output: release

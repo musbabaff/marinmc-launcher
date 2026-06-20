@@ -52,7 +52,9 @@ jobs:
         run: npm run build:electron
 
       - name: Package Application
-        run: npx electron-builder --publish=never
+        run: |
+          rm -f .gitignore
+          npx electron-builder --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false

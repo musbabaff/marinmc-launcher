@@ -91,4 +91,7 @@ server/mods/
 server/mods
 server/mods/*
 
+# TS build caches
+*.tsbuildinfo
+
 

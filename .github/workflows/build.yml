@@ -39,6 +39,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Linux dependencies (FUSE)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2
+
       - name: Build Renderer (TypeScript + Vite)
         run: npm run build:renderer
 
@@ -49,6 +55,7 @@ jobs:
         run: npx electron-builder --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4

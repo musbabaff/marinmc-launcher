@@ -21,7 +21,10 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: MarinMC-Launcher-Windows
-            artifact_ext: exe
+          - os: macos-latest
+            artifact_name: MarinMC-Launcher-macOS
+          - os: ubuntu-latest
+            artifact_name: MarinMC-Launcher-Linux
 
     steps:
       - name: Checkout Source Code

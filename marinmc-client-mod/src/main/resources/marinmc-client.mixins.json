@@ -10,6 +10,7 @@
     "GameMenuScreenMixin",
     "TitleScreenMixin",
     "MultiplayerScreenMixin",
+    "SelectWorldScreenMixin",
     "BlockOutlineMixin",
     "AbstractClientPlayerEntityMixin",
     "ClientPlayerEntityMixin",

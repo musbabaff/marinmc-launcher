@@ -358,14 +358,13 @@ public class OverlayScreen extends Screen {
             logoSize, logoSize
         );
         
-        // Draw double rendered title for bold glow effect
-        int mw = this.textRenderer.getWidth("MARIN");
+        // Draw bold brand text with single gold/amber color and double render for thickness
         int brandX = x + 34;
         int brandY = y + 11;
-        context.drawTextWithShadow(this.textRenderer, "MARIN", brandX + 1, brandY, 0x9055FFFF);
-        context.drawTextWithShadow(this.textRenderer, "MC", brandX + mw + 1, brandY, 0x902D7DD2);
-        context.drawTextWithShadow(this.textRenderer, "MARIN", brandX, brandY, 0xFF55FFFF);
-        context.drawTextWithShadow(this.textRenderer, "MC", brandX + mw, brandY, 0xFF2D7DD2);
+        // Glow layer (offset by 1px for bold effect)
+        context.drawTextWithShadow(this.textRenderer, "MARINMC", brandX + 1, brandY, 0x50EAB308);
+        // Main layer
+        context.drawTextWithShadow(this.textRenderer, "MARINMC", brandX, brandY, 0xFFEAB308);
 
         // 3. Render Top Header Tabs (MODS, SETTINGS, WAYPOINTS) - Segmented track design
         String[] tabs = {"MODS", "SETTINGS", "WAYPOINTS"};

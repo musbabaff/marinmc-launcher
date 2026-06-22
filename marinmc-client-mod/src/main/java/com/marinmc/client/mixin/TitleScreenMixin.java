@@ -69,14 +69,7 @@ public class TitleScreenMixin extends Screen {
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void onRender(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         // 1. Background with proper aspect ratio + blur overlay
-        context.drawTexture(
-            RenderPipelines.GUI_TEXTURED,
-            OverlayScreen.getThemeTexture(),
-            0, 0,
-            0f, 0f,
-            this.width, this.height,
-            this.width, this.height
-        );
+        com.marinmc.client.gui.AnimatedBackgroundRenderer.render(context, this.width, this.height);
         // Strong dark blur overlay for depth
         context.fill(0, 0, this.width, this.height, 0x88000000);
         // Vignette gradient edges (top+bottom)
@@ -105,8 +98,8 @@ public class TitleScreenMixin extends Screen {
         int logoSmallX = 14;
         int logoSmallY = 10;
 
-        // Subtle glass background behind brand
-        context.fill(10, 7, 100, 34, 0x18FFFFFF);
+        // Subtle glass background behind brand (rounded/curved)
+        drawRoundedRect(context, 9, 6, 92, 28, 0x18FFFFFF, 6);
 
         // Draw the logo icon
         context.drawTexture(
@@ -118,19 +111,16 @@ public class TitleScreenMixin extends Screen {
             logoSizeSmall, logoSizeSmall
         );
 
-        // Draw bold two-tone brand text with double render for thickness
+        // Draw bold brand text with single gold/amber color and double render for thickness
         int textX = logoSmallX + 24;
         int textY = logoSmallY + 6;
-        int marinWidth = this.textRenderer.getWidth("MARIN");
         // Glow layer (offset by 1px for bold effect)
-        context.drawTextWithShadow(this.textRenderer, "MARIN", textX + 1, textY, 0x9055FFFF);
-        context.drawTextWithShadow(this.textRenderer, "MC", textX + marinWidth + 1, textY, 0x902D7DD2);
+        context.drawTextWithShadow(this.textRenderer, "MARINMC", textX + 1, textY, 0x50EAB308);
         // Main layer
-        context.drawTextWithShadow(this.textRenderer, "MARIN", textX, textY, 0xFF55FFFF);
-        context.drawTextWithShadow(this.textRenderer, "MC", textX + marinWidth, textY, 0xFF2D7DD2);
+        context.drawTextWithShadow(this.textRenderer, "MARINMC", textX, textY, 0xFFEAB308);
         // Subtle glow underline
         int totalTextW = this.textRenderer.getWidth("MARINMC");
-        context.fill(textX, textY + 11, textX + totalTextW, textY + 12, 0x3055FFFF);
+        context.fill(textX, textY + 11, textX + totalTextW, textY + 12, 0x30EAB308);
 
         // 5. Social Media — clean minimal circular buttons
         int socialBtnSize = 30;
@@ -147,9 +137,9 @@ public class TitleScreenMixin extends Screen {
             int by = socialStartY;
             boolean btnHovered = mouseX >= bx && mouseX <= bx + socialBtnSize && mouseY >= by && mouseY <= by + socialBtnSize;
 
-            // Clean circular glass button
-            int bgColor = btnHovered ? 0x50FFFFFF : 0x18FFFFFF;
-            int borderColor = btnHovered ? 0x80FFFFFF : 0x20FFFFFF;
+            // Clean circular glass button (gold/amber themed)
+            int bgColor = btnHovered ? 0x30EAB308 : 0x12EAB308;
+            int borderColor = btnHovered ? 0xAAEAB308 : 0x40EAB308;
 
             // Rounded button shape using layered fills
             context.fill(bx + 3, by, bx + socialBtnSize - 3, by + socialBtnSize, bgColor);
@@ -168,7 +158,7 @@ public class TitleScreenMixin extends Screen {
 
             // Hover: bottom accent glow line
             if (btnHovered) {
-                context.fill(bx + 4, by + socialBtnSize, bx + socialBtnSize - 4, by + socialBtnSize + 2, 0x602D7DD2);
+                context.fill(bx + 4, by + socialBtnSize, bx + socialBtnSize - 4, by + socialBtnSize + 2, 0x90EAB308);
             }
 
             // Draw social icon centered
@@ -320,6 +310,23 @@ public class TitleScreenMixin extends Screen {
                     this.client.setScreen(new OverlayScreen());
                 }
                 break;
+        }
+    }
+
+    private void drawRoundedRect(DrawContext context, int x, int y, int w, int h, int color, int r) {
+        if (r <= 0) {
+            context.fill(x, y, x + w, y + h, color);
+            return;
+        }
+        context.fill(x + r, y, x + w - r, y + h, color);
+        context.fill(x, y + r, x + r, y + h - r, color);
+        context.fill(x + w - r, y + r, x + w, y + h - r, color);
+        for (int i = 0; i < r; i++) {
+            int cx = (int) Math.round(Math.sqrt(r * r - (r - i) * (r - i)));
+            context.fill(x + r - cx, y + i, x + r, y + i + 1, color);
+            context.fill(x + w - r, y + i, x + w - r + cx, y + i + 1, color);
+            context.fill(x + r - cx, y + h - i - 1, x + r, y + h - i, color);
+            context.fill(x + w - r, y + h - i - 1, x + w - r + cx, y + h - i, color);
         }
     }
 }

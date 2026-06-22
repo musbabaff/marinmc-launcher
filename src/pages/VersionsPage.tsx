@@ -150,7 +150,7 @@ export default function VersionsPage() {
             <div
               key={ver.num}
               onClick={() => isActive && handleSelectVersion(ver.num, currentSub)}
-              className={`h-[145px] rounded-2xl border p-4 flex flex-col justify-between relative overflow-hidden group transition-all duration-300 ${
+              className={`h-[185px] rounded-2xl border p-4 flex flex-col justify-between relative overflow-hidden group transition-all duration-300 ${
                 isSelected
                   ? 'border-[#2D7DD2] bg-[#070b19] shadow-[0_0_20px_rgba(45,125,210,0.25)]'
                   : 'border-white/[0.04] bg-[#070b19]'
@@ -165,13 +165,13 @@ export default function VersionsPage() {
               {/* Background Artwork */}
               <div
                 className={`absolute inset-0 bg-cover bg-center transition-all duration-500 pointer-events-none ${
-                  isSelected ? 'opacity-[0.22] scale-102' : 'opacity-[0.08] group-hover:opacity-[0.14]'
+                  isSelected ? 'opacity-[0.50] scale-102' : 'opacity-[0.25] group-hover:opacity-[0.35]'
                 }`}
                 style={{ backgroundImage: `url(${ver.bgUrl})` }}
               />
               
               {/* Dark Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#070b19] via-[#070b19]/65 to-[#070b19]/40 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#070b19]/90 via-[#070b19]/35 to-transparent pointer-events-none" />
 
               {/* Card Top: Subversion Selector Badge */}
               <div className="flex justify-between items-start z-10">
@@ -210,7 +210,7 @@ export default function VersionsPage() {
 
               {/* Card Center: Large Version Header */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <span className="text-2xl md:text-3xl font-black text-white/90 tracking-wide font-sans select-none">
+                <span className="text-3xl md:text-4xl font-black text-white tracking-wide font-sans select-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.95)]">
                   {ver.num}
                 </span>
               </div>

@@ -17,6 +17,12 @@ public class MultiplayerScreenMixin extends Screen {
         super(title);
     }
 
+    @Override
+    public void renderBackground(net.minecraft.client.gui.DrawContext context, int mouseX, int mouseY, float delta) {
+        com.marinmc.client.gui.AnimatedBackgroundRenderer.render(context, this.width, this.height);
+        context.fill(0, 0, this.width, this.height, 0x88000000);
+    }
+
     @Inject(method = "init", at = @At("TAIL"))
     private void onInit(CallbackInfo ci) {
         if (this.client != null) {

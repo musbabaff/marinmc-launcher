@@ -243,27 +243,17 @@ export default function LoginPage() {
             {/* Discord */}
             <button
               onClick={() => openExternal('https://discord.gg/marinmc')}
-              className="w-11 h-11 rounded-xl bg-[#0f172a]/80 border border-white/10 hover:border-white/25 flex items-center justify-center text-white/60 hover:text-white transition-all"
+              className="w-11 h-11 rounded-xl bg-[#0f172a]/80 border border-[#EAB308]/60 hover:border-[#EAB308] flex items-center justify-center text-[#EAB308] hover:bg-[#EAB308]/10 transition-all duration-300 cursor-pointer"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026c.462-.62.874-1.275 1.226-1.963.021-.04.001-.088-.041-.104a13.201 13.201 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028zM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38z" />
               </svg>
             </button>
 
-            {/* X / Twitter */}
-            <button
-              onClick={() => openExternal('https://x.com/marinmc')}
-              className="w-11 h-11 rounded-xl bg-[#0f172a]/80 border border-white/10 hover:border-white/25 flex items-center justify-center text-white/60 hover:text-white transition-all"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-            </button>
-
             {/* Instagram */}
             <button
               onClick={() => openExternal('https://instagram.com/marinmc')}
-              className="w-11 h-11 rounded-xl bg-[#0f172a]/80 border border-white/10 hover:border-white/25 flex items-center justify-center text-white/60 hover:text-white transition-all"
+              className="w-11 h-11 rounded-xl bg-[#0f172a]/80 border border-[#EAB308]/60 hover:border-[#EAB308] flex items-center justify-center text-[#EAB308] hover:bg-[#EAB308]/10 transition-all duration-300 cursor-pointer"
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
@@ -272,10 +262,20 @@ export default function LoginPage() {
               </svg>
             </button>
 
+            {/* TikTok */}
+            <button
+              onClick={() => openExternal('https://tiktok.com/@marinmc')}
+              className="w-11 h-11 rounded-xl bg-[#0f172a]/80 border border-[#EAB308]/60 hover:border-[#EAB308] flex items-center justify-center text-[#EAB308] hover:bg-[#EAB308]/10 transition-all duration-300 cursor-pointer"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.94 1.15 2.25 1.95 3.69 2.27.01 1.34.01 2.68 0 4.02-1.44-.04-2.84-.52-3.99-1.42-.39-.31-.73-.66-1.01-1.07v6.62c-.08 2.05-.8 4.07-2.14 5.61-1.6 1.83-3.97 2.87-6.4 2.76-2.58-.1-4.99-1.45-6.39-3.62-1.57-2.4-1.84-5.54-.74-8.17 1.05-2.55 3.41-4.37 6.16-4.76v4.06c-1.31.25-2.45 1.16-2.94 2.4-.64 1.57-.1 3.43 1.29 4.38.97.66 2.22.79 3.32.32 1-.41 1.68-1.4 1.74-2.48.01-3.69.01-7.38.01-11.08z"/>
+              </svg>
+            </button>
+
             {/* YouTube */}
             <button
               onClick={() => openExternal('https://youtube.com/@marinmc')}
-              className="w-11 h-11 rounded-xl bg-[#0f172a]/80 border border-white/10 hover:border-white/25 flex items-center justify-center text-white/60 hover:text-white transition-all"
+              className="w-11 h-11 rounded-xl bg-[#0f172a]/80 border border-[#EAB308]/60 hover:border-[#EAB308] flex items-center justify-center text-[#EAB308] hover:bg-[#EAB308]/10 transition-all duration-300 cursor-pointer"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />

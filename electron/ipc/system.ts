@@ -245,7 +245,7 @@ ipcMain.handle('system:update-settings', async (_event, settings: {
   return { success: true };
 });
 
-ipcMain.handle('system:download-file', async (_event, url: string, filename: string, projectType: string) => {
+ipcMain.handle('system:download-file', async (_event, url: string, filename: string, projectType: string, targetVersion?: string) => {
   try {
     const sanitizedFilename = path.basename(filename);
     const gameDir = resolveGameDir(backendSettings.launcherDir);
@@ -254,6 +254,22 @@ ipcMain.handle('system:download-file', async (_event, url: string, filename: str
       subfolder = 'resourcepacks';
     } else if (projectType === 'shader') {
       subfolder = 'shaderpacks';
+    } else if (projectType === 'mod' && targetVersion) {
+      let cleanTargetVersion = targetVersion;
+      if (targetVersion.startsWith('fabric-loader-')) {
+        const parts = targetVersion.split('-');
+        cleanTargetVersion = parts[parts.length - 1];
+      }
+      const versionFile = path.join(gameDir, 'mods', '.version');
+      let currentModsVersion = '';
+      if (fs.existsSync(versionFile)) {
+        try {
+          currentModsVersion = fs.readFileSync(versionFile, 'utf8').trim();
+        } catch {}
+      }
+      if (currentModsVersion && currentModsVersion !== cleanTargetVersion) {
+        subfolder = `mods_backup_${cleanTargetVersion}`;
+      }
     }
     const destFolder = path.join(gameDir, subfolder);
     fs.mkdirSync(destFolder, { recursive: true });
@@ -281,7 +297,7 @@ ipcMain.handle('system:download-file', async (_event, url: string, filename: str
   }
 });
 
-ipcMain.handle('system:delete-file', async (_event, filename: string, projectType: string) => {
+ipcMain.handle('system:delete-file', async (_event, filename: string, projectType: string, targetVersion?: string) => {
   try {
     const sanitizedFilename = path.basename(filename);
     const gameDir = resolveGameDir(backendSettings.launcherDir);
@@ -290,6 +306,20 @@ ipcMain.handle('system:delete-file', async (_event, filename: string, projectTyp
       subfolder = 'resourcepacks';
     } else if (projectType === 'shader') {
       subfolder = 'shaderpacks';
+    } else if (projectType === 'mod' && targetVersion) {
+      let cleanTargetVersion = targetVersion;
+      if (targetVersion.startsWith('fabric-loader-')) {
+        const parts = targetVersion.split('-');
+        cleanTargetVersion = parts[parts.length - 1];
+      }
+      const versionFile = path.join(gameDir, 'mods', '.version');
+      let currentModsVersion = '';
+      if (fs.existsSync(versionFile)) {
+        try { currentModsVersion = fs.readFileSync(versionFile, 'utf8').trim(); } catch {}
+      }
+      if (currentModsVersion && currentModsVersion !== cleanTargetVersion) {
+        subfolder = `mods_backup_${cleanTargetVersion}`;
+      }
     }
     const activePath = path.join(gameDir, subfolder, sanitizedFilename);
     const disabledPath = activePath + '.disabled';
@@ -307,7 +337,7 @@ ipcMain.handle('system:delete-file', async (_event, filename: string, projectTyp
   }
 });
 
-ipcMain.handle('system:toggle-file', async (_event, filename: string, projectType: string, enabled: boolean) => {
+ipcMain.handle('system:toggle-file', async (_event, filename: string, projectType: string, enabled: boolean, targetVersion?: string) => {
   try {
     const sanitizedFilename = path.basename(filename);
     const gameDir = resolveGameDir(backendSettings.launcherDir);
@@ -316,6 +346,20 @@ ipcMain.handle('system:toggle-file', async (_event, filename: string, projectTyp
       subfolder = 'resourcepacks';
     } else if (projectType === 'shader') {
       subfolder = 'shaderpacks';
+    } else if (projectType === 'mod' && targetVersion) {
+      let cleanTargetVersion = targetVersion;
+      if (targetVersion.startsWith('fabric-loader-')) {
+        const parts = targetVersion.split('-');
+        cleanTargetVersion = parts[parts.length - 1];
+      }
+      const versionFile = path.join(gameDir, 'mods', '.version');
+      let currentModsVersion = '';
+      if (fs.existsSync(versionFile)) {
+        try { currentModsVersion = fs.readFileSync(versionFile, 'utf8').trim(); } catch {}
+      }
+      if (currentModsVersion && currentModsVersion !== cleanTargetVersion) {
+        subfolder = `mods_backup_${cleanTargetVersion}`;
+      }
     }
     const activePath = path.join(gameDir, subfolder, sanitizedFilename);
     const disabledPath = activePath + '.disabled';

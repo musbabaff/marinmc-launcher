@@ -11,7 +11,7 @@ import { STEVE_AVATAR_FALLBACK } from '../lib/constants.ts';
 import VersionModal from '../components/VersionModal.tsx';
 import ProfileSettingsModal from '../components/ProfileSettingsModal.tsx';
 import {
-  ChevronDown, LogOut, Search,
+  ChevronDown, Search,
   MessageSquare, UserPlus, X, AlertTriangle,
   Trophy, CheckCircle2, WifiOff, ExternalLink,
   Pause, Trash2, Send,
@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { wsManager } from '../lib/websocket';
 
 import heroBg from '../../assets/home-hero-bg.png';
+import heroVideo from '../../assets/home-hero-bg.mp4';
 
 const defaultNews = [
   {
@@ -75,7 +76,7 @@ const defaultNews = [
 
 export default function HomePage() {
   const { t } = useTranslation();
-  const { session, logout, profiles, switchProfile, removeProfile, addOfflineProfile } = useAuthStore();
+  const { session } = useAuthStore();
   const settings = useSettingsStore();
   const social = useSocialStore();
   const isOnline = useAppStore((state) => state.isOnline);
@@ -84,13 +85,6 @@ export default function HomePage() {
 
   const [versionModalOpen, setVersionModalOpen] = useState(false);
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
-  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [offlineAddOpen, setOfflineAddOpen] = useState(false);
-  const [newOfflineName, setNewOfflineName] = useState('');
-  const [newOfflinePassword, setNewOfflinePassword] = useState('');
-  const [isDropdownRegister, setIsDropdownRegister] = useState(false);
-  const [profileAddError, setProfileAddError] = useState<string | null>(null);
-  const [profileAddSuccess, setProfileAddSuccess] = useState<string | null>(null);
 
   // Trigger launch if redirected from VersionsPage with launch query param
   useEffect(() => {
@@ -500,229 +494,42 @@ export default function HomePage() {
 
         {/* Hero Background */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-[0.25] scale-100"
-            style={{ backgroundImage: `url(${heroBg})` }}
+          <video
+            className="absolute inset-0 w-full h-full object-cover opacity-[0.25] scale-100"
+            src={heroVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster={heroBg}
+            onError={(e) => {
+              const target = e.target as HTMLVideoElement;
+              const parent = target.parentElement;
+              if (parent) {
+                target.style.display = 'none';
+                const fallbackImg = document.createElement('div');
+                fallbackImg.className = 'absolute inset-0 bg-cover bg-center opacity-[0.25] scale-100';
+                fallbackImg.style.backgroundImage = `url(${heroBg})`;
+                parent.insertBefore(fallbackImg, target);
+              }
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-[#070b19]/40 via-[#070b19]/80 to-[#070b19]" />
         </div>
 
         {/* Top Scrollable Area */}
         <div className="flex-grow overflow-y-auto p-6 space-y-6 relative z-10 custom-scrollbar">
-          {/* Minimal top header with Profile Switcher */}
-          <div className="flex justify-end items-center relative z-20">
-            <div className="relative">
-              <button
-                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/[0.04] rounded-xl text-white text-[10px] font-bold uppercase transition-all"
-              >
-                <img
-                  src={session?.avatar}
-                  alt="avatar"
-                  className="w-4 h-4 rounded bg-black/20 shrink-0"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = STEVE_AVATAR_FALLBACK;
-                  }}
-                />
-                <span>{session?.name || 'dbrn'}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-white/50 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              <AnimatePresence>
-                {profileDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    className="absolute right-0 mt-2 bg-[#070b19] border border-white/[0.08] rounded-xl shadow-2xl w-64 py-2.5 z-50 text-[10px] font-black"
-                  >
-                    <div className="px-3.5 pb-2 border-b border-white/[0.05] mb-2 flex items-center justify-between">
-                      <span className="text-[#52525B] uppercase tracking-wider text-[8px] font-black">Hesaplar</span>
-                      <span className="text-[7.5px] bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/30 px-1.5 py-0.5 rounded uppercase">Aktif: {session?.type}</span>
-                    </div>
-
-                    {/* Display profiles list */}
-                    <div className="max-h-36 overflow-y-auto space-y-1 px-1.5 custom-scrollbar">
-                      {profiles.map((p) => {
-                        const isCurrent = p.id === session?.id;
-                        return (
-                          <div
-                            key={p.id}
-                            className={`flex items-center justify-between p-1.5 rounded-lg transition-colors group ${
-                              isCurrent ? 'bg-[#2D7DD2]/10 border border-[#2D7DD2]/25' : 'hover:bg-white/5 border border-transparent'
-                            }`}
-                          >
-                            <div
-                              onClick={async () => {
-                                if (!isCurrent) {
-                                  setProfileDropdownOpen(false);
-                                  await switchProfile(p.id);
-                                }
-                              }}
-                              className="flex items-center gap-2 cursor-pointer flex-grow min-w-0"
-                            >
-                              <img
-                                src={p.avatar}
-                                alt="avatar"
-                                className="w-5 h-5 rounded bg-black/25 shrink-0"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = STEVE_AVATAR_FALLBACK;
-                                }}
-                              />
-                              <div className="flex flex-col min-w-0">
-                                <span className="text-white truncate font-bold text-[9.5px]">{p.name}</span>
-                                <span className="text-[7px] text-[#52525B] uppercase leading-none font-bold">
-                                  {p.type === 'ms' ? t('home.accountPremium') : t('home.accountCracked')}
-                                </span>
-                              </div>
-                            </div>
-                            {/* Remove profile button */}
-                            {profiles.length > 1 && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeProfile(p.id);
-                                }}
-                                className="p-1 rounded text-[#52525B] hover:text-red-400 hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-all"
-                                title="Hesabı Kaldır"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Add account forms/buttons */}
-                    <div className="mt-2 border-t border-white/[0.05] pt-2 px-3 space-y-1.5">
-                      {offlineAddOpen ? (
-                        <form
-                          onSubmit={async (e) => {
-                            e.preventDefault();
-                            if (newOfflineName.trim().length < 3) {
-                              setProfileAddError('En az 3 karakter giriniz.');
-                              return;
-                            }
-                            if (newOfflinePassword.length < 6) {
-                              setProfileAddError('Şifre en az 6 karakter olmalıdır.');
-                              return;
-                            }
-                            setProfileAddError(null);
-                            try {
-                              await addOfflineProfile(newOfflineName.trim(), newOfflinePassword, isDropdownRegister);
-                              setOfflineAddOpen(false);
-                              setNewOfflineName('');
-                              setNewOfflinePassword('');
-                              setProfileAddSuccess('Profil başarıyla eklendi.');
-                              setTimeout(() => setProfileAddSuccess(null), 3000);
-                            } catch (err: any) {
-                              setProfileAddError(err.message || 'Profil eklenemedi.');
-                            }
-                          }}
-                          className="space-y-1.5"
-                        >
-                          <div className="flex bg-white/[0.03] rounded-lg p-0.5 border border-white/5">
-                            <button
-                              type="button"
-                              onClick={() => setIsDropdownRegister(false)}
-                              className={`flex-1 py-0.5 rounded text-[7px] font-bold transition-all uppercase ${
-                                !isDropdownRegister ? 'bg-[#2D7DD2] text-white' : 'text-white/45'
-                              }`}
-                            >
-                              Giriş
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setIsDropdownRegister(true)}
-                              className={`flex-1 py-0.5 rounded text-[7px] font-bold transition-all uppercase ${
-                                isDropdownRegister ? 'bg-[#2D7DD2] text-white' : 'text-white/45'
-                              }`}
-                            >
-                              Kayıt
-                            </button>
-                          </div>
-                          <div className="flex items-center bg-[#070b19] border border-white/10 rounded-lg px-2 py-1 focus-within:border-[#2D7DD2]/50">
-                            <input
-                              type="text"
-                              placeholder="Kullanıcı Adı"
-                              value={newOfflineName}
-                              onChange={(e) => setNewOfflineName(e.target.value)}
-                              className="bg-transparent border-none outline-none text-[8.5px] w-full text-white placeholder-white/20 font-bold"
-                              autoFocus
-                            />
-                          </div>
-                          <div className="flex items-center bg-[#070b19] border border-white/10 rounded-lg px-2 py-1 focus-within:border-[#2D7DD2]/50">
-                            <input
-                              type="password"
-                              placeholder={isDropdownRegister ? "Şifre (En az 6 kar.)" : "Şifre giriniz"}
-                              value={newOfflinePassword}
-                              onChange={(e) => setNewOfflinePassword(e.target.value)}
-                              className="bg-transparent border-none outline-none text-[8.5px] w-full text-white placeholder-white/20 font-bold"
-                            />
-                          </div>
-                          <div className="flex gap-1.5">
-                            <button
-                              type="submit"
-                              className="flex-1 py-1.5 bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white rounded font-bold text-[8px] uppercase tracking-wider transition-colors"
-                            >
-                              Ekle
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { setOfflineAddOpen(false); setProfileAddError(null); }}
-                              className="flex-1 py-1.5 bg-white/5 hover:bg-white/10 text-[#A1A1AA] hover:text-white rounded font-bold text-[8px] uppercase tracking-wider transition-colors"
-                            >
-                              İptal
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <div className="flex gap-1.5">
-                          <button
-                            onClick={() => { setOfflineAddOpen(true); setProfileAddError(null); }}
-                            className="w-full flex items-center justify-center gap-1.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-bold text-[8px] uppercase tracking-wider transition-all"
-                          >
-                            <UserPlus className="w-3 h-3 text-[#2D7DD2]" />
-                            <span>Offline Ekle</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {profileAddError && (
-                        <div className="text-[7.5px] text-red-400 font-bold text-center mt-1">
-                          {profileAddError}
-                        </div>
-                      )}
-                      {profileAddSuccess && (
-                        <div className="text-[7.5px] text-[#259457] font-bold text-center mt-1 animate-pulse">
-                          {profileAddSuccess}
-                        </div>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={async () => {
-                        setProfileDropdownOpen(false);
-                        await logout();
-                      }}
-                      className="w-full flex items-center gap-2 px-3.5 py-2 text-red-400 hover:bg-red-500/10 text-left border-t border-white/[0.05] mt-2.5"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>{t('servers.logout')}</span>
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
 
           {/* Redesigned Sleek Lunar-style Launch Panel */}
           <div className="w-full rounded-2xl bg-gradient-to-br from-[#080d1a] via-[#040714] to-[#080d1a] border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center py-20 px-12 shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(45,125,210,0.1)] group">
-            {/* Background image overlay */}
-            <div 
-              className="absolute inset-0 bg-cover bg-center opacity-[0.18] scale-100 pointer-events-none transition-transform duration-700 group-hover:scale-102"
-              style={{ backgroundImage: `url(${heroBg})` }}
+            {/* Background video overlay */}
+            <video
+              className="absolute inset-0 w-full h-full object-cover opacity-[0.18] scale-100 pointer-events-none transition-transform duration-700 group-hover:scale-102"
+              src={heroVideo}
+              autoPlay
+              loop
+              muted
+              playsInline
             />
             {/* Background particles and radial gradient */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(45,125,210,0.08),transparent_70%)] pointer-events-none" />
@@ -846,15 +653,15 @@ export default function HomePage() {
 
             {/* Launch components */}
             <div className="w-full flex flex-col items-center z-10">
-              <div className="flex items-center gap-4.5 w-full max-w-[460px]">
+              <div className="flex items-center gap-4.5 w-full max-w-[560px]">
                 {launchStatus === 'RUNNING' ? (
                   // Running - Stop Button (Red/Rose Gradient)
                   <button
                     onClick={handleLaunch}
-                    className="flex-1 h-[76px] bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_10px_35px_rgba(244,63,94,0.3)] flex flex-col items-center justify-center gap-0.5 cursor-pointer border border-rose-500/20"
+                    className="flex-1 h-[88px] bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 active:scale-[0.98] text-white font-extrabold rounded-2xl transition-all duration-300 shadow-[0_10px_35px_rgba(244,63,94,0.3)] flex flex-col items-center justify-center gap-0.5 cursor-pointer border border-rose-500/20"
                   >
-                    <span className="font-black text-[15px] tracking-widest uppercase">{t('home.stop')}</span>
-                    <div className="flex items-center gap-1.5 text-[10px] text-white/80 font-bold">
+                    <span className="font-black text-[17px] tracking-widest uppercase">{t('home.stop')}</span>
+                    <div className="flex items-center gap-1.5 text-[11px] text-white/80 font-bold">
                       <span>MarinMC {settings.selectedSubVersion || '1.21.3'}</span>
                       <span className="text-white/40">|</span>
                       <Square className="w-3 h-3 fill-current" />
@@ -864,10 +671,10 @@ export default function HomePage() {
                   // Downloading Green Button (Click to cancel/stop)
                   <button
                     onClick={handleLaunch}
-                    className="flex-1 h-[76px] bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_10px_35px_rgba(16,185,129,0.3)] flex flex-col items-center justify-center gap-0.5 cursor-pointer border border-emerald-500/20"
+                    className="flex-1 h-[88px] bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 active:scale-[0.98] text-white font-extrabold rounded-2xl transition-all duration-300 shadow-[0_10px_35px_rgba(16,185,129,0.3)] flex flex-col items-center justify-center gap-0.5 cursor-pointer border border-emerald-500/20"
                   >
-                    <span className="font-black text-[15px] tracking-widest uppercase">{t('home.downloading')}</span>
-                    <div className="flex items-center gap-1.5 text-[10px] text-white/80 font-bold">
+                    <span className="font-black text-[17px] tracking-widest uppercase">{t('home.downloading')}</span>
+                    <div className="flex items-center gap-1.5 text-[11px] text-white/80 font-bold">
                       <span>Fabric {settings.selectedSubVersion || '1.21.0'}</span>
                       <span className="text-white/40">|</span>
                       <Pause className="w-3 h-3 fill-current text-white animate-pulse" />
@@ -877,12 +684,12 @@ export default function HomePage() {
                   // Checking / Launching Amber Button (Click to cancel/stop)
                   <button
                     onClick={handleLaunch}
-                    className="flex-1 h-[76px] bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-300 shadow-[0_10px_35px_rgba(245,158,11,0.3)] flex flex-col items-center justify-center gap-0.5 cursor-pointer border border-amber-500/20"
+                    className="flex-1 h-[88px] bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 active:scale-[0.98] text-white font-extrabold rounded-2xl transition-all duration-300 shadow-[0_10px_35px_rgba(245,158,11,0.3)] flex flex-col items-center justify-center gap-0.5 cursor-pointer border border-amber-500/20"
                   >
-                    <span className="font-black text-[15px] tracking-widest uppercase text-white">
+                    <span className="font-black text-[17px] tracking-widest uppercase text-white">
                       {launchStatus === 'CHECKING' ? t('home.checking') : t('home.launching')}
                     </span>
-                    <div className="flex items-center gap-1.5 text-[10px] text-white/80 font-bold">
+                    <div className="flex items-center gap-1.5 text-[11px] text-white/80 font-bold">
                       <span>{t('home.changeVersion')}</span>
                       <span className="text-white/40">|</span>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -891,14 +698,16 @@ export default function HomePage() {
                 ) : (
                   // Large Green Launch Game Button matching Screenshot
                   <div
-                    className="flex-1 h-[76px] bg-gradient-to-r from-[#22c55e] to-[#15803d] hover:from-[#4ade80] hover:to-[#16a34a] active:scale-[0.98] text-white rounded-xl transition-all duration-300 shadow-[0_12px_40px_rgba(34,197,94,0.4),0_0_20px_rgba(34,197,94,0.15)] flex items-center justify-between pl-7 pr-4 border border-[#4ade80]/20"
+                    className="flex-grow h-[88px] bg-gradient-to-r from-[#22c55e] to-[#15803d] hover:from-[#4ade80] hover:to-[#16a34a] active:scale-[0.98] text-white rounded-2xl transition-all duration-300 shadow-[0_12px_40px_rgba(34,197,94,0.4),0_0_20px_rgba(34,197,94,0.15)] flex items-center justify-between px-6 border border-[#4ade80]/20 relative"
                   >
+                    {/* Symmetrical spacing item */}
+                    <div className="w-8 h-8 shrink-0 opacity-0" />
                     <button
                       onClick={handleLaunch}
-                      className="flex-grow flex flex-col items-start text-left h-full justify-center cursor-pointer select-none"
+                      className="flex-grow flex flex-col items-center text-center h-full justify-center cursor-pointer select-none"
                     >
-                      <span className="font-black text-[15px] tracking-widest uppercase text-white shadow-sm">{t('home.launch')}</span>
-                      <span className="text-[10px] text-white/90 font-extrabold uppercase tracking-wider mt-0.5">
+                      <span className="font-black text-[17px] tracking-widest uppercase text-white shadow-sm">{t('home.launch')}</span>
+                      <span className="text-[11px] text-white/90 font-extrabold uppercase tracking-wider mt-0.5">
                         MarinMC {settings.selectedSubVersion || '1.21.3'}
                       </span>
                     </button>
@@ -909,7 +718,8 @@ export default function HomePage() {
                         e.preventDefault();
                         setVersionModalOpen(true);
                       }}
-                      className="w-8 h-8 rounded-lg bg-black/25 hover:bg-black/40 flex items-center justify-center transition-colors border border-white/5 cursor-pointer ml-3 z-20"
+                      className="w-8 h-8 rounded-lg bg-black/25 hover:bg-black/40 flex items-center justify-center transition-colors border border-white/5 cursor-pointer z-20 shrink-0"
+                      title={t('home.changeVersion')}
                     >
                       <ChevronDown className="w-4.5 h-4.5 text-white/90 rotate-180" />
                     </button>
@@ -919,10 +729,10 @@ export default function HomePage() {
                 {/* Settings cog wheel next to it */}
                 <button
                   onClick={() => setProfileSettingsOpen(true)}
-                  className="w-[76px] h-[76px] bg-white/5 hover:bg-white/10 active:scale-[0.96] border border-white/[0.08] rounded-xl flex items-center justify-center transition-all duration-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+                  className="w-[88px] h-[88px] bg-white/5 hover:bg-white/10 active:scale-[0.96] border border-white/[0.08] rounded-2xl flex items-center justify-center transition-all duration-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] shrink-0"
                   title={t('home.settings')}
                 >
-                  <Settings className="w-6 h-6 text-white/70 hover:text-white transition-colors" />
+                  <Settings className="w-6.5 h-6.5 text-white/70 hover:text-white transition-colors" />
                 </button>
               </div>
 

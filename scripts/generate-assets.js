@@ -101,12 +101,6 @@ async function generateAssets() {
   await sharp(traySvg).resize(32, 32).png().toFile(path.join(ASSETS_DIR, 'tray-icon.png'));
   console.log('   ✓ tray-icon.png created');
 
-  // 3. splash-bg.png (400x300)
-  console.log('3. Generating splash-bg.png (400x300)...');
-  const splashSvg = Buffer.from(createSplashSvg(400, 300));
-  await sharp(splashSvg).resize(400, 300).png().toFile(path.join(ASSETS_DIR, 'splash-bg.png'));
-  console.log('   ✓ splash-bg.png created');
-
   // 4. installer-sidebar.bmp (164x314)
   console.log('4. Generating installer-sidebar.bmp (164x314)...');
   const sidebarSvg = Buffer.from(createSidebarSvg(164, 314));
@@ -122,11 +116,12 @@ async function generateAssets() {
   fs.writeFileSync(path.join(ASSETS_DIR, 'installer-sidebar.bmp'), bmpBuffer);
   console.log('   ✓ installer-sidebar.bmp created');
 
-  // 5. icon.ico - copy a 256x256 PNG as .ico (electron-builder will handle proper conversion)
-  console.log('5. Generating icon.ico (256x256 PNG placeholder)...');
+  // 5. icon.ico - convert a 256x256 PNG to a proper .ico file
+  console.log('5. Generating icon.ico (256x256 ICO)...');
   const ico256Svg = Buffer.from(createLogoSvg(256, 256));
   const icoPng = await sharp(ico256Svg).resize(256, 256).png().toBuffer();
-  fs.writeFileSync(path.join(ASSETS_DIR, 'icon.ico'), icoPng);
+  const icoBuffer = createIco(icoPng);
+  fs.writeFileSync(path.join(ASSETS_DIR, 'icon.ico'), icoBuffer);
   console.log('   ✓ icon.ico created');
 
   // 6. icon.icns - copy the 512x512 PNG as .icns (electron-builder will handle proper conversion)
@@ -138,9 +133,9 @@ async function generateAssets() {
   // Verify all files
   console.log('\n--- Verification ---');
   const expectedFiles = [
-    'icon.png', 'tray-icon.png', 'splash-bg.png',
+    'icon.png', 'tray-icon.png',
     'installer-sidebar.bmp', 'icon.ico', 'icon.icns',
-    'login-bg.jpg', 'logo.svg'
+    'logo.svg'
   ];
   let allGood = true;
   for (const file of expectedFiles) {
@@ -197,6 +192,28 @@ function createBmp(rawData, width, height) {
   }
 
   return buffer;
+}
+
+// Helper: Wrap PNG buffer in a single-image Windows ICO container
+function createIco(pngBuffer) {
+  const header = Buffer.alloc(22);
+  
+  // ICO Header
+  header.writeUInt16LE(0, 0); // Reserved
+  header.writeUInt16LE(1, 2); // Image type (1 = icon)
+  header.writeUInt16LE(1, 4); // Number of images (1)
+  
+  // Directory Entry
+  header.writeUInt8(0, 6); // Width (0 = 256)
+  header.writeUInt8(0, 7); // Height (0 = 256)
+  header.writeUInt8(0, 8); // Color count (0 = >=256 colors)
+  header.writeUInt8(0, 9); // Reserved
+  header.writeUInt16LE(1, 10); // Color planes (1)
+  header.writeUInt16LE(32, 12); // Bits per pixel (32)
+  header.writeUInt32LE(pngBuffer.length, 14); // Image size
+  header.writeUInt32LE(22, 18); // Image offset
+  
+  return Buffer.concat([header, pngBuffer]);
 }
 
 generateAssets().catch(err => {

@@ -36,9 +36,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // System Information
   getVersion: () => ipcRenderer.invoke('app:version'),
-  downloadFile: (url: string, filename: string, projectType: string) => ipcRenderer.invoke('system:download-file', url, filename, projectType),
-  deleteModFile: (filename: string, projectType: string) => ipcRenderer.invoke('system:delete-file', filename, projectType),
-  toggleModFile: (filename: string, projectType: string, enabled: boolean) => ipcRenderer.invoke('system:toggle-file', filename, projectType, enabled),
+   downloadFile: (url: string, filename: string, projectType: string, targetVersion?: string) => ipcRenderer.invoke('system:download-file', url, filename, projectType, targetVersion),
+   deleteModFile: (filename: string, projectType: string, targetVersion?: string) => ipcRenderer.invoke('system:delete-file', filename, projectType, targetVersion),
+   toggleModFile: (filename: string, projectType: string, enabled: boolean, targetVersion?: string) => ipcRenderer.invoke('system:toggle-file', filename, projectType, enabled, targetVersion),
   openDirectory: (dirPath: string) => ipcRenderer.invoke('system:open-directory', dirPath),
   uploadSkinFile: (filePath: string) => ipcRenderer.invoke('system:upload-skin-file', filePath),
   getSystemInfo: () => ipcRenderer.invoke('system:info'),

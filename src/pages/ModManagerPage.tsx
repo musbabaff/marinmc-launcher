@@ -10,7 +10,7 @@ import {
   Play, Settings, Cpu, FolderOpen, Lock, Shield, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { searchProjects, formatDownloads, formatFileSize, getProjectVersions } from '../lib/modrinth';
-import type { ModrinthSearchHit, InstalledMod } from '../types/modrinth';
+import type { ModrinthSearchHit, InstalledMod, ModrinthVersion } from '../types/modrinth';
 
 import vBg2 from '../../assets/version-bg-2.png';
 
@@ -111,6 +111,7 @@ function saveInstalled(mods: InstalledMod[]) {
 
 export default function ModManagerPage() {
   const settings = useSettingsStore();
+  const selectedMcVersion = settings.selectedSubVersion || '1.21.8';
   const navigate = useNavigate();
 
   const [tab, setTab] = useState<Tab>('search');
@@ -125,6 +126,9 @@ export default function ModManagerPage() {
   const [installedMods, setInstalledMods] = useState<InstalledMod[]>(loadInstalled);
   const [installingIds, setInstallingIds] = useState<Set<string>>(new Set());
   const [systemModsExpanded, setSystemModsExpanded] = useState(true);
+  const [projectVersions, setProjectVersions] = useState<Record<string, ModrinthVersion[]>>({});
+  const [loadingVersions, setLoadingVersions] = useState<Record<string, boolean>>({});
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const LIMIT = 20;
@@ -278,6 +282,99 @@ export default function ModManagerPage() {
       }
     } catch (err) {
       console.error('Install failed:', err);
+    } finally {
+      setInstallingIds(prev => {
+        const next = new Set(prev);
+        next.delete(hit.project_id);
+        return next;
+      });
+    }
+  };
+
+  const toggleVersionsExpand = async (projectId: string) => {
+    if (expandedProjectId === projectId) {
+      setExpandedProjectId(null);
+      return;
+    }
+    setExpandedProjectId(projectId);
+    if (!projectVersions[projectId]) {
+      setLoadingVersions(prev => ({ ...prev, [projectId]: true }));
+      try {
+        const loadersFilter = projectType === 'mod' ? ['fabric'] : undefined;
+        const versions = await getProjectVersions(projectId, loadersFilter, [selectedMcVersion]);
+        setProjectVersions(prev => ({ ...prev, [projectId]: versions }));
+      } catch (err) {
+        console.error('Failed to load project versions:', err);
+      } finally {
+        setLoadingVersions(prev => ({ ...prev, [projectId]: false }));
+      }
+    }
+  };
+
+  const handleInstallVersion = async (hit: ModrinthSearchHit, version: ModrinthVersion) => {
+    if (installedMods.some(m => m.versionId === version.id)) return;
+    setInstallingIds(prev => new Set(prev).add(hit.project_id));
+    try {
+      const existing = installedMods.find(m => m.projectId === hit.project_id);
+      if (existing) {
+        if (window.electronAPI) {
+          try {
+            await window.electronAPI.deleteModFile(existing.fileName, existing.projectType || 'mod', (existing as any).targetVersion);
+          } catch (err) {
+            console.error('Failed to delete old version file:', err);
+          }
+        }
+      }
+
+      const file = version.files.find(f => f.primary) || version.files[0];
+      if (!file) throw new Error('Seçilen sürüm için dosya bulunamadı.');
+      const pType = hit.project_type || projectType;
+      if (window.electronAPI) {
+        await window.electronAPI.downloadFile(file.url, file.filename, pType, selectedMcVersion);
+      }
+      
+      const installed: InstalledMod & { enabled?: boolean; projectType?: string; targetVersion?: string } = {
+        projectId: hit.project_id,
+        versionId: version.id,
+        slug: hit.slug,
+        title: hit.title,
+        iconUrl: hit.icon_url,
+        author: hit.author,
+        fileName: file.filename,
+        fileSize: file.size,
+        installedAt: new Date().toISOString(),
+        gameVersions: version.game_versions,
+        loaders: version.loaders,
+        enabled: true,
+        projectType: pType,
+        targetVersion: selectedMcVersion
+      };
+
+      const filtered = installedMods.filter(m => m.projectId !== hit.project_id);
+      const updated = [...filtered, installed];
+      setInstalledMods(updated);
+      saveInstalled(updated);
+
+      const sessionName = useAuthStore.getState().session?.name;
+      if (sessionName) {
+        const achievementsStr = localStorage.getItem(`marinmc_achievements_${sessionName}`);
+        if (achievementsStr) {
+          try {
+            const achievements = JSON.parse(achievementsStr);
+            const a2 = achievements.find((a: any) => a.id === 'a2');
+            if (a2 && !a2.completed) {
+              a2.completed = true;
+              a2.date = new Date().toLocaleDateString('tr-TR');
+              localStorage.setItem(`marinmc_achievements_${sessionName}`, JSON.stringify(achievements));
+              api.updateAchievements(sessionName, achievements).catch(err => console.error(err));
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Install version failed:', err);
     } finally {
       setInstallingIds(prev => {
         const next = new Set(prev);
@@ -468,23 +565,38 @@ export default function ModManagerPage() {
                             <span className="text-[7px] bg-yellow-500/15 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded font-black uppercase shrink-0 flex items-center gap-1">
                               <Lock className="w-2 h-2" /> Sistem Modu
                             </span>
-                          ) : isInstalled(hit.project_id) ? (
-                            <span className="text-[7px] bg-[#259457]/15 text-[#259457] border border-[#259457]/20 px-2 py-0.5 rounded font-black uppercase shrink-0">
-                              Yüklü
-                            </span>
                           ) : (
-                            <button
-                              onClick={() => handleInstall(hit)}
-                              disabled={isInstalling(hit.project_id)}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white text-[7.5px] font-black uppercase tracking-wider transition-all shrink-0 disabled:opacity-50"
-                            >
-                              {isInstalling(hit.project_id) ? (
-                                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isInstalled(hit.project_id) ? (
+                                <span className="text-[7px] bg-[#259457]/15 text-[#259457] border border-[#259457]/20 px-2 py-0.5 rounded font-black uppercase">
+                                  Yüklü
+                                </span>
                               ) : (
-                                <Download className="w-2.5 h-2.5" />
+                                <button
+                                  onClick={() => handleInstall(hit)}
+                                  disabled={isInstalling(hit.project_id)}
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white text-[7.5px] font-black uppercase tracking-wider transition-all shrink-0 disabled:opacity-50 cursor-pointer"
+                                >
+                                  {isInstalling(hit.project_id) ? (
+                                    <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                  ) : (
+                                    <Download className="w-2.5 h-2.5" />
+                                  )}
+                                  {isInstalling(hit.project_id) ? 'Yükleniyor' : 'Yükle'}
+                                </button>
                               )}
-                              {isInstalling(hit.project_id) ? 'Yükleniyor' : 'Yükle'}
-                            </button>
+                              <button
+                                onClick={() => toggleVersionsExpand(hit.project_id)}
+                                className="flex items-center justify-center p-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all cursor-pointer"
+                                title="Sürümler"
+                              >
+                                {expandedProjectId === hit.project_id ? (
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                ) : (
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </div>
                           )}
                         </div>
                         <p className="text-[8.5px] text-[#A1A1AA] mt-1 leading-relaxed line-clamp-2 font-semibold">
@@ -501,6 +613,64 @@ export default function ModManagerPage() {
                             </span>
                           ))}
                         </div>
+
+                        {/* Versions expansion section */}
+                        {expandedProjectId === hit.project_id && (
+                          <div className="border-t border-white/[0.05] mt-2.5 pt-2.5 space-y-1.5">
+                            <h4 className="text-[8px] font-black text-white/40 uppercase tracking-wider">Uyumlu Sürümler ({selectedMcVersion})</h4>
+                            {loadingVersions[hit.project_id] ? (
+                              <div className="flex items-center gap-1.5 py-1 text-[8.5px] text-[#52525B] font-bold">
+                                <Loader2 className="w-3 h-3 animate-spin text-[#2D7DD2]" />
+                                <span>Sürümler çekiliyor...</span>
+                              </div>
+                            ) : !projectVersions[hit.project_id] || projectVersions[hit.project_id].length === 0 ? (
+                              <p className="text-[8.5px] text-[#52525B] py-1 font-bold">Bu Minecraft sürümü için uyumlu dosya bulunamadı.</p>
+                            ) : (
+                              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                                {projectVersions[hit.project_id].map(ver => {
+                                  const file = ver.files.find(f => f.primary) || ver.files[0];
+                                  const isVerInstalled = installedMods.some(m => m.versionId === ver.id);
+                                  return (
+                                    <div key={ver.id} className="flex items-center justify-between gap-2 py-1 px-1.5 bg-white/[0.02] border border-white/[0.04] rounded-lg hover:bg-white/[0.04] transition-all">
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[8.5px] font-bold text-white/90 truncate">{ver.version_number}</span>
+                                          <span className={`text-[6px] px-1 py-0.5 rounded font-bold uppercase ${
+                                            ver.version_type === 'release' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                                            ver.version_type === 'beta' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                            'bg-red-500/10 text-red-400 border border-red-500/20'
+                                          }`}>
+                                            {ver.version_type}
+                                          </span>
+                                        </div>
+                                        {file && (
+                                          <span className="text-[7.5px] text-[#52525B] font-mono">{formatFileSize(file.size)}</span>
+                                        )}
+                                      </div>
+                                      
+                                      <button
+                                        onClick={() => handleInstallVersion(hit, ver)}
+                                        disabled={isInstalling(hit.project_id)}
+                                        className={`flex items-center justify-center p-1 rounded-md transition-all cursor-pointer ${
+                                          isVerInstalled
+                                            ? 'bg-green-500/15 text-green-400 border border-green-500/20'
+                                            : 'bg-[#2D7DD2]/10 hover:bg-[#2D7DD2]/20 text-[#2D7DD2] border border-[#2D7DD2]/20'
+                                        }`}
+                                        title={isVerInstalled ? 'Yüklü' : 'İndir'}
+                                      >
+                                        {isVerInstalled ? (
+                                          <span className="text-[7.5px] font-bold px-1.5 py-0.5">Yüklü</span>
+                                        ) : (
+                                          <Download className="w-3 h-3" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -541,53 +711,6 @@ export default function ModManagerPage() {
         ) : (
           /* Installed Mods Tab */
           <div className="flex-grow overflow-y-auto custom-scrollbar pr-1 min-h-0">
-            {/* System Mods Section */}
-            <div className="mb-4">
-              <button
-                onClick={() => setSystemModsExpanded(!systemModsExpanded)}
-                className="flex items-center gap-2 w-full mb-2 group"
-              >
-                <Shield className="w-3.5 h-3.5 text-yellow-400" />
-                <span className="text-[8px] font-black text-yellow-400 uppercase tracking-widest">Zorunlu Sistem Modları</span>
-                <span className="text-[7px] bg-yellow-500/15 text-yellow-400 px-1.5 py-0.5 rounded-full font-black">{SYSTEM_MODS.length}</span>
-                <div className="flex-1 h-[1px] bg-yellow-500/10" />
-                {systemModsExpanded ? (
-                  <ChevronUp className="w-3 h-3 text-yellow-400/50" />
-                ) : (
-                  <ChevronDown className="w-3 h-3 text-yellow-400/50" />
-                )}
-              </button>
-              <AnimatePresence>
-                {systemModsExpanded && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-1.5 overflow-hidden"
-                  >
-                    {SYSTEM_MODS.map((mod, idx) => (
-                      <motion.div
-                        key={mod.slug}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.02 }}
-                        className="bg-[#0f172a]/60 border border-yellow-500/[0.08] rounded-xl px-3 py-2.5 flex items-center gap-3 group"
-                      >
-                        <div className="w-7 h-7 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0">
-                          <Lock className="w-3 h-3 text-yellow-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-[10px] font-black text-white truncate">{mod.name}</h3>
-                          <span className="text-[7px] bg-yellow-500/10 text-yellow-400/70 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">{mod.category}</span>
-                        </div>
-                        <span className="text-[6.5px] text-yellow-400/40 font-black uppercase tracking-wider shrink-0">Kaldırılamaz</span>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
             {/* User-installed Mods Section (Separated by category) */}
             {installedMods.length > 0 && (
               <div className="space-y-6">
@@ -637,6 +760,53 @@ export default function ModManagerPage() {
                 )}
               </div>
             )}
+
+            {/* System Mods Section (Moved below user-installed mods) */}
+            <div className={`${installedMods.length > 0 ? 'mt-6' : ''} mb-4`}>
+              <button
+                onClick={() => setSystemModsExpanded(!systemModsExpanded)}
+                className="flex items-center gap-2 w-full mb-2 group"
+              >
+                <Shield className="w-3.5 h-3.5 text-yellow-400" />
+                <span className="text-[8px] font-black text-yellow-400 uppercase tracking-widest">Zorunlu Sistem Modları</span>
+                <span className="text-[7px] bg-yellow-500/15 text-yellow-400 px-1.5 py-0.5 rounded-full font-black">{SYSTEM_MODS.length}</span>
+                <div className="flex-1 h-[1px] bg-yellow-500/10" />
+                {systemModsExpanded ? (
+                  <ChevronUp className="w-3 h-3 text-yellow-400/50" />
+                ) : (
+                  <ChevronDown className="w-3 h-3 text-yellow-400/50" />
+                )}
+              </button>
+              <AnimatePresence>
+                {systemModsExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-1.5 overflow-hidden"
+                  >
+                    {SYSTEM_MODS.map((mod, idx) => (
+                      <motion.div
+                        key={mod.slug}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.02 }}
+                        className="bg-[#0f172a]/60 border border-yellow-500/[0.08] rounded-xl px-3 py-2.5 flex items-center gap-3 group"
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0">
+                          <Lock className="w-3 h-3 text-yellow-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-[10px] font-black text-white truncate">{mod.name}</h3>
+                          <span className="text-[7px] bg-yellow-500/10 text-yellow-400/70 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">{mod.category}</span>
+                        </div>
+                        <span className="text-[6.5px] text-yellow-400/40 font-black uppercase tracking-wider shrink-0">Kaldırılamaz</span>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {installedMods.length === 0 && (
               <div className="flex flex-col items-center justify-center py-8 text-center">

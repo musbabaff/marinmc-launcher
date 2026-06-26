@@ -12,7 +12,7 @@ import {
   ChevronDown, 
   Globe 
 } from 'lucide-react';
-import logoSvg from '../../assets/logo.svg';
+import logoPng from '../../assets/logo.png';
 
 const translations = {
   tr: {
@@ -153,7 +153,7 @@ export default function ServersPage() {
       <div className="flex items-center justify-between z-20 select-none pb-4 border-b border-white/[0.04]">
         {/* Left: Logo */}
         <div className="flex items-center space-x-3">
-          <img src={logoSvg} className="w-8 h-8" alt="Logo" />
+          <img src={logoPng} className="w-8 h-8" alt="Logo" />
           <div>
             <span className="text-sm font-extrabold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-400">MARINMC</span>
             <p className="text-[8px] text-gray-500 tracking-wider font-bold uppercase">Minecraft Network</p>

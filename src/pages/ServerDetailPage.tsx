@@ -16,7 +16,7 @@ import {
   FolderOpen
 } from 'lucide-react';
 import axios from 'axios';
-import logoSvg from '../../assets/logo.svg';
+import logoPng from '../../assets/logo.png';
 import { getApiBaseUrl } from '../lib/api.ts';
 import { STEVE_AVATAR_FALLBACK } from '../lib/constants.ts';
 
@@ -456,7 +456,7 @@ export default function ServerDetailPage() {
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <img src={logoSvg} className="w-8 h-8" alt="Logo" />
+          <img src={logoPng} className="w-8 h-8" alt="Logo" />
           <div>
             <span className="text-sm font-extrabold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-400">MARINMC</span>
             <p className="text-[8px] text-gray-500 tracking-wider font-bold uppercase">Minecraft Network</p>

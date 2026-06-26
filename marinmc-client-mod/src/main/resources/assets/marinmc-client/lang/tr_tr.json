@@ -200,13 +200,13 @@
   "marinmc.mod.hit_indicator.name": "Hasar Yönü",
   "marinmc.mod.hit_indicator.desc": "Hasar aldığınızda yön gösteren ok efekti.",
   "marinmc.mod.damage_indicator.name": "Hasar Göstergesi",
-  "marinmc.mod.damage_indicator.desc": "Hasar göstergesi mod durumunu gösteren kart.",
+  "marinmc.mod.damage_indicator.desc": "Aldığın son hasar miktarını gösterir.",
   "marinmc.mod.saturation_display.name": "Tokluk Göstergesi",
   "marinmc.mod.saturation_display.desc": "Tokluk değerinizi ilerleme çubuğuyla gösterir.",
   "marinmc.mod.light_level.name": "Işık Seviyesi",
   "marinmc.mod.light_level.desc": "Bulunduğunuz konumun blok ve gökyüzü ışık seviyelerini gösterir.",
   "marinmc.mod.chat_macros.name": "Sohbet Makroları",
-  "marinmc.mod.chat_macros.desc": "F tuşlarıyla hızlı sohbet mesajı kısayolları.",
+  "marinmc.mod.chat_macros.desc": "Tuşlara sohbet mesajı/komut ata (config/marinmc-macros.json).",
   "marinmc.mod.memory_usage.name": "Bellek Kullanımı",
   "marinmc.mod.memory_usage.desc": "Mevcut kullanılan ve ayrılan RAM miktarını ekranda gösterir.",
   "category.marinmc.client": "MarinMC İstemcisi",
@@ -215,7 +215,12 @@
   "key.marinmc.overlay": "Mod Menüsünü Aç",
   "key.marinmc.ramclean": "Bellek Temizleyici",
   "key.marinmc.record": "Kayıt Modunu Aç/Kapat",
-  "key.marinmc.zoom": "Yakınlaştırma (basılı tut)"
+  "key.marinmc.zoom": "Yakınlaştırma (basılı tut)",
+  "key.marinmc.macro1": "Sohbet Makrosu 1",
+  "key.marinmc.macro2": "Sohbet Makrosu 2",
+  "key.marinmc.macro3": "Sohbet Makrosu 3",
+  "key.marinmc.macro4": "Sohbet Makrosu 4",
+  "key.marinmc.macro5": "Sohbet Makrosu 5"
 }
 
 

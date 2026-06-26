@@ -5,6 +5,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.marinmc.client.gui.OverlayScreen;
 import com.marinmc.client.features.RecordingManager;
+import com.marinmc.client.features.ChatMacroManager;
+import com.marinmc.client.features.DamageTracker;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.PlayerListEntry;
@@ -1177,8 +1179,17 @@ public class HudManager {
             MinecraftClient mc = MinecraftClient.getInstance();
 
             String label = I18n.translate("marinmc.hud.damage_ind") + ": ";
-            String status = I18n.translate("marinmc.hud.dmg_active");
-            int statusColor = 0xFF22C55E;
+            // Real last damage taken (red, fading) instead of a static "Active".
+            String status;
+            int statusColor;
+            if (DamageTracker.hasRecent() && DamageTracker.getRecentDamage() > 0f) {
+                status = String.format("-%.1f", DamageTracker.getRecentDamage());
+                int alpha = Math.min(255, 0x90 + (int) (0x6F * DamageTracker.getFade()));
+                statusColor = (alpha << 24) | 0xEF4444;
+            } else {
+                status = "—";
+                statusColor = 0xFF64748B;
+            }
 
             this.width = mc.textRenderer.getWidth(formatText(label)) + mc.textRenderer.getWidth(status) + 10;
 
@@ -1281,7 +1292,7 @@ public class HudManager {
         }
     }
 
-    // --- Chat Macros: Placeholder ---
+    // --- Chat Macros: lists the real configured macros (config/marinmc-macros.json) ---
     private static class ChatMacrosElement extends HudElement {
         ChatMacrosElement(String id, String name, int defaultX, int defaultY) {
             super(id, name, defaultX, defaultY, 70, 16);
@@ -1291,16 +1302,38 @@ public class HudManager {
         @Override
         public void render(DrawContext context) {
             MinecraftClient mc = MinecraftClient.getInstance();
-            String text = I18n.translate("marinmc.hud.macros") + ": 0";
+            java.util.List<String> all = ChatMacroManager.all();
+            java.util.List<String> rows = new java.util.ArrayList<>();
+            for (int i = 0; i < all.size(); i++) {
+                String m = all.get(i);
+                if (m != null && !m.trim().isEmpty()) {
+                    String disp = m.length() > 22 ? m.substring(0, 22) + "…" : m;
+                    rows.add((i + 1) + ": " + disp);
+                }
+            }
+            String header = I18n.translate("marinmc.hud.macros") + " (" + rows.size() + ")";
 
-            this.width = mc.textRenderer.getWidth(formatText(text)) + 10;
+            int maxW = mc.textRenderer.getWidth(formatText(header));
+            for (String s : rows) maxW = Math.max(maxW, mc.textRenderer.getWidth(s));
+            this.width = maxW + 10;
+            this.height = 16 + rows.size() * 10;
 
             if (showBackground) {
                 int bgColor = (bgOpacity << 24) | 0x000000;
                 drawRoundedRect(context, x, y, getWidth(), getHeight(), bgColor, borderRadius);
                 drawRoundedBorder(context, x, y, getWidth(), getHeight(), getThemeBorderColorHex(), borderRadius);
             }
-            drawElementText(context, text, x + 5, y + 4, getThemeColorHex());
+            drawElementText(context, header, x + 5, y + 4, getThemeColorHex());
+
+            int ry = y + 16;
+            for (String s : rows) {
+                if (textShadow) {
+                    context.drawTextWithShadow(mc.textRenderer, s, x + 5, ry, 0xFFA1A1AA);
+                } else {
+                    context.drawText(mc.textRenderer, s, x + 5, ry, 0xFFA1A1AA, false);
+                }
+                ry += 10;
+            }
         }
     }
 

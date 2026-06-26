@@ -200,13 +200,13 @@
   "marinmc.mod.hit_indicator.name": "Hit Indicator",
   "marinmc.mod.hit_indicator.desc": "Directional damage indicator arrows when you get hit.",
   "marinmc.mod.damage_indicator.name": "Damage Indicator",
-  "marinmc.mod.damage_indicator.desc": "Shows damage indicator mod status card.",
+  "marinmc.mod.damage_indicator.desc": "Shows the last amount of damage you took.",
   "marinmc.mod.saturation_display.name": "Saturation Display",
   "marinmc.mod.saturation_display.desc": "Displays your saturation level with a progress bar.",
   "marinmc.mod.light_level.name": "Light Level",
   "marinmc.mod.light_level.desc": "Shows block and sky light levels at your position.",
   "marinmc.mod.chat_macros.name": "Chat Macros",
-  "marinmc.mod.chat_macros.desc": "Quick chat message shortcuts with F-keys.",
+  "marinmc.mod.chat_macros.desc": "Bind keys to chat messages/commands (config/marinmc-macros.json).",
   "marinmc.mod.memory_usage.name": "Memory Usage",
   "marinmc.mod.memory_usage.desc": "Displays current used and allocated RAM on screen.",
   "category.marinmc.client": "MarinMC Client",
@@ -215,7 +215,12 @@
   "key.marinmc.overlay": "Open Mod Overlay",
   "key.marinmc.ramclean": "Memory Cleaner",
   "key.marinmc.record": "Toggle Recording Mode",
-  "key.marinmc.zoom": "Zoom (hold)"
+  "key.marinmc.zoom": "Zoom (hold)",
+  "key.marinmc.macro1": "Chat Macro 1",
+  "key.marinmc.macro2": "Chat Macro 2",
+  "key.marinmc.macro3": "Chat Macro 3",
+  "key.marinmc.macro4": "Chat Macro 4",
+  "key.marinmc.macro5": "Chat Macro 5"
 }
 
 

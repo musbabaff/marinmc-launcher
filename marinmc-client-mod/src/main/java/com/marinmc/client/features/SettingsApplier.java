@@ -22,6 +22,10 @@ public final class SettingsApplier {
     // Zoom remembers the original FOV to restore when the key is released.
     private static Integer savedFov = null;
 
+    // Fullbright remembers the original gamma so it can be restored.
+    private static Double savedGamma = null;
+    private static boolean fullbrightActive = false;
+
     private static boolean on(String key) {
         return OverlayScreen.configStates.getOrDefault(key, false);
     }
@@ -58,6 +62,21 @@ public final class SettingsApplier {
             if (savedGraphics != null) o.getGraphicsMode().setValue(savedGraphics);
             if (savedShadows != null) o.getEntityShadows().setValue(savedShadows);
             fpsBoostActive = false;
+        }
+
+        // Fullbright: the menu card and the G keybind both flip configStates["fullbright"];
+        // here we apply/restore the gamma and keep the HUD indicator flag in sync.
+        boolean fb = on("fullbright");
+        com.marinmc.client.MarinClient.fullbrightEnabled = fb;
+        if (fb) {
+            if (!fullbrightActive) {
+                savedGamma = o.getGamma().getValue();
+                fullbrightActive = true;
+            }
+            if (o.getGamma().getValue() < 14.0) o.getGamma().setValue(15.0);
+        } else if (fullbrightActive) {
+            if (savedGamma != null) o.getGamma().setValue(savedGamma);
+            fullbrightActive = false;
         }
     }
 

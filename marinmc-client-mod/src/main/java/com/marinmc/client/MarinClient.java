@@ -6,6 +6,8 @@ import com.marinmc.client.gui.hud.HudElement;
 import com.marinmc.client.features.FreelookHandler;
 import com.marinmc.client.features.RecordingManager;
 import com.marinmc.client.features.SettingsApplier;
+import com.marinmc.client.features.ChatMacroManager;
+import com.marinmc.client.features.DamageTracker;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -26,10 +28,10 @@ public class MarinClient implements ClientModInitializer {
     public static KeyBinding ramCleanKeyBinding;
     public static KeyBinding recordKeyBinding;
     public static KeyBinding zoomKeyBinding;
+    public static KeyBinding[] macroKeyBindings = new KeyBinding[ChatMacroManager.SLOTS];
     public static boolean fullbrightEnabled = false;
     public static boolean toggledSprint = false;
     public static boolean toggledSneak = false;
-    private static double originalGamma = 1.0;
 
     @Override
     public void onInitializeClient() {
@@ -73,6 +75,17 @@ public class MarinClient implements ClientModInitializer {
             "category.marinmc.client"
         ));
 
+        // Register chat macro keybindings (unbound by default; user assigns + edits
+        // messages in config/marinmc-macros.json)
+        for (int i = 0; i < ChatMacroManager.SLOTS; i++) {
+            macroKeyBindings[i] = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.marinmc.macro" + (i + 1),
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_UNKNOWN,
+                "category.marinmc.client"
+            ));
+        }
+
         // Register Freelook keybinding (default F key)
         FreelookHandler.registerKeybinding();
 
@@ -85,18 +98,15 @@ public class MarinClient implements ClientModInitializer {
             }
 
             while (fullbrightKeyBinding.wasPressed()) {
-                fullbrightEnabled = !fullbrightEnabled;
-                if (fullbrightEnabled) {
-                    originalGamma = client.options.getGamma().getValue();
-                    client.options.getGamma().setValue(12.0);
-                    if (client.player != null) {
-                        client.player.sendMessage(Text.literal("§bMarinMC Client §f» §aFullbright Aktif"), true);
-                    }
-                } else {
-                    client.options.getGamma().setValue(originalGamma);
-                    if (client.player != null) {
-                        client.player.sendMessage(Text.literal("§bMarinMC Client §f» §cFullbright Pasif"), true);
-                    }
+                // Flip the shared config flag; SettingsApplier applies/restores the
+                // gamma so the G key and the menu card stay in sync.
+                boolean now = !OverlayScreen.configStates.getOrDefault("fullbright", false);
+                OverlayScreen.configStates.put("fullbright", now);
+                OverlayScreen.saveConfigStatic();
+                if (client.player != null) {
+                    client.player.sendMessage(Text.literal(now
+                        ? "§bMarinMC Client §f» §aFullbright Aktif"
+                        : "§bMarinMC Client §f» §cFullbright Pasif"), true);
                 }
             }
 
@@ -130,6 +140,18 @@ public class MarinClient implements ClientModInitializer {
                     }
                 }
             }
+
+            // Chat macros: send the configured message when a bound macro key is pressed
+            for (int i = 0; i < macroKeyBindings.length; i++) {
+                while (macroKeyBindings[i].wasPressed()) {
+                    if (client.currentScreen == null) {
+                        ChatMacroManager.send(client, i);
+                    }
+                }
+            }
+
+            // Track real damage taken (for the Damage Indicator HUD)
+            DamageTracker.tick(client);
 
             // Apply General/Performance toggles to real Minecraft options
             SettingsApplier.apply(client);

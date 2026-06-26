@@ -165,6 +165,15 @@ export const initDb = async () => {
     )
   `);
 
+  // 6b. Gallery likes (one row per user per screenshot -> prevents duplicate likes)
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS gallery_likes (
+      screenshot_id VARCHAR(50),
+      username VARCHAR(100),
+      PRIMARY KEY (screenshot_id, username)
+    )
+  `);
+
   // 7. Quests table
   await dbRun(`
     CREATE TABLE IF NOT EXISTS quests (
@@ -205,6 +214,7 @@ export const initDb = async () => {
   await addColumnSafe('users', 'coins', 'INTEGER DEFAULT 500');
   await addColumnSafe('users', 'password_hash', 'TEXT');
   await addColumnSafe('users', 'token', 'TEXT');
+  await addColumnSafe('users', 'token_expires_at', 'BIGINT');
   await addColumnSafe('users', 'email', 'TEXT');
   await addColumnSafe('cosmetics', 'purchased_capes', "TEXT DEFAULT '[]'");
   await addColumnSafe('cosmetics', 'model_type', "VARCHAR(50) DEFAULT 'classic'");

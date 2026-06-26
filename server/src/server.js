@@ -17,6 +17,13 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Session tokens expire after this window; a fresh token is issued on each login.
+const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const tokenExpiry = () => Date.now() + TOKEN_TTL_MS;
+
+// Unpredictable identifier (96 bits) for sessions/screenshots/messages.
+const genId = () => crypto.randomBytes(12).toString('hex');
+
 // 1. Helmet for Secure HTTP Headers
 app.use(helmet());
 
@@ -34,8 +41,22 @@ app.use('/api/', apiLimiter);
 app.use(hpp());
 
 // 4. CORS configuration
+// The packaged Electron renderer loads from file:// and sends no Origin header,
+// so requests without an Origin are allowed. Browser-based origins must be on
+// the allowlist (extend via the CORS_ORIGINS env var, comma-separated).
+const allowedOrigins = new Set([
+  'http://localhost:5173',
+  'http://localhost:3000',
+  ...((process.env.CORS_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean))
+]);
 app.use(cors({
-  origin: '*', // Allow all origins for launcher (Electron app runs locally on file:// or localhost)
+  origin: (origin, callback) => {
+    // No Origin header => native app (Electron file://) or same-origin tool.
+    if (!origin || allowedOrigins.has(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS politikası tarafından engellendi.'));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -104,7 +125,11 @@ const cosmeticsSchema = z.object({
 
 const screenshotSchema = z.object({
   title: z.string().min(1).max(100),
-  url: z.string().min(1),
+  // Only allow web URLs or inline image data; blocks javascript:/data:text XSS vectors.
+  url: z.string().min(1).max(500000).refine(
+    (u) => /^https?:\/\//i.test(u) || /^data:image\//i.test(u),
+    { message: 'Geçersiz görsel adresi.' }
+  ),
   username: z.string().min(3).max(30)
 });
 
@@ -187,6 +212,11 @@ const authenticateToken = async (req, res, next) => {
     if (!user) {
       return res.status(403).json({ error: 'Geçersiz veya süresi dolmuş oturum.' });
     }
+    // Reject expired tokens. Legacy rows without an expiry (null) are grandfathered
+    // and will receive an expiry on their next login.
+    if (user.token_expires_at != null && Number(user.token_expires_at) < Date.now()) {
+      return res.status(403).json({ error: 'Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.' });
+    }
     req.user = user;
     next();
   } catch (err) {
@@ -203,6 +233,26 @@ const authorizeUser = (req, res, next) => {
     return res.status(403).json({ error: 'Bu işlem için yetkiniz yok.' });
   }
   next();
+};
+
+// Verify a Minecraft access token with Mojang and return the authoritative
+// { id, name } profile, or null if the token is invalid/expired. This is the
+// trust anchor for Microsoft logins.
+const verifyMinecraftToken = async (msToken) => {
+  if (!msToken || typeof msToken !== 'string') return null;
+  try {
+    const resp = await fetch('https://api.minecraftservices.com/minecraft/profile', {
+      headers: { Authorization: `Bearer ${msToken}` },
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!resp.ok) return null;
+    const profile = await resp.json();
+    if (!profile || !profile.id || !profile.name) return null;
+    return { id: profile.id, name: profile.name };
+  } catch (err) {
+    console.error('[Auth] Minecraft token verification failed:', err.message);
+    return null;
+  }
 };
 
 // --- AUTHENTICATION ROUTES ---
@@ -229,9 +279,10 @@ router.post('/auth/register', async (req, res) => {
       const token = crypto.randomBytes(32).toString('hex');
       const lastLogin = new Date().toLocaleString('tr-TR');
       
-      await dbRun('UPDATE users SET password_hash = ?, token = ?, last_login = ?, email = ? WHERE LOWER(username) = ?', [
+      await dbRun('UPDATE users SET password_hash = ?, token = ?, token_expires_at = ?, last_login = ?, email = ? WHERE LOWER(username) = ?', [
         passwordHash,
         token,
+        tokenExpiry(),
         lastLogin,
         email || null,
         lowerUsername
@@ -254,13 +305,14 @@ router.post('/auth/register', async (req, res) => {
     const token = crypto.randomBytes(32).toString('hex');
     const lastLogin = new Date().toLocaleString('tr-TR');
 
-    await dbRun('INSERT INTO users (username, total_play_time, last_login, coins, password_hash, token, email) VALUES (?, ?, ?, ?, ?, ?, ?)', [
+    await dbRun('INSERT INTO users (username, total_play_time, last_login, coins, password_hash, token, token_expires_at, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
       username,
       0,
       lastLogin,
       500,
       passwordHash,
       token,
+      tokenExpiry(),
       email || null
     ]);
 
@@ -308,8 +360,9 @@ router.post('/auth/login', async (req, res) => {
     const token = crypto.randomBytes(32).toString('hex');
     const lastLogin = new Date().toLocaleString('tr-TR');
 
-    await dbRun('UPDATE users SET token = ?, last_login = ? WHERE LOWER(username) = ?', [
+    await dbRun('UPDATE users SET token = ?, token_expires_at = ?, last_login = ? WHERE LOWER(username) = ?', [
       token,
+      tokenExpiry(),
       lastLogin,
       lowerUsername
     ]);
@@ -340,22 +393,39 @@ router.post('/auth/microsoft-login', async (req, res) => {
   const { username, uuid, token: msToken } = validation.data;
   const lowerUsername = username.toLowerCase();
 
+  // SECURITY: Verify the supplied Minecraft access token against Mojang before
+  // trusting the claimed username/uuid. Without this, anyone could POST an
+  // arbitrary username + random token and obtain a valid server session.
+  const verifiedProfile = await verifyMinecraftToken(msToken);
+  if (!verifiedProfile) {
+    return res.status(401).json({ error: 'Microsoft oturumu doğrulanamadı. Lütfen tekrar giriş yapın.' });
+  }
+  const normalize = (id) => String(id || '').replace(/-/g, '').toLowerCase();
+  if (
+    verifiedProfile.name.toLowerCase() !== lowerUsername ||
+    normalize(verifiedProfile.id) !== normalize(uuid)
+  ) {
+    return res.status(403).json({ error: 'Kimlik bilgileri Microsoft profili ile eşleşmiyor.' });
+  }
+
   try {
     let user = await dbGet('SELECT * FROM users WHERE LOWER(username) = ?', [lowerUsername]);
     const serverToken = crypto.randomBytes(32).toString('hex');
     const lastLogin = new Date().toLocaleString('tr-TR');
 
     if (!user) {
-      await dbRun('INSERT INTO users (username, total_play_time, last_login, coins, token) VALUES (?, ?, ?, ?, ?)', [
+      await dbRun('INSERT INTO users (username, total_play_time, last_login, coins, token, token_expires_at) VALUES (?, ?, ?, ?, ?, ?)', [
         username,
         0,
         lastLogin,
         500,
-        serverToken
+        serverToken,
+        tokenExpiry()
       ]);
     } else {
-      await dbRun('UPDATE users SET token = ?, last_login = ? WHERE LOWER(username) = ?', [
+      await dbRun('UPDATE users SET token = ?, token_expires_at = ?, last_login = ? WHERE LOWER(username) = ?', [
         serverToken,
+        tokenExpiry(),
         lastLogin,
         lowerUsername
       ]);
@@ -402,7 +472,8 @@ router.get('/users/:username/profile', validateUsername, authenticateToken, auth
       }))
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -437,7 +508,7 @@ router.put('/users/:username/profile', validateUsername, authenticateToken, auth
     if (playSessions) {
       await dbRun('DELETE FROM sessions WHERE username = ?', [username]);
       for (const s of playSessions) {
-        const sessionId = s.id || Math.random().toString(36).substring(2, 11);
+        const sessionId = s.id || genId();
         await dbRun('INSERT INTO sessions (id, username, date, duration, server) VALUES (?, ?, ?, ?, ?)', [
           sessionId,
           username,
@@ -449,7 +520,8 @@ router.put('/users/:username/profile', validateUsername, authenticateToken, auth
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -473,7 +545,8 @@ router.get('/leaderboard', async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -508,7 +581,8 @@ router.get('/public/users/:username/cosmetics', validateUsername, async (req, re
       });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -561,7 +635,8 @@ router.get('/users/:username/cosmetics', validateUsername, authenticateToken, au
       });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -577,9 +652,18 @@ router.put('/users/:username/cosmetics', validateUsername, authenticateToken, au
   const { skinType, skinVal, capeUrl, purchasedCapes, modelType, wingsEnabled, hatName, wingsName, staffName, petName, coins } = validation.data;
   try {
     if (coins !== undefined) {
-      await dbRun('UPDATE users SET coins = ? WHERE username = ?', [coins, username]);
+      // SECURITY: this endpoint may only SPEND coins (purchases), never grant them.
+      // Coin increases happen server-side via quests/achievements. Reject any
+      // attempt to set a balance higher than the current one to block inflation.
+      const current = await dbGet('SELECT coins FROM users WHERE username = ?', [username]);
+      const currentCoins = current && current.coins != null ? Number(current.coins) : 500;
+      if (Number(coins) <= currentCoins) {
+        await dbRun('UPDATE users SET coins = ? WHERE username = ?', [coins, username]);
+      } else {
+        return res.status(403).json({ error: 'Geçersiz coin işlemi.' });
+      }
     }
-    
+
     const cos = await dbGet('SELECT * FROM cosmetics WHERE username = ?', [username]);
     const purchasedStr = purchasedCapes ? JSON.stringify(purchasedCapes) : null;
     const wingsVal = wingsEnabled !== undefined ? (wingsEnabled ? 1 : 0) : null;
@@ -622,7 +706,8 @@ router.put('/users/:username/cosmetics', validateUsername, authenticateToken, au
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -664,7 +749,8 @@ router.get('/chats/:username/contacts', validateUsername, authenticateToken, aut
       })));
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -701,7 +787,8 @@ router.put('/chats/:username/contacts', validateUsername, authenticateToken, aut
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -755,7 +842,8 @@ router.get('/chats/:username/messages', validateUsername, authenticateToken, aut
       res.json(resData);
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -778,7 +866,7 @@ router.put('/chats/:username/messages', validateUsername, authenticateToken, aut
             INSERT INTO messages (id, username, contact_id, sender, content, time, is_self, file_name, file_size, is_image, voice_duration)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `, [
-            m.id || Math.random().toString(36).substring(2, 11),
+            m.id || genId(),
             username,
             contactId,
             m.sender,
@@ -795,7 +883,8 @@ router.put('/chats/:username/messages', validateUsername, authenticateToken, aut
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -812,7 +901,8 @@ router.get('/gallery/community', async (req, res) => {
       date: item.date
     })));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -826,7 +916,7 @@ router.post('/gallery/community', authenticateToken, async (req, res) => {
     return res.status(403).json({ error: 'Bu işlem için yetkiniz yok.' });
   }
   try {
-    const id = Math.random().toString(36).substring(2, 11);
+    const id = genId();
     const dateStr = new Date().toLocaleDateString('tr-TR');
     await dbRun(`
       INSERT INTO community_screenshots (id, url, title, username, likes, date)
@@ -834,22 +924,30 @@ router.post('/gallery/community', authenticateToken, async (req, res) => {
     `, [id, url, title, username, 0, dateStr]);
     res.json({ success: true, id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
-router.post('/gallery/community/:id/like', async (req, res) => {
+router.post('/gallery/community/:id/like', authenticateToken, async (req, res) => {
   const { id } = req.params;
+  const liker = req.user.username.toLowerCase();
   try {
     const item = await dbGet('SELECT * FROM community_screenshots WHERE id = ?', [id]);
     if (!item) {
       return res.status(404).json({ error: 'Görsel bulunamadı.' });
     }
+    // Each user can like a screenshot at most once.
+    const already = await dbGet('SELECT 1 FROM gallery_likes WHERE screenshot_id = ? AND username = ?', [id, liker]);
+    if (already) {
+      return res.status(409).json({ error: 'Bu görseli zaten beğendiniz.', likes: item.likes || 0 });
+    }
+    await dbRun('INSERT INTO gallery_likes (screenshot_id, username) VALUES (?, ?)', [id, liker]);
     const nextLikes = (item.likes || 0) + 1;
     await dbRun('UPDATE community_screenshots SET likes = ? WHERE id = ?', [nextLikes, id]);
     res.json({ success: true, likes: nextLikes });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Beğeni işlemi başarısız oldu.' });
   }
 });
 
@@ -897,7 +995,8 @@ router.get('/users/:username/quests', validateUsername, authenticateToken, autho
       claimed: q.claimed === 1
     })));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -923,7 +1022,8 @@ router.post('/users/:username/quests/:id/claim', validateUsername, authenticateT
 
     res.json({ success: true, coins: nextCoins });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -976,7 +1076,8 @@ router.get('/users/:username/achievements', validateUsername, authenticateToken,
       date: a.date
     })));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 
@@ -1003,7 +1104,8 @@ router.put('/users/:username/achievements', validateUsername, authenticateToken,
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
   }
 });
 

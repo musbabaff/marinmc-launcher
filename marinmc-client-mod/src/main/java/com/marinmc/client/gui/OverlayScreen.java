@@ -787,24 +787,12 @@ public class OverlayScreen extends Screen {
         switch (subTab) {
             case "GENERAL":
                 list.add(new SettingEntry("Show HUD", "show_hud", "Toggle the entire HUD visibility"));
-                list.add(new SettingEntry("Show Scoreboard", "show_scoreboard", "Show/hide the sidebar scoreboard"));
-                list.add(new SettingEntry("Show Boss Bar", "show_boss_bar", "Show/hide the boss health bar"));
-                list.add(new SettingEntry("Show Tab List", "show_tab_list", "Show/hide player tab list"));
-                list.add(new SettingEntry("Chat Animation", "chat_animation", "Smooth chat message animation"));
-                list.add(new SettingEntry("Smooth Scrolling", "smooth_scroll", "Enable smooth scroll in menus"));
-                list.add(new SettingEntry("Custom Hit Color", "custom_hit_color", "Custom red hit overlay color"));
-                list.add(new SettingEntry("Fire Height Reduce", "fire_height_reduce", "Lower fire overlay on screen"));
                 list.add(new SettingEntry("Minimal View Bobbing", "minimal_view_bobbing", "Reduce view bobbing amount"));
                 list.add(new SettingEntry("Raw Mouse Input", "raw_mouse_input", "Use raw mouse input (no accel)"));
                 break;
             case "PERFORMANCE":
-                list.add(new SettingEntry("Lazy Chunk Loading", "lazy_chunk_loading", "Delay chunk mesh rebuilds"));
-                list.add(new SettingEntry("Fast Text Rendering", "fast_text_render", "Use simplified text rendering"));
-                list.add(new SettingEntry("Entity Culling", "culling", "Skip rendering unseen entities"));
                 list.add(new SettingEntry("Reduced Particles", "reduced_particles", "Reduce particle count globally"));
-                list.add(new SettingEntry("FPS Boost Mode", "fps_boost", "Apply aggressive optimizations"));
-                list.add(new SettingEntry("Disable Block Anim.", "disable_block_animations", "Stop block break animation"));
-                list.add(new SettingEntry("Fullbright", "fullbright", "Override gamma for max brightness"));
+                list.add(new SettingEntry("FPS Boost Mode", "fps_boost", "Fast graphics + no entity shadows"));
                 break;
             case "CONTROLS":
                 list.add(new SettingEntry("Toggle Sneak/Sprint", "toggle_sneak", "Toggle sneak and sprint mode"));

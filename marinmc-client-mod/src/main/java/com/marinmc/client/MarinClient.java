@@ -5,6 +5,7 @@ import com.marinmc.client.gui.hud.HudManager;
 import com.marinmc.client.gui.hud.HudElement;
 import com.marinmc.client.features.FreelookHandler;
 import com.marinmc.client.features.RecordingManager;
+import com.marinmc.client.features.SettingsApplier;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -24,6 +25,7 @@ public class MarinClient implements ClientModInitializer {
     public static KeyBinding fullbrightKeyBinding;
     public static KeyBinding ramCleanKeyBinding;
     public static KeyBinding recordKeyBinding;
+    public static KeyBinding zoomKeyBinding;
     public static boolean fullbrightEnabled = false;
     public static boolean toggledSprint = false;
     public static boolean toggledSneak = false;
@@ -60,6 +62,14 @@ public class MarinClient implements ClientModInitializer {
             "key.marinmc.record",
             InputUtil.Type.KEYSYM,
             GLFW.GLFW_KEY_F10,
+            "category.marinmc.client"
+        ));
+
+        // Register custom C Keybinding for Zoom (hold)
+        zoomKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+            "key.marinmc.zoom",
+            InputUtil.Type.KEYSYM,
+            GLFW.GLFW_KEY_C,
             "category.marinmc.client"
         ));
 
@@ -120,6 +130,13 @@ public class MarinClient implements ClientModInitializer {
                     }
                 }
             }
+
+            // Apply General/Performance toggles to real Minecraft options
+            SettingsApplier.apply(client);
+            // Hold-to-zoom (gated by the zoom toggle)
+            SettingsApplier.tickZoom(client,
+                OverlayScreen.configStates.getOrDefault("zoom", false),
+                zoomKeyBinding.isPressed());
 
             // Tick freelook handler
             FreelookHandler.getInstance().tick();

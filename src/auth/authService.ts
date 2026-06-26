@@ -73,22 +73,14 @@ export const authService = {
    */
   async loginMicrosoft(): Promise<UserSession> {
     try {
-      let session: UserSession;
-      
-      if (window.electronAPI) {
-        // Triggers Microsoft OAuth inside Electron
-        session = await window.electronAPI.loginMicrosoft();
-      } else {
-        // Browser fallback mockup
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        session = {
-          id: 'ms-mock-uuid-' + Math.random().toString(36).substr(2, 9),
-          name: 'MarinPremium',
-          token: `mock_ms_token_${Date.now()}`,
-          type: 'ms',
-          avatar: 'https://minotar.net/avatar/MarinPremium/64',
-        };
+      if (!window.electronAPI) {
+        // The real Microsoft OAuth flow runs inside Electron; there is no
+        // browser stand-in (no fabricated session).
+        throw new Error('Microsoft ile giriş yalnızca masaüstü uygulamasında kullanılabilir.');
       }
+
+      // Triggers the real Microsoft OAuth flow inside Electron
+      const session: UserSession = await window.electronAPI.loginMicrosoft();
 
       // Synchronize with our backend server to get a valid authentication token
       try {

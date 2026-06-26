@@ -40,20 +40,6 @@ interface ChatState {
   markAsRead: (conversationId: string) => Promise<void>;
 }
 
-const BOT_REPLIES: Record<string, string[]> = {
-  merhaba: ['Selam! Naber, MarinMC girecek misin?', 'Merhaba, madendeyim şu an, naber?', 'Selamlar! Lobiye gelsene takılalım.'],
-  selam: ['Selam! Sunucuda mısın?', 'Aleykum selam, naber?', 'Selam dostum, gelsene Towny sunucusuna.'],
-  towny: ['Ben de şu an Towny sunucusundayım, şehri büyütüyorum.', 'Towny sezonu aşırı iyi olmuş yalnız.', 'Gelsene tarlaları göstereyim sana.'],
-  survival: ['Survival sıfırlandı, klan kurduk çabuk gel!', 'Survivalda elmas buldum az önce.', 'Gelsene kasılalım beraber.'],
-  default: [
-    'Harika! Oyunda mısın şu an?',
-    'Tamamdır, lobide bekliyorum seni.',
-    'MarinMC sunucusu bugün bayağı kalabalık.',
-    'Ben de tam madene inecektim, gelsene.',
-    'Dediğin gibi, yama notları da gelmiş kontrol ettin mi?'
-  ]
-};
-
 const persistConversationsToApi = async (username: string, conversations: Conversation[]) => {
   const contacts: Contact[] = conversations.map(c => ({
     id: c.id,
@@ -205,55 +191,8 @@ export const useChatStore = create<ChatState>((set, get) => {
         console.error('Failed to persist sent message:', err);
       }
 
-      // Simulated Auto-Reply Chatbot
-      setTimeout(async () => {
-        const activeConv = get().conversations.find((c) => c.id === activeId);
-        if (!activeConv) return;
-
-        const lowerMsg = content.toLowerCase();
-        let replyPool = BOT_REPLIES.default;
-        
-        if (lowerMsg.includes('selam')) replyPool = BOT_REPLIES.selam;
-        else if (lowerMsg.includes('merhaba')) replyPool = BOT_REPLIES.merhaba;
-        else if (lowerMsg.includes('towny')) replyPool = BOT_REPLIES.towny;
-        else if (lowerMsg.includes('survival')) replyPool = BOT_REPLIES.survival;
-
-        const randomReply = replyPool[Math.floor(Math.random() * replyPool.length)];
-        
-        const botName = activeConv.type === 'dm' ? activeConv.name : 'Steve';
-        const botTime = new Date();
-        const botTimeStr = `${String(botTime.getHours()).padStart(2, '0')}:${String(botTime.getMinutes()).padStart(2, '0')}`;
-
-        const botMsg: ChatMessage = {
-          id: `msg_bot_${Date.now()}`,
-          sender: botName,
-          content: randomReply,
-          timestamp: botTimeStr,
-          isSelf: false
-        };
-
-        let postBotConversations: Conversation[] = [];
-        set((state) => {
-          postBotConversations = state.conversations.map((c) => {
-            if (c.id === activeId) {
-              return {
-                ...c,
-                lastMessageTime: botTimeStr,
-                unreadCount: c.id === state.activeConversationId ? 0 : c.unreadCount + 1,
-                messages: [...c.messages, botMsg]
-              };
-            }
-            return c;
-          });
-          return { conversations: postBotConversations };
-        });
-
-        try {
-          await persistConversationsToApi(session.name, postBotConversations);
-        } catch (err) {
-          console.error('Failed to persist bot reply:', err);
-        }
-      }, 1500);
+      // Incoming replies arrive over the live WebSocket connection (see
+      // websocket.ts / server ws.js), not from a simulated local bot.
     },
 
     addReaction: async (messageId, emoji) => {

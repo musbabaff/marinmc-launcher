@@ -23,57 +23,6 @@ import { wsManager } from '../lib/websocket';
 import heroBg from '../../assets/home-hero-bg.png';
 import heroVideo from '../../assets/home-hero-bg.mp4';
 
-const defaultNews = [
-  {
-    category: 'GÜNCELLEME',
-    tagColor: 'text-[#EAB308] border-[#EAB308]/30 bg-[#EAB308]/10',
-    title: 'MarinMC Client v1.0.8 Yayınlandı!',
-    description: 'Yeni 1.21.8 optimizasyonları, 1.7 vuruş animasyonları, Toggle Sneak ve eşya fizik özellikleri eklendi.',
-    date: '16 Haziran 2026',
-    imageUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=400'
-  },
-  {
-    category: 'DUYURU',
-    tagColor: 'text-[#259457] border-[#259457]/30 bg-[#259457]/10',
-    title: 'Minecraft 1.21.8 Sürüm Desteği Hazır',
-    description: 'MarinMC artık en son sürümü ve Fabric mod altyapısını tam uyumlu ve yüksek FPS ile destekliyor.',
-    date: '15 Haziran 2026',
-    imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400'
-  },
-  {
-    category: 'ETKİNLİK',
-    tagColor: 'text-[#F59E0B] border-[#F59E0B]/30 bg-[#F59E0B]/10',
-    title: 'Haftalık Towny Turnuvası Başlıyor',
-    description: 'Bu Pazar günü düzenlenecek olan Towny turnuvasına katılarak özel pelerin ve kozmetik ödülleri kazanın.',
-    date: '14 Haziran 2026',
-    imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400'
-  },
-  {
-    category: 'MAĞAZA',
-    tagColor: 'text-[#EC4899] border-[#EC4899]/30 bg-[#EC4899]/10',
-    title: 'Özel Pelerin ve Kanatlar Satışta!',
-    description: 'Karakterinize özel pelerinler, 3D kanatlar ve şapkalarla oyun içi görünümünüzü özelleştirin.',
-    date: '12 Haziran 2026',
-    imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400'
-  },
-  {
-    category: 'SİSTEM',
-    tagColor: 'text-[#06B6D4] border-[#06B6D4]/30 bg-[#06B6D4]/10',
-    title: 'Gelişmiş Performans ve FPS Optimizasyonu',
-    description: 'Oyun içi lag ve donmaları azaltan yeni performans modları ve bellek temizleyici modüller eklendi.',
-    date: '10 Haziran 2026',
-    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400'
-  },
-  {
-    category: 'TOPLULUK',
-    tagColor: 'text-[#3B82F6] border-[#3B82F6]/30 bg-[#3B82F6]/10',
-    title: 'Resmi Discord Sunucumuza Katılın',
-    description: 'Discord topluluğumuza katılarak diğer oyuncularla iletişim kurun, lobi sohbetini ve güncellemeleri anlık takip edin.',
-    date: '08 Haziran 2026',
-    imageUrl: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400'
-  }
-];
-
 export default function HomePage() {
   const { t } = useTranslation();
   const { session } = useAuthStore();
@@ -115,34 +64,25 @@ export default function HomePage() {
 
 
   const displayNews = useMemo(() => {
-    let list = [...defaultNews];
-    if (newsData && newsData.length > 0 && !newsError) {
-      const mapped = newsData.map((item, idx) => {
-        const categories = ['GÜNCELLEME', 'DUYURU', 'ETKİNLİK', 'MAĞAZA', 'SİSTEM', 'TOPLULUK'];
-        const tagColors = [
-          'text-[#2D7DD2] border-[#2D7DD2]/30 bg-[#2D7DD2]/10',
-          'text-[#259457] border-[#259457]/30 bg-[#259457]/10',
-          'text-[#F59E0B] border-[#F59E0B]/30 bg-[#F59E0B]/10',
-          'text-[#EC4899] border-[#EC4899]/30 bg-[#EC4899]/10',
-          'text-[#06B6D4] border-[#06B6D4]/30 bg-[#06B6D4]/10',
-          'text-[#3B82F6] border-[#3B82F6]/30 bg-[#3B82F6]/10'
-        ];
-        return {
-          category: categories[idx % categories.length],
-          tagColor: tagColors[idx % tagColors.length],
-          title: item.title,
-          description: (item as any).description || 'Yeni Minecraft sürüm güncellemeleri, hata düzeltmeleri ve performans iyileştirmeleri hakkında detaylı bilgi.',
-          date: item.date,
-          imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=400'
-        };
-      });
-      const combined = [...mapped, ...defaultNews];
-      const unique = combined.filter((item, index, self) =>
-        self.findIndex(t => t.title === item.title) === index
-      );
-      list = unique.slice(0, 6);
-    }
-    return list;
+    // Only real news from the published news feed; no placeholder articles.
+    if (!newsData || newsData.length === 0 || newsError) return [];
+    const categories = ['GÜNCELLEME', 'DUYURU', 'ETKİNLİK', 'MAĞAZA', 'SİSTEM', 'TOPLULUK'];
+    const tagColors = [
+      'text-[#2D7DD2] border-[#2D7DD2]/30 bg-[#2D7DD2]/10',
+      'text-[#259457] border-[#259457]/30 bg-[#259457]/10',
+      'text-[#F59E0B] border-[#F59E0B]/30 bg-[#F59E0B]/10',
+      'text-[#EC4899] border-[#EC4899]/30 bg-[#EC4899]/10',
+      'text-[#06B6D4] border-[#06B6D4]/30 bg-[#06B6D4]/10',
+      'text-[#3B82F6] border-[#3B82F6]/30 bg-[#3B82F6]/10'
+    ];
+    return newsData.map((item, idx) => ({
+      category: categories[idx % categories.length],
+      tagColor: tagColors[idx % tagColors.length],
+      title: item.title,
+      description: (item as any).description || '',
+      date: item.date,
+      imageUrl: item.imageUrl || ''
+    })).slice(0, 6);
   }, [newsData, newsError]);
 
   useEffect(() => {
@@ -786,7 +726,7 @@ export default function HomePage() {
           </div>
 
           {/* News Feed Grid */}
-          {!isOnline ? (
+          {(!isOnline || displayNews.length === 0) ? (
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-3 h-[180px] bg-[#0f172a]/40 border border-white/[0.04] rounded-2xl flex items-center justify-center flex-col text-center p-6 relative group">
                 <WifiOff className="w-8 h-8 text-[#52525B] mb-2" />

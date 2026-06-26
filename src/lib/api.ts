@@ -1,9 +1,14 @@
 import axios from 'axios';
 
+// Production API base. Override at build time with VITE_API_URL, or at runtime
+// via the marinmc_api_url localStorage key (Settings). Defaults to the public
+// MarinMC API domain.
+export const PROD_API_BASE = (import.meta.env.VITE_API_URL as string) || 'https://api.marinmc.com/api';
+
 // API base URL configuration (can be changed via settings/localStorage)
 export const getApiBaseUrl = (): string => {
   return localStorage.getItem('marinmc_api_url') ||
-    (import.meta.env.DEV ? 'http://localhost:3000/api' : 'https://server-two-lyart-67.vercel.app/api');
+    (import.meta.env.DEV ? 'http://localhost:3000/api' : PROD_API_BASE);
 };
 
 // Create Axios Instance
@@ -101,7 +106,7 @@ export const api = {
       return {
         username,
         totalPlayTime: Number(localStorage.getItem('marinmc_total_play_time') || '0'),
-        lastLogin: localStorage.getItem('marinmc_last_login_time') || 'Bugün 20:15',
+        lastLogin: localStorage.getItem('marinmc_last_login_time') || '',
         coins: parseInt(localStorage.getItem('marinmc_coins') || '500', 10),
         playSessions: JSON.parse(localStorage.getItem('marinmc_play_sessions') || '[]')
       };
@@ -210,27 +215,9 @@ export const api = {
       const res = await apiInstance.get('/servers');
       return res.data;
     } catch {
-      // Offline fallback: return standard MarinMC servers aligned with backend
-      return [
-        {
-          id: 'towny',
-          name: 'MarinMC Towny',
-          ip: 'oyna.marinmc.com',
-          port: 25565,
-          mode: 'TOWNY',
-          description: 'Gelişmiş Towny deneyimi, özel ekonomi ve meslekler.',
-          playerCount: 284,
-          maxPlayers: 1000,
-          tags: ['ECONOMY', 'JOBS', 'WAR'],
-          themeColor: 'teal',
-          artworkUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=600&auto=format&fit=crop&q=60',
-          bannerUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=800&auto=format&fit=crop&q=80',
-          online: true,
-          players: { online: 284, max: 1000 },
-          version: '1.21.8',
-          ping: 15
-        }
-      ];
+      // No fabricated servers: if the API is unreachable, return nothing so the
+      // UI shows a real "no servers / offline" state instead of fake data.
+      return [];
     }
   },
 
@@ -439,7 +426,7 @@ export const checkConnectivity = async (): Promise<boolean> => {
   }
   // Browser fallback (e.g. during dev:renderer without Electron wrapper)
   try {
-    const res = await axios.get('https://server-two-lyart-67.vercel.app/api/stats/online-count', { timeout: 3000 });
+    const res = await axios.get(`${getApiBaseUrl()}/stats/online-count`, { timeout: 3000 });
     return res.status === 200;
   } catch {
     return window.navigator.onLine;

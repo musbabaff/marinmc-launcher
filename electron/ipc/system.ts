@@ -209,7 +209,8 @@ ipcMain.handle('system:check-connectivity', async () => {
     return res.status === 200;
   } catch (err) {
     try {
-      const res = await axios.get('https://server-two-lyart-67.vercel.app/api/stats/online-count', { timeout: 3000 });
+      const apiBase = process.env.MARINMC_API_URL || 'https://api.marinmc.com/api';
+      const res = await axios.get(`${apiBase}/stats/online-count`, { timeout: 3000 });
       return res.status === 200;
     } catch {
       return false;

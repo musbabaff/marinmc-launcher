@@ -826,7 +826,9 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
       const cosmeticsConfig: any = options.cosmetics || { skinType: 'username', capeUrl: '' };
       if (!cosmeticsConfig.apiUrl) {
         const isDev = !app.isPackaged;
-        cosmeticsConfig.apiUrl = isDev ? 'http://localhost:3000/api' : 'https://server-two-lyart-67.vercel.app/api';
+        cosmeticsConfig.apiUrl = isDev
+          ? 'http://localhost:3000/api'
+          : (process.env.MARINMC_API_URL || 'https://api.marinmc.com/api');
       }
       try {
         const configDir = path.join(gameDir, 'config');

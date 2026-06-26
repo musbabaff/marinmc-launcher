@@ -9,7 +9,8 @@ import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ensureDbInitialized, dbGet, dbRun, dbAll } from './db.js';
-import { initWebSocket, isUserOnline } from './ws.js';
+import { initWebSocket, isUserOnline, getOnlineCount } from './ws.js';
+import { pingMinecraft } from './mcping.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1110,35 +1111,68 @@ router.put('/users/:username/achievements', validateUsername, authenticateToken,
 });
 
 // --- STATS & SERVERS ---
-const serversList = [
+// Static server configuration (the real network address). Live player counts are
+// fetched from the actual Minecraft server via Server List Ping — never faked.
+const SERVER_CONFIG = [
   {
     id: 'towny',
     name: 'MarinMC Towny',
-    ip: 'oyna.marinmc.com',
-    port: 25565,
+    ip: process.env.MC_SERVER_HOST || 'oyna.marinmc.com',
+    port: Number(process.env.MC_SERVER_PORT || 25565),
     mode: 'TOWNY',
     description: 'Gelişmiş Towny deneyimi, özel ekonomi ve meslekler.',
-    playerCount: 284,
-    maxPlayers: 1000,
     tags: ['ECONOMY', 'JOBS', 'WAR'],
     themeColor: 'teal',
-    artworkUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=600&auto=format&fit=crop&q=60',
-    bannerUrl: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?w=800&auto=format&fit=crop&q=80',
-    online: true,
-    players: { online: 284, max: 1000 },
-    version: '1.21.8',
-    ping: 15
+    artworkUrl: '',
+    bannerUrl: ''
   }
 ];
 
-router.get('/stats/online-count', (req, res) => {
-  const total = serversList.reduce((acc, s) => acc + s.playerCount, 0);
-  res.json({ total });
+// Cache live ping results so we don't ping on every request.
+let serversCache = [];
+let serversCacheAt = 0;
+const SERVERS_CACHE_MS = 30 * 1000;
+
+const refreshServers = async () => {
+  serversCache = await Promise.all(SERVER_CONFIG.map(async (cfg) => {
+    const status = await pingMinecraft(cfg.ip, cfg.port).catch(() => ({ online: false }));
+    const online = !!status.online;
+    return {
+      ...cfg,
+      online,
+      players: online && status.players ? status.players : { online: 0, max: 0 },
+      playerCount: online && status.players ? status.players.online : 0,
+      maxPlayers: online && status.players ? status.players.max : 0,
+      version: online ? (status.version || null) : null,
+      ping: online ? (status.ping ?? null) : null
+    };
+  }));
+  serversCacheAt = Date.now();
+  return serversCache;
+};
+
+const getServers = async () => {
+  if (Date.now() - serversCacheAt > SERVERS_CACHE_MS || serversCache.length === 0) {
+    await refreshServers();
+  }
+  return serversCache;
+};
+
+router.get('/stats/online-count', async (req, res) => {
+  // Real launcher users connected over WebSocket.
+  res.json({ total: getOnlineCount() });
 });
 
-router.get('/servers', (req, res) => {
-  res.json(serversList);
+router.get('/servers', async (req, res) => {
+  try {
+    res.json(await getServers());
+  } catch {
+    res.json(SERVER_CONFIG.map((c) => ({ ...c, online: false, players: { online: 0, max: 0 }, playerCount: 0, maxPlayers: 0 })));
+  }
 });
+
+// Lightweight health check for load balancers / uptime monitors.
+app.get('/health', (_req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
 
 app.use('/api', router);
 

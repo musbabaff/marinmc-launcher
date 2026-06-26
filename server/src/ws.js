@@ -15,6 +15,9 @@ let emoteWss = null;
 
 export const isUserOnline = (username) => clients.has(username.toLowerCase());
 
+// Real number of launcher users currently connected over WebSocket.
+export const getOnlineCount = () => clients.size;
+
 export const initWebSocket = (server) => {
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_PAYLOAD });
   emoteWss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_PAYLOAD });
@@ -165,21 +168,6 @@ export const initWebSocket = (server) => {
       await broadcastStatus(userId, 'offline');
     });
   });
-
-  // Live Lobby Chat Simulation Interval
-  const LOBBY_BOT_NAMES = ['Steve', 'Alex', '172px', 'masaya46', 'cuvsa', 'zakhbear', 'daaaavidds'];
-  const LOBBY_BOT_MESSAGES = [
-    'Sa beyler, Towny\'e gelcek var mı?',
-    'Beyler lobi neden bu kadar kalabalık bugün?',
-    'Son güncellemeyle FPS değerleri çok iyi olmuş yalnız.',
-    'Admin bey markete yeni pelerinler ne zaman gelecek?',
-    'Survival klan alımı vardır, pm atın.',
-    'Ejderha kanatları bende aşırı iyi duruyor abi.',
-    'oyna.marinmc.com ping değerleriniz kaç? bende 15ms',
-    'Optifine yerine Sodium kullanın, başlatıcıda zaten yüklü geliyor'
-  ];
-
-  // Live Lobby Chat Simulation Interval disabled to avoid mock/simulated traffic
 
   // Handle upgrade request from Express server
   server.on('upgrade', async (request, socket, head) => {

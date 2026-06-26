@@ -53,8 +53,8 @@
   "marinmc.mod.ping.desc": "Shows your connection latency to the server in ms.",
   "marinmc.mod.speed.name": "Speedometer",
   "marinmc.mod.speed.desc": "Displays your movement speed in m/s.",
-  "marinmc.mod.replay.name": "Replay Status",
-  "marinmc.mod.replay.desc": "Manages Replay Mod recording status indicator.",
+  "marinmc.mod.replay.name": "Recording Indicator",
+  "marinmc.mod.replay.desc": "Toggle recording with F10; shows elapsed time and REC dot.",
   "marinmc.mod.potion_status.name": "Potion Status",
   "marinmc.mod.potion_status.desc": "Displays active potion effects and duration.",
   "marinmc.mod.crosshair.name": "Custom Crosshair",
@@ -213,7 +213,8 @@
   "key.marinmc.freelook": "Freelook (360° Camera)",
   "key.marinmc.fullbright": "Fullbright",
   "key.marinmc.overlay": "Open Mod Overlay",
-  "key.marinmc.ramclean": "Memory Cleaner"
+  "key.marinmc.ramclean": "Memory Cleaner",
+  "key.marinmc.record": "Toggle Recording Mode"
 }
 
 

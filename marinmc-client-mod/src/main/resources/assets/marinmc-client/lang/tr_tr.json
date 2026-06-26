@@ -53,8 +53,8 @@
   "marinmc.mod.ping.desc": "Sunucuya olan bağlantı gecikmenizi (ms) gösterir.",
   "marinmc.mod.speed.name": "Hız Göstergesi",
   "marinmc.mod.speed.desc": "Karakterinizin hareket hızını (m/s) gösterir.",
-  "marinmc.mod.replay.name": "Replay Durumu",
-  "marinmc.mod.replay.desc": "Replay kaydetme durumunu ve göstergesini yönetir.",
+  "marinmc.mod.replay.name": "Kayıt Göstergesi",
+  "marinmc.mod.replay.desc": "F10 ile kaydı aç/kapat; süreyi ve REC göstergesini gösterir.",
   "marinmc.mod.potion_status.name": "Efekt Durumu",
   "marinmc.mod.potion_status.desc": "Aktif iksir efektlerini ve kalan sürelerini gösterir.",
   "marinmc.mod.crosshair.name": "Özel Nişangah",
@@ -213,7 +213,8 @@
   "key.marinmc.freelook": "Serbest Bakış (360°)",
   "key.marinmc.fullbright": "Gece Görüşü (Fullbright)",
   "key.marinmc.overlay": "Mod Menüsünü Aç",
-  "key.marinmc.ramclean": "Bellek Temizleyici"
+  "key.marinmc.ramclean": "Bellek Temizleyici",
+  "key.marinmc.record": "Kayıt Modunu Aç/Kapat"
 }
 
 

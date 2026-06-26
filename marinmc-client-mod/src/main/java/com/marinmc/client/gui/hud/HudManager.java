@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.marinmc.client.gui.OverlayScreen;
+import com.marinmc.client.features.RecordingManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.PlayerListEntry;
@@ -744,10 +745,19 @@ public class HudManager {
         @Override
         public void render(DrawContext context) {
             MinecraftClient mc = MinecraftClient.getInstance();
-            long time = System.currentTimeMillis() / 500 % 2;
-            int dotColor = time == 0 ? 0xFFEF4444 : 0xFF7F1D1D;
+            boolean rec = RecordingManager.isRecording();
 
-            this.width = 16 + mc.textRenderer.getWidth(formatText("REC")) + 6;
+            // Recording: blinking red dot + elapsed timer. Idle: dim grey "ready" state.
+            String label = rec ? ("REC " + RecordingManager.getElapsedFormatted()) : "REC";
+            int dotColor;
+            if (rec) {
+                long blink = System.currentTimeMillis() / 500 % 2;
+                dotColor = blink == 0 ? 0xFFEF4444 : 0xFF7F1D1D;
+            } else {
+                dotColor = 0xFF475569;
+            }
+
+            this.width = 16 + mc.textRenderer.getWidth(formatText(label)) + 6;
 
             if (showBackground) {
                 int bgColor = (bgOpacity << 24) | 0x000000;
@@ -755,7 +765,7 @@ public class HudManager {
                 drawRoundedBorder(context, x, y, getWidth(), getHeight(), getThemeBorderColorHex(), borderRadius);
             }
             context.fill(x + 6, y + 5, x + 12, y + 11, dotColor);
-            drawElementText(context, "REC", x + 16, y + 4, getThemeColorHex());
+            drawElementText(context, label, x + 16, y + 4, rec ? getThemeColorHex() : 0xFF94A3B8);
         }
     }
 

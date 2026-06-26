@@ -1,8 +1,10 @@
 package com.marinmc.client.mixin;
 
 import com.marinmc.client.features.FreelookHandler;
+import com.marinmc.client.gui.hud.HudManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.Mouse;
+import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -43,6 +45,21 @@ public class MouseMixin {
             this.cursorDeltaY = 0;
 
             ci.cancel();
+        }
+    }
+
+    /**
+     * Feed real mouse-button presses into the CPS counter. Without this hook the
+     * click buffers in HudManager stay empty and the CPS HUD always reads 0.
+     * Only in-game clicks (no screen open) are counted, matching player expectation.
+     */
+    @Inject(method = "onMouseButton", at = @At("HEAD"))
+    private void marinmc$onMouseButton(long window, int button, int action, int mods, CallbackInfo ci) {
+        if (action == GLFW.GLFW_PRESS) {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            if (mc.currentScreen == null) {
+                HudManager.registerClick(button);
+            }
         }
     }
 }

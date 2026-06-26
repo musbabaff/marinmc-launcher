@@ -1,7 +1,10 @@
 package com.marinmc.client;
 
 import com.marinmc.client.gui.OverlayScreen;
+import com.marinmc.client.gui.hud.HudManager;
+import com.marinmc.client.gui.hud.HudElement;
 import com.marinmc.client.features.FreelookHandler;
+import com.marinmc.client.features.RecordingManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -20,6 +23,7 @@ public class MarinClient implements ClientModInitializer {
     public static KeyBinding overlayKeyBinding;
     public static KeyBinding fullbrightKeyBinding;
     public static KeyBinding ramCleanKeyBinding;
+    public static KeyBinding recordKeyBinding;
     public static boolean fullbrightEnabled = false;
     public static boolean toggledSprint = false;
     public static boolean toggledSneak = false;
@@ -48,6 +52,14 @@ public class MarinClient implements ClientModInitializer {
             "key.marinmc.ramclean",
             InputUtil.Type.KEYSYM,
             GLFW.GLFW_KEY_U,
+            "category.marinmc.client"
+        ));
+
+        // Register custom F10 Keybinding for Recording toggle
+        recordKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+            "key.marinmc.record",
+            InputUtil.Type.KEYSYM,
+            GLFW.GLFW_KEY_F10,
             "category.marinmc.client"
         ));
 
@@ -85,6 +97,27 @@ public class MarinClient implements ClientModInitializer {
                 long saved = (before - after) / (1024 * 1024);
                 if (client.player != null) {
                     client.player.sendMessage(Text.literal("§bMarinMC Client §f» §aBellek Temizlendi! (Özgürleşen: " + Math.max(0, saved) + " MB)"), true);
+                }
+            }
+
+            while (recordKeyBinding.wasPressed()) {
+                RecordingManager.toggle();
+                // Auto-enable the REC indicator HUD element so feedback is visible.
+                if (RecordingManager.isRecording()) {
+                    HudElement replay = HudManager.getInstance().getElementById("replay");
+                    if (replay != null && !replay.isEnabled()) {
+                        replay.setEnabled(true);
+                        OverlayScreen.configStates.put("replay", true);
+                        OverlayScreen.saveConfigStatic();
+                        HudManager.getInstance().saveConfig();
+                    }
+                }
+                if (client.player != null) {
+                    if (RecordingManager.isRecording()) {
+                        client.player.sendMessage(Text.literal("§bMarinMC Client §f» §c⏺ Kayıt Başladı"), true);
+                    } else {
+                        client.player.sendMessage(Text.literal("§bMarinMC Client §f» §7⏹ Kayıt Durduruldu"), true);
+                    }
                 }
             }
 

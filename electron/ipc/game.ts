@@ -73,7 +73,13 @@ export function getSmartJvmArgs(allocatedRamMb: number): string[] {
 
 export function resolveGameDir(customDir?: string): string {
   if (customDir && customDir.trim() !== '') {
-    return customDir;
+    const trimmed = customDir.trim();
+    // Only honour an absolute path. A relative value would otherwise resolve
+    // against the process cwd and write game files somewhere unexpected.
+    if (path.isAbsolute(trimmed)) {
+      return path.normalize(trimmed);
+    }
+    console.warn('[game.ts] Ignoring non-absolute custom game directory:', trimmed);
   }
 
   // Try Electron's userData first (most reliable)
@@ -1162,8 +1168,10 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
     if (gameProcess) {
       try {
         if (process.platform === 'win32' && gameProcess.pid) {
-          const { exec } = require('child_process');
-          exec(`taskkill /pid ${gameProcess.pid} /T /F`, (err: any) => {
+          const { execFile } = require('child_process');
+          // Pass arguments as an array (no shell) so the PID can never be
+          // interpreted as part of a shell command.
+          execFile('taskkill', ['/pid', String(gameProcess.pid), '/T', '/F'], (err: any) => {
             if (err) {
               console.error('[game.ts] Error killing process via taskkill:', err);
               try { gameProcess.kill('SIGKILL'); } catch {}

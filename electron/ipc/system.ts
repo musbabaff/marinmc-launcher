@@ -245,9 +245,52 @@ ipcMain.handle('system:update-settings', async (_event, settings: {
   return { success: true };
 });
 
+// Only allow downloads over HTTPS from trusted content hosts. Prevents the
+// renderer from coercing the main process into fetching arbitrary URLs (SSRF)
+// or local resources via file://.
+const ALLOWED_DOWNLOAD_HOSTS = ['modrinth.com', 'marinmc.com'];
+function isAllowedDownloadUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:') return false;
+    const host = parsed.hostname.toLowerCase();
+    return ALLOWED_DOWNLOAD_HOSTS.some(
+      (allowed) => host === allowed || host.endsWith(`.${allowed}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Reduce a user-supplied filename to a single safe path segment and reject
+// anything that could traverse out of the destination folder.
+function safeSegment(filename: string): string {
+  const name = path.basename(String(filename || ''));
+  if (!name || name === '.' || name === '..' || name.includes('/') || name.includes('\\')) {
+    throw new Error('Geçersiz dosya adı.');
+  }
+  return name;
+}
+
+// Refuse to operate on symlinks so a planted link can't redirect a
+// delete/rename onto a file outside the game directory.
+function assertNotSymlink(targetPath: string): void {
+  try {
+    if (fs.lstatSync(targetPath).isSymbolicLink()) {
+      throw new Error('Symlink hedeflerine izin verilmiyor.');
+    }
+  } catch (err: any) {
+    if (err && err.code === 'ENOENT') return; // path doesn't exist yet -> fine
+    throw err;
+  }
+}
+
 ipcMain.handle('system:download-file', async (_event, url: string, filename: string, projectType: string, targetVersion?: string) => {
   try {
-    const sanitizedFilename = path.basename(filename);
+    if (!isAllowedDownloadUrl(url)) {
+      return { success: false, error: 'İndirme adresi güvenli kaynaklar listesinde değil.' };
+    }
+    const sanitizedFilename = safeSegment(filename);
     const gameDir = resolveGameDir(backendSettings.launcherDir);
     let subfolder = 'mods';
     if (projectType === 'resourcepack') {
@@ -274,6 +317,7 @@ ipcMain.handle('system:download-file', async (_event, url: string, filename: str
     const destFolder = path.join(gameDir, subfolder);
     fs.mkdirSync(destFolder, { recursive: true });
     const destPath = path.join(destFolder, sanitizedFilename);
+    assertNotSymlink(destPath);
 
     // Download file using axios
     const response = await axios({
@@ -299,7 +343,7 @@ ipcMain.handle('system:download-file', async (_event, url: string, filename: str
 
 ipcMain.handle('system:delete-file', async (_event, filename: string, projectType: string, targetVersion?: string) => {
   try {
-    const sanitizedFilename = path.basename(filename);
+    const sanitizedFilename = safeSegment(filename);
     const gameDir = resolveGameDir(backendSettings.launcherDir);
     let subfolder = 'mods';
     if (projectType === 'resourcepack') {
@@ -325,9 +369,11 @@ ipcMain.handle('system:delete-file', async (_event, filename: string, projectTyp
     const disabledPath = activePath + '.disabled';
 
     if (fs.existsSync(activePath)) {
+      assertNotSymlink(activePath);
       fs.unlinkSync(activePath);
     }
     if (fs.existsSync(disabledPath)) {
+      assertNotSymlink(disabledPath);
       fs.unlinkSync(disabledPath);
     }
 
@@ -339,7 +385,7 @@ ipcMain.handle('system:delete-file', async (_event, filename: string, projectTyp
 
 ipcMain.handle('system:toggle-file', async (_event, filename: string, projectType: string, enabled: boolean, targetVersion?: string) => {
   try {
-    const sanitizedFilename = path.basename(filename);
+    const sanitizedFilename = safeSegment(filename);
     const gameDir = resolveGameDir(backendSettings.launcherDir);
     let subfolder = 'mods';
     if (projectType === 'resourcepack') {
@@ -366,10 +412,12 @@ ipcMain.handle('system:toggle-file', async (_event, filename: string, projectTyp
 
     if (enabled) {
       if (fs.existsSync(disabledPath)) {
+        assertNotSymlink(disabledPath);
         fs.renameSync(disabledPath, activePath);
       }
     } else {
       if (fs.existsSync(activePath)) {
+        assertNotSymlink(activePath);
         fs.renameSync(activePath, disabledPath);
       }
     }

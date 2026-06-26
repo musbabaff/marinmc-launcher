@@ -35,7 +35,9 @@ class WebSocketManager {
       console.warn('[WebSocket] Failed to read token from session storage:', e);
     }
 
-    const url = `${getWsUrl()}?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
+    // Username is not sensitive and stays in the query; the token is passed via
+    // the Sec-WebSocket-Protocol header so it never lands in URLs/proxy logs.
+    const url = `${getWsUrl()}?username=${encodeURIComponent(username)}`;
 
     if (this.socket) {
       this.socket.onopen = null;
@@ -51,7 +53,8 @@ class WebSocketManager {
 
     console.log('[WebSocket] Connecting to:', url);
     try {
-      this.socket = new WebSocket(url);
+      // Pass the token as a WebSocket subprotocol value (header-based auth).
+      this.socket = token ? new WebSocket(url, [`token.${token}`]) : new WebSocket(url);
 
 
       this.socket.onopen = () => {

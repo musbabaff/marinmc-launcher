@@ -189,8 +189,7 @@ public class OverlayScreen extends Screen {
         profileList.clear();
         profileList.add("MarinMC");
         if (!PROFILES_LIST_FILE.exists()) {
-            profileList.add("Testing");
-            profileList.add("PvP Settings");
+            // Only the default profile; no placeholder/sample profiles.
             saveProfilesList();
             return;
         }

@@ -56,7 +56,9 @@ public class CosmeticProfile {
 
     public static String getApiUrl() {
         if (cachedApiUrl != null) return cachedApiUrl;
-        String apiUrl = "http://localhost:3000/api";
+        // Production default; the launcher overwrites this via config/marinmc-cosmetics.json
+        // (localhost in dev). Used only when no config is present.
+        String apiUrl = "https://api.marinmc.com/api";
         try {
             MinecraftClient client = MinecraftClient.getInstance();
             java.io.File configFile = new java.io.File(client.runDirectory, "config/marinmc-cosmetics.json");
@@ -112,7 +114,7 @@ public class CosmeticProfile {
             emoteWebSocketUri = java.net.URI.create(getEmoteWebSocketUrl());
         } catch (Exception e) {
             e.printStackTrace();
-            emoteWebSocketUri = java.net.URI.create("ws://localhost:3000/emotes");
+            emoteWebSocketUri = java.net.URI.create("wss://api.marinmc.com/emotes");
         }
         return emoteWebSocketUri;
     }

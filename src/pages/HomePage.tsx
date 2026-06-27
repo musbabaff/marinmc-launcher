@@ -274,22 +274,8 @@ export default function HomePage() {
           }
         };
 
-        // Simulating progress if launching offline or locally for design test
-        if (!isOnline) {
-          setLaunchStatus('DOWNLOADING');
-          let currentProgress = 0;
-          const interval = setInterval(() => {
-            currentProgress += 5;
-            setProgress(currentProgress);
-            setCurrentFileDownloading(`fetching fabric-loader-0.15.7.jar...`);
-            if (currentProgress >= 100) {
-              clearInterval(interval);
-              setLaunchStatus('RUNNING');
-            }
-          }, 300);
-          return;
-        }
-
+        // Launch for real (works offline if the version is already cached;
+        // the backend reports a real error otherwise — no simulated progress).
         const result = await window.electronAPI.launchGame(launchOptions);
         if (!result.success) {
           setLaunchStatus('ERROR');
@@ -306,18 +292,9 @@ export default function HomePage() {
           });
         }
       } else {
-        // Mock launch in browser mode
-        setLaunchStatus('DOWNLOADING');
-        let currentProgress = 0;
-        const interval = setInterval(() => {
-          currentProgress += 10;
-          setProgress(currentProgress);
-          setCurrentFileDownloading(`fetching fabric-loader-0.15.7.jar...`);
-          if (currentProgress >= 100) {
-            clearInterval(interval);
-            setLaunchStatus('RUNNING');
-          }
-        }, 400);
+        // The game can only be launched from the desktop app, not the browser.
+        setLaunchStatus('ERROR');
+        setErrorMessage(t('home.launchError'));
       }
     } catch (err: any) {
       setLaunchStatus('ERROR');

@@ -20,8 +20,6 @@ interface Screenshot {
   size: string;
 }
 
-const MOCK_SCREENSHOTS: Screenshot[] = [];
-
 export default function GalleryPage() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,16 +67,16 @@ export default function GalleryPage() {
             }));
             setScreenshots(mapped);
           } else {
-            // Fallback to mocks if no local screenshots found
-            setScreenshots(MOCK_SCREENSHOTS);
+            // No local screenshots: show an empty gallery (no placeholder data)
+            setScreenshots([]);
           }
         } catch (err) {
           console.error('Failed to load local screenshots:', err);
-          setScreenshots(MOCK_SCREENSHOTS);
+          setScreenshots([]);
         }
       } else {
         // Fallback to mock data in browser mode
-        setScreenshots(MOCK_SCREENSHOTS);
+        setScreenshots([]);
       }
       setLoading(false);
     }

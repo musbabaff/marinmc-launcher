@@ -44,7 +44,7 @@ export default function ChatPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [chatMessages, setChatMessages] = useState<Record<string, ChatMessage[]>>({});
   const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [isTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -429,57 +429,8 @@ export default function ChatPage() {
       }
     }
     
-    const userPrompt = inputText.trim();
     setInputText('');
 
-    // Trigger chatbot response simulation (works offline / as fallback)
-    setIsTyping(true);
-    setTimeout(() => {
-      let botResponse = '';
-      const text = userPrompt.toLowerCase();
-
-      if (activeContact.id === 'solmazzz') {
-        if (text.includes('selam') || text.includes('merhaba') || text.includes('sa')) {
-          botResponse = 'Aleyküm selam dostum! MarinMC Launcher testlerine katıldığın için teşekkürler. Arayüz tasarımı sence nasıl olmuş?';
-        } else if (text.includes('iyi') || text.includes('güzel') || text.includes('harika') || text.includes('beğendim')) {
-          botResponse = 'Süper! Arayüzdeki görsel sorunları hallettik. Şimdi her modülün tam çalışır olmasını ve mock dataların kaldırılmasını sağlıyoruz.';
-        } else if (text.includes('hata') || text.includes('çök') || text.includes('crash')) {
-          botResponse = 'Hata mı aldın? Geliştirdiğimiz gelişmiş Crash Modal artık çökme sebebini detaylıca gösteriyor, orayı inceleyebilir veya log dosyasını bana iletebilirsin!';
-        } else {
-          botResponse = 'Anladım dostum. MarinMC launcher üzerindeki her sayfayı test edebilirsin, oyun tarafında da yakında yeni güncellemeler gelecek!';
-        }
-      } else if (activeContact.id === 'support') {
-        if (text.includes('yardım') || text.includes('sorun') || text.includes('hata') || text.includes('açılmıyor')) {
-          botResponse = 'Karşılaştığınız sorunla ilgili işletim sisteminizi ve aldığınız hatayı yazarsanız, teknik birimimiz size hemen destek olacaktır.';
-        } else {
-          botResponse = 'MarinMC Destek birimi ile iletişime geçtiğiniz için teşekkürler. İhtiyaç halinde sorununuzu buraya detaylıca yazabilirsiniz.';
-        }
-      } else {
-        botResponse = 'Admin Relay sistemi bağlantı testi tamamlandı. Girişler başarıyla loglandı.';
-      }
-
-      const botMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        sender: activeContact.name,
-        content: botResponse,
-        time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-        isSelf: false
-      };
-
-      const finalMsgs = [...updatedMsgs, botMsg];
-      const finalChatMessages = { ...newChatMessages, [activeContact.id]: finalMsgs };
-      setChatMessages(finalChatMessages);
-      api.updateChatMessages(username, finalChatMessages as any);
-
-      const finalContacts = updatedContacts.map(c => 
-        c.id === activeContact.id 
-          ? { ...c, lastMessage: botResponse, time: botMsg.time } 
-          : c
-      );
-      setContacts(finalContacts);
-      api.updateContacts(username, finalContacts as any);
-      setIsTyping(false);
-    }, 1800);
   };
 
   const filteredContacts = contacts.filter(c =>

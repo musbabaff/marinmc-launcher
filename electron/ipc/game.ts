@@ -251,7 +251,7 @@ const PERFORMANCE_MODS = [
     name: 'MarinMC Client Mod',
     filename: 'marinmc-client-mod-1.0.0.jar',
     url: 'https://raw.githubusercontent.com/musbabaff/marinmc-launcher/main/assets/marinmc-client-mod-1.0.0.jar',
-    md5: 'e86e80391af4b0adc228d0cff7908aa1'
+    md5: '67e1fe1e568ea786cb1d838049ad3269'
   }
 ];
 

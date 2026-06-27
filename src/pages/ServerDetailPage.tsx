@@ -83,8 +83,6 @@ const translations = {
   }
 };
 
-const MOCK_NEWS: any[] = [];
-
 export default function ServerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -142,7 +140,7 @@ export default function ServerDetailPage() {
         const response = await axios.get(`https://api.marinmc.com/news?server=${id}&limit=3`);
         setNews(response.data);
       } catch {
-        setNews(MOCK_NEWS);
+        setNews([]);
       } finally {
         setNewsLoading(false);
       }

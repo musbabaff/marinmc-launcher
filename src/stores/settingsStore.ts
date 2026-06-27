@@ -56,8 +56,6 @@ interface SettingsState {
 
 const DEFAULT_JVM_ARGS = "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch";
 
-const INITIAL_MOCK_RECENT_PROFILES: RecentProfile[] = [];
-
 export const useSettingsStore = create<SettingsState>((set) => ({
   ram: (() => {
     const val = localStorage.getItem('marinmc_setting_ram');
@@ -89,9 +87,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   recentProfiles: (() => {
     try {
       const saved = localStorage.getItem('marinmc_setting_recentProfiles');
-      return saved ? JSON.parse(saved) : INITIAL_MOCK_RECENT_PROFILES;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return INITIAL_MOCK_RECENT_PROFILES;
+      return [];
     }
   })(),
   smartJvmOpt: (() => {
@@ -287,7 +285,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       autoUpdate: true,
       selectedVersion: '1.21',
       selectedSubVersion: '1.21.8',
-      recentProfiles: INITIAL_MOCK_RECENT_PROFILES,
+      recentProfiles: [],
       smartJvmOpt: true,
       discordRpcEnabled: true,
       resolutionWidth: 1280,

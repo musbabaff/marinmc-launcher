@@ -68,14 +68,20 @@ public final class SettingsApplier {
         // here we apply/restore the gamma and keep the HUD indicator flag in sync.
         boolean fb = on("fullbright");
         com.marinmc.client.MarinClient.fullbrightEnabled = fb;
+        com.marinmc.client.mixin.SimpleOptionAccessor gammaOpt =
+            (com.marinmc.client.mixin.SimpleOptionAccessor) (Object) o.getGamma();
         if (fb) {
             if (!fullbrightActive) {
                 savedGamma = o.getGamma().getValue();
                 fullbrightActive = true;
             }
-            if (o.getGamma().getValue() < 14.0) o.getGamma().setValue(15.0);
+            // Bypass the vanilla 0..1 gamma clamp to force a real fullbright.
+            Object cur = gammaOpt.marinmc$getValueDirect();
+            if (!(cur instanceof Double) || (Double) cur < 14.0) {
+                gammaOpt.marinmc$setValueDirect(Double.valueOf(100.0));
+            }
         } else if (fullbrightActive) {
-            if (savedGamma != null) o.getGamma().setValue(savedGamma);
+            if (savedGamma != null) gammaOpt.marinmc$setValueDirect(savedGamma);
             fullbrightActive = false;
         }
     }

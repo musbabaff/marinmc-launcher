@@ -55,22 +55,21 @@ function updateTrayMenu(): void {
 }
 
 export function setupTray(): Tray | null {
-  const iconPath = path.join(
-    __dirname,
-    app.isPackaged ? '../dist/assets/tray-icon.png' : '../assets/tray-icon.png'
-  );
+  // tray-icon.png is copied next to the compiled main (dist-electron) at build
+  // time; fall back to the raw assets folder when running from source.
+  const candidates = [
+    path.join(__dirname, 'tray-icon.png'),
+    path.join(__dirname, '../assets/tray-icon.png'),
+    path.join(__dirname, '../dist/assets/tray-icon.png'),
+  ];
 
   try {
-    // Create a fallback icon if the file doesn't exist
-    let icon;
-    try {
-      icon = nativeImage.createFromPath(iconPath);
-      if (icon.isEmpty()) {
-        // Create a simple 32x32 fallback icon
-        icon = nativeImage.createEmpty();
-      }
-    } catch {
-      icon = nativeImage.createEmpty();
+    let icon = nativeImage.createEmpty();
+    for (const p of candidates) {
+      try {
+        const img = nativeImage.createFromPath(p);
+        if (!img.isEmpty()) { icon = img; break; }
+      } catch { /* try next */ }
     }
 
     tray = new Tray(icon);

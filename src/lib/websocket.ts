@@ -35,9 +35,10 @@ class WebSocketManager {
       console.warn('[WebSocket] Failed to read token from session storage:', e);
     }
 
-    // Username is not sensitive and stays in the query; the token is passed via
-    // the Sec-WebSocket-Protocol header so it never lands in URLs/proxy logs.
-    const url = `${getWsUrl()}?username=${encodeURIComponent(username)}`;
+    // Send the token via the Sec-WebSocket-Protocol header (preferred) AND the
+    // query string, so the connection authenticates against both new and older
+    // server builds (older servers only read the query param).
+    const url = `${getWsUrl()}?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
 
     if (this.socket) {
       this.socket.onopen = null;

@@ -18,6 +18,10 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Behind a reverse proxy / Cloudflare: trust the first hop so express-rate-limit
+// reads the real client IP from X-Forwarded-For (fixes ERR_ERL_UNEXPECTED_X_FORWARDED_FOR).
+app.set('trust proxy', 1);
+
 // Session tokens expire after this window; a fresh token is issued on each login.
 const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const tokenExpiry = () => Date.now() + TOKEN_TTL_MS;

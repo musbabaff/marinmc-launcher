@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { wsManager } from '../lib/websocket';
 
 import heroBg from '../../assets/home-hero-bg.png';
-import heroVideo from '../../assets/home-hero-bg.mp4';
+import heroVideo from '../../assets/arkaplan.mp4';
 
 export default function HomePage() {
   const { t } = useTranslation();
@@ -413,13 +413,14 @@ export default function HomePage() {
         {/* Hero Background */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
           <video
-            className="absolute inset-0 w-full h-full object-cover opacity-[0.25] scale-100"
+            className="absolute inset-0 w-full h-full object-cover opacity-[0.25] scale-105 blur-[10px]"
             src={heroVideo}
             autoPlay
             loop
             muted
             playsInline
             poster={heroBg}
+            onPlay={(e) => { e.currentTarget.playbackRate = 0.6; }}
             onError={(e) => {
               const target = e.target as HTMLVideoElement;
               const parent = target.parentElement;
@@ -442,12 +443,13 @@ export default function HomePage() {
           <div className="w-full rounded-2xl bg-gradient-to-br from-[#080d1a] via-[#040714] to-[#080d1a] border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center py-20 px-12 shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(45,125,210,0.1)] group">
             {/* Background video overlay */}
             <video
-              className="absolute inset-0 w-full h-full object-cover opacity-[0.18] scale-100 pointer-events-none transition-transform duration-700 group-hover:scale-102"
+              className="absolute inset-0 w-full h-full object-cover opacity-[0.18] scale-105 blur-[10px] pointer-events-none transition-transform duration-700 group-hover:scale-107"
               src={heroVideo}
               autoPlay
               loop
               muted
               playsInline
+              onPlay={(e) => { e.currentTarget.playbackRate = 0.6; }}
             />
             {/* Background particles and radial gradient */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(45,125,210,0.08),transparent_70%)] pointer-events-none" />

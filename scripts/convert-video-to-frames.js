@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const rootDir = path.join(__dirname, '..');
-const videoPath = path.join(rootDir, 'assets', 'home-hero-bg.mp4');
+const videoPath = path.join(rootDir, 'assets', 'arkaplan.mp4');
 const outputDir = path.join(rootDir, 'marinmc-client-mod', 'src', 'main', 'resources', 'assets', 'marinmc-client', 'textures', 'gui', 'bg_frames');
 
 console.log('--- Video Frame Extractor ---');
@@ -11,8 +11,8 @@ console.log('Video Path:', videoPath);
 console.log('Output Dir:', outputDir);
 
 if (!fs.existsSync(videoPath)) {
-  console.error('\n❌ HATA: assets/home-hero-bg.mp4 bulunamadı!');
-  console.log('Lütfen videonuzu "assets/home-hero-bg.mp4" konumuna kaydettikten sonra bu scripti çalıştırın.');
+  console.error('\n❌ HATA: assets/arkaplan.mp4 bulunamadı!');
+  console.log('Lütfen videonuzu "assets/arkaplan.mp4" konumuna kaydettikten sonra bu scripti çalıştırın.');
   process.exit(1);
 }
 
@@ -29,7 +29,7 @@ exec('ffmpeg -version', (err) => {
   }
 
   console.log('\nFFMPEG algılandı. Dönüştürme başlatılıyor...');
-  console.log('15 FPS, 854x480 çözünürlüğe ayarlanıyor (optimum boyut/performans için)...');
+  console.log('15 FPS, 854x480 çözünürlük, 0.6x hız ve Gaussian Blur (sigma=10) uygulanıyor...');
 
   // Empty existing frames if any
   const existingFiles = fs.readdirSync(outputDir);
@@ -41,7 +41,7 @@ exec('ffmpeg -version', (err) => {
 
   // FFMPEG command to extract frames
   // %d format: frame_1.png, frame_2.png...
-  const cmd = `ffmpeg -i "${videoPath}" -vf "fps=15,scale=854:480" "${path.join(outputDir, 'frame_%d.png')}"`;
+  const cmd = `ffmpeg -i "${videoPath}" -vf "fps=15,scale=854:480,setpts=1.66*PTS,gblur=sigma=10" "${path.join(outputDir, 'frame_%d.png')}"`;
 
   exec(cmd, (execErr, stdout, stderr) => {
     if (execErr) {

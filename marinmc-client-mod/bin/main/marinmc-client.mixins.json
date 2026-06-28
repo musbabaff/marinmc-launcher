@@ -1,0 +1,28 @@
+{
+  "required": true,
+  "package": "com.marinmc.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [
+    "DisconnectedScreenMixin",
+    "HeldItemRendererMixin",
+    "InGameHudMixin",
+    "GameMenuScreenMixin",
+    "TitleScreenMixin",
+    "MultiplayerScreenMixin",
+    "SelectWorldScreenMixin",
+    "BlockOutlineMixin",
+    "AbstractClientPlayerEntityMixin",
+    "ClientPlayerEntityMixin",
+    "LivingEntityRendererMixin",
+    "ItemEntityRendererMixin",
+    "TntEntityRendererMixin",
+    "CameraMixin",
+    "MouseMixin",
+    "OnlineNetworkInstanceMixin",
+    "ServerListMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

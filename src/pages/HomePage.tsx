@@ -313,15 +313,16 @@ export default function HomePage() {
     }
 
     setAddFriendLoading(true);
-    const success = await social.addFriend(targetUsername);
+    const result = await social.addFriend(targetUsername);
     setAddFriendLoading(false);
 
-    if (success) {
+    if (result.ok) {
       setToast({ type: 'success', message: t('home.requestSent') || 'Arkadaşlık isteği gönderildi!' });
       setNewFriendUsername('');
       setAddFriendOpen(false);
     } else {
-      setToast({ type: 'error', message: t('home.playerNotFound') || 'Oyuncu bulunamadı veya bir hata oluştu.' });
+      // Show the real reason (e.g. user not registered, already friends, server not updated)
+      setToast({ type: 'error', message: result.error || t('home.playerNotFound') || 'Oyuncu bulunamadı veya bir hata oluştu.' });
     }
   };
 

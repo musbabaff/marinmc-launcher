@@ -109,6 +109,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await window.electronAPI.loginCracked(target.name);
       }
       set({ session: target });
+      // Full reload: re-initialise every store, the WebSocket connection and all
+      // data as the new account (so e.g. its friend requests load), and give a
+      // clear visual "switched" refresh.
+      try { sessionStorage.setItem('marinmc_switched_to', target.name); } catch {}
+      window.location.reload();
     }
   },
 

@@ -182,7 +182,11 @@ export const api = {
       const res = await apiInstance.post(`/friends/${me}/request`, { target });
       return res.data;
     } catch (err: any) {
-      return { success: false, error: err.response?.data?.error || 'İstek gönderilemedi.' };
+      // A 404 here means the server doesn't have the friends endpoints yet (not updated).
+      if (err?.response?.status === 404) {
+        return { success: false, error: 'Sunucu bu özelliği desteklemiyor (API güncellenmemiş olabilir).' };
+      }
+      return { success: false, error: err?.response?.data?.error || 'İstek gönderilemedi (sunucuya ulaşılamadı).' };
     }
   },
 

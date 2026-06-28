@@ -18,7 +18,7 @@ interface SocialState {
   pendingRequests: number;
   pendingNames: string[];
   initializeSocial: () => Promise<void>;
-  addFriend: (username: string) => Promise<boolean>;
+  addFriend: (username: string) => Promise<{ ok: boolean; error?: string }>;
   removeFriend: (username: string) => Promise<void>;
   setPendingRequests: (count: number) => void;
   acceptRequest: (username: string) => Promise<void>;
@@ -91,14 +91,14 @@ export const useSocialStore = create<SocialState>((set, get) => {
 
     addFriend: async (username) => {
       const trimmed = username.trim();
-      if (!trimmed) return false;
+      if (!trimmed) return { ok: false, error: 'Kullanıcı adı boş.' };
 
       const session = useAuthStore.getState().session;
-      if (!session) return false;
+      if (!session) return { ok: false, error: 'Oturum bulunamadı.' };
 
       // Prevent sending a request to yourself
       if (trimmed.toLowerCase() === session.name.toLowerCase()) {
-        return false;
+        return { ok: false, error: 'Kendine istek gönderemezsin.' };
       }
 
       // Send a real friend request to the server. The other user only becomes a
@@ -106,11 +106,11 @@ export const useSocialStore = create<SocialState>((set, get) => {
       const res = await api.sendFriendRequest(session.name, trimmed);
       if (!res.success) {
         console.warn('[Social] friend request failed:', res.error);
-        return false;
+        return { ok: false, error: res.error };
       }
       // Reload so an auto-accepted request shows up immediately.
       await get().initializeSocial();
-      return true;
+      return { ok: true };
     },
 
     removeFriend: async (username) => {

@@ -18,6 +18,11 @@ extraFiles:
       - "**/*"
       - "!*.psd"
       - "!*.ai"
+      # The client mod is downloaded from GitHub at runtime, so bundling the
+      # 77MB jar only bloats the installer and slows auto-updates. MarinLogo.png
+      # is just the icon source. Neither is read at runtime.
+      - "!marinmc-client-mod-1.0.0.jar"
+      - "!MarinLogo.png"
 
 asar: true
 

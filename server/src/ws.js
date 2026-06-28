@@ -18,6 +18,16 @@ export const isUserOnline = (username) => clients.has(username.toLowerCase());
 // Real number of launcher users currently connected over WebSocket.
 export const getOnlineCount = () => clients.size;
 
+// Push an event to a single connected user (no-op if they're offline).
+export const sendToUser = (username, event, data) => {
+  const ws = clients.get(String(username || '').toLowerCase());
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ event, data }));
+    return true;
+  }
+  return false;
+};
+
 export const initWebSocket = (server) => {
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_PAYLOAD });
   emoteWss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_PAYLOAD });

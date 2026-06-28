@@ -176,6 +176,45 @@ export const api = {
     }
   },
 
+  // --- FRIEND REQUESTS ---
+  sendFriendRequest: async (me: string, target: string): Promise<{ success: boolean; status?: 'requested' | 'friends'; error?: string }> => {
+    try {
+      const res = await apiInstance.post(`/friends/${me}/request`, { target });
+      return res.data;
+    } catch (err: any) {
+      return { success: false, error: err.response?.data?.error || 'İstek gönderilemedi.' };
+    }
+  },
+
+  getFriendRequests: async (me: string): Promise<{ from: string; fromName: string }[]> => {
+    try {
+      const res = await apiInstance.get(`/friends/${me}/requests`);
+      return Array.isArray(res.data) ? res.data : [];
+    } catch {
+      return [];
+    }
+  },
+
+  acceptFriend: async (me: string, requester: string): Promise<boolean> => {
+    try {
+      await apiInstance.post(`/friends/${me}/accept`, { requester });
+      return true;
+    } catch (err) {
+      console.warn('[API] acceptFriend failed', err);
+      return false;
+    }
+  },
+
+  rejectFriend: async (me: string, requester: string): Promise<boolean> => {
+    try {
+      await apiInstance.post(`/friends/${me}/reject`, { requester });
+      return true;
+    } catch (err) {
+      console.warn('[API] rejectFriend failed', err);
+      return false;
+    }
+  },
+
   getChatMessages: async (username: string): Promise<Record<string, ChatMessage[]>> => {
     try {
       const res = await apiInstance.get(`/chats/${username}/messages`);

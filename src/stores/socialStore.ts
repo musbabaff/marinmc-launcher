@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { useAuthStore } from './authStore.ts';
-import { api, Contact } from '../lib/api';
+import { api } from '../lib/api';
+import { wsManager } from '../lib/websocket';
+
+let wsBound = false;
 
 export interface Friend {
   username: string;
@@ -19,7 +22,7 @@ interface SocialState {
   removeFriend: (username: string) => Promise<void>;
   setPendingRequests: (count: number) => void;
   acceptRequest: (username: string) => Promise<void>;
-  rejectRequest: (username: string) => void;
+  rejectRequest: (username: string) => Promise<void>;
 }
 
 export const useSocialStore = create<SocialState>((set, get) => {
@@ -36,9 +39,17 @@ export const useSocialStore = create<SocialState>((set, get) => {
     initializeSocial: async () => {
       const session = useAuthStore.getState().session;
       if (!session) {
-        set({ friends: [] });
+        set({ friends: [], pendingNames: [], pendingRequests: 0 });
         return;
       }
+
+      // Bind WS listeners once: incoming/accepted friend events refresh in real time.
+      if (!wsBound) {
+        wsBound = true;
+        wsManager.addListener('friend:request', () => get().initializeSocial());
+        wsManager.addListener('friend:accept', () => get().initializeSocial());
+      }
+
       try {
         const contacts = await api.getContacts(session.name);
         const friends: Friend[] = contacts.map(c => {
@@ -66,6 +77,14 @@ export const useSocialStore = create<SocialState>((set, get) => {
       } catch (err) {
         console.error('Failed to load friends from API:', err);
       }
+
+      // Load real incoming friend requests from the server
+      try {
+        const requests = await api.getFriendRequests(session.name);
+        set({ pendingNames: requests.map(r => r.fromName), pendingRequests: requests.length });
+      } catch (err) {
+        console.error('Failed to load friend requests:', err);
+      }
     },
 
     addFriend: async (username) => {
@@ -75,46 +94,21 @@ export const useSocialStore = create<SocialState>((set, get) => {
       const session = useAuthStore.getState().session;
       if (!session) return false;
 
-      // Prevent adding oneself as a friend
+      // Prevent sending a request to yourself
       if (trimmed.toLowerCase() === session.name.toLowerCase()) {
         return false;
       }
 
-      let officialName = trimmed;
-      if (window.electronAPI) {
-        const valRes = await window.electronAPI.validateMojangUsername(trimmed);
-        if (!valRes.success || !valRes.name) {
-          return false;
-        }
-        officialName = valRes.name;
-      }
-
-      try {
-        const contacts = await api.getContacts(session.name);
-        if (contacts.some(c => c.name.toLowerCase() === officialName.toLowerCase())) {
-          return true;
-        }
-
-        const newContact: Contact = {
-          id: officialName.toLowerCase(),
-          name: officialName,
-          avatar: `https://minotar.net/avatar/${officialName}/48`,
-          status: 'offline',
-          lastMessage: 'Henüz mesaj yok',
-          time: 'Şimdi',
-          type: 'dm',
-          unread: 0,
-          favorite: false
-        };
-
-        const updated = [...contacts, newContact];
-        await api.updateContacts(session.name, updated);
-        await get().initializeSocial();
-        return true;
-      } catch (err) {
-        console.error('Failed to add friend to API:', err);
+      // Send a real friend request to the server. The other user only becomes a
+      // friend once they accept (or instantly if they had already requested you).
+      const res = await api.sendFriendRequest(session.name, trimmed);
+      if (!res.success) {
+        console.warn('[Social] friend request failed:', res.error);
         return false;
       }
+      // Reload so an auto-accepted request shows up immediately.
+      await get().initializeSocial();
+      return true;
     },
 
     removeFriend: async (username) => {
@@ -149,34 +143,15 @@ export const useSocialStore = create<SocialState>((set, get) => {
     acceptRequest: async (username) => {
       const session = useAuthStore.getState().session;
       if (!session) return;
-      try {
-        const contacts = await api.getContacts(session.name);
-        if (!contacts.some(c => c.name.toLowerCase() === username.toLowerCase())) {
-          const newContact: Contact = {
-            id: username.toLowerCase(),
-            name: username,
-            avatar: `https://minotar.net/avatar/${username}/48`,
-            status: 'offline',
-            lastMessage: 'Arkadaşlık isteği kabul edildi',
-            time: 'Şimdi',
-            type: 'dm',
-            unread: 0,
-            favorite: false
-          };
-          const updated = [...contacts, newContact];
-          await api.updateContacts(session.name, updated);
-        }
-        set({
-          pendingNames: get().pendingNames.filter(n => n !== username),
-          pendingRequests: Math.max(0, get().pendingRequests - 1)
-        });
-        await get().initializeSocial();
-      } catch (err) {
-        console.error('Failed to accept request:', err);
-      }
+      // Server creates reciprocal contacts for both users.
+      await api.acceptFriend(session.name, username);
+      await get().initializeSocial();
     },
 
-    rejectRequest: (username) => {
+    rejectRequest: async (username) => {
+      const session = useAuthStore.getState().session;
+      if (!session) return;
+      await api.rejectFriend(session.name, username);
       set({
         pendingNames: get().pendingNames.filter(n => n !== username),
         pendingRequests: Math.max(0, get().pendingRequests - 1)

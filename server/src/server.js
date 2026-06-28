@@ -9,7 +9,7 @@ import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ensureDbInitialized, dbGet, dbRun, dbAll } from './db.js';
-import { initWebSocket, isUserOnline, getOnlineCount } from './ws.js';
+import { initWebSocket, isUserOnline, getOnlineCount, sendToUser } from './ws.js';
 import { pingMinecraft } from './mcping.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -786,6 +786,109 @@ router.put('/chats/:username/contacts', validateUsername, authenticateToken, aut
         ]);
       }
     }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
+  }
+});
+
+// --- FRIEND REQUESTS ---
+// Insert a contact row for `ownerName` pointing at `contactName` if missing.
+const addContactIfMissing = async (ownerName, contactName, lastMessage) => {
+  const contactId = contactName.toLowerCase();
+  const existing = await dbGet(
+    'SELECT 1 FROM contacts WHERE LOWER(username) = ? AND contact_id = ?',
+    [ownerName.toLowerCase(), contactId]
+  );
+  if (existing) return;
+  await dbRun(
+    `INSERT INTO contacts (username, contact_id, name, avatar, status, last_message, time, type, unread, favorite)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [ownerName, contactId, contactName, `https://minotar.net/avatar/${contactName}/48`,
+     'offline', lastMessage || 'Arkadaş eklendi', 'Şimdi', 'dm', 0, 0]
+  );
+};
+
+// Send a friend request (or auto-accept if the other side already requested you).
+router.post('/friends/:username/request', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
+  const me = req.user.username;
+  const meLower = me.toLowerCase();
+  const target = String(req.body?.target || '').trim();
+  if (!target) return res.status(400).json({ error: 'Hedef kullanıcı gerekli.' });
+  const targetLower = target.toLowerCase();
+  if (targetLower === meLower) return res.status(400).json({ error: 'Kendine istek gönderemezsin.' });
+
+  try {
+    const targetUser = await dbGet('SELECT username FROM users WHERE LOWER(username) = ?', [targetLower]);
+    if (!targetUser) return res.status(404).json({ error: 'Böyle bir kullanıcı bulunamadı.' });
+
+    const already = await dbGet('SELECT 1 FROM contacts WHERE LOWER(username) = ? AND contact_id = ?', [meLower, targetLower]);
+    if (already) return res.status(409).json({ error: 'Zaten arkadaşsınız.' });
+
+    // If they already sent YOU a request, accept it immediately (mutual).
+    const reverse = await dbGet('SELECT 1 FROM friend_requests WHERE from_user = ? AND to_user = ?', [targetLower, meLower]);
+    if (reverse) {
+      await dbRun('DELETE FROM friend_requests WHERE from_user = ? AND to_user = ?', [targetLower, meLower]);
+      await addContactIfMissing(me, targetUser.username, 'Arkadaş eklendi');
+      await addContactIfMissing(targetUser.username, me, 'Arkadaş eklendi');
+      sendToUser(targetLower, 'friend:accept', { by: me });
+      return res.json({ success: true, status: 'friends' });
+    }
+
+    // Upsert without DB-specific syntax (works on sqlite + postgres).
+    await dbRun('DELETE FROM friend_requests WHERE from_user = ? AND to_user = ?', [meLower, targetLower]);
+    await dbRun('INSERT INTO friend_requests (from_user, to_user, from_name, created_at) VALUES (?, ?, ?, ?)',
+      [meLower, targetLower, me, new Date().toLocaleString('tr-TR')]);
+    sendToUser(targetLower, 'friend:request', { from: meLower, fromName: me });
+    res.json({ success: true, status: 'requested' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
+  }
+});
+
+// List incoming pending requests for a user.
+router.get('/friends/:username/requests', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
+  const meLower = req.user.username.toLowerCase();
+  try {
+    const rows = await dbAll('SELECT from_user, from_name, created_at FROM friend_requests WHERE to_user = ?', [meLower]);
+    res.json(rows.map(r => ({ from: r.from_user, fromName: r.from_name || r.from_user, createdAt: r.created_at })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
+  }
+});
+
+// Accept a pending request -> create reciprocal contacts for both users.
+router.post('/friends/:username/accept', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
+  const me = req.user.username;
+  const meLower = me.toLowerCase();
+  const requesterLower = String(req.body?.requester || '').trim().toLowerCase();
+  if (!requesterLower) return res.status(400).json({ error: 'İstek sahibi gerekli.' });
+  try {
+    const reqRow = await dbGet('SELECT from_name FROM friend_requests WHERE from_user = ? AND to_user = ?', [requesterLower, meLower]);
+    if (!reqRow) return res.status(404).json({ error: 'İstek bulunamadı.' });
+    const requesterUser = await dbGet('SELECT username FROM users WHERE LOWER(username) = ?', [requesterLower]);
+    const requesterName = requesterUser ? requesterUser.username : (reqRow.from_name || requesterLower);
+
+    await dbRun('DELETE FROM friend_requests WHERE from_user = ? AND to_user = ?', [requesterLower, meLower]);
+    await addContactIfMissing(me, requesterName, 'Arkadaşlık isteği kabul edildi');
+    await addContactIfMissing(requesterName, me, 'Arkadaşlık isteği kabul edildi');
+    sendToUser(requesterLower, 'friend:accept', { by: me });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
+  }
+});
+
+// Reject (delete) a pending request.
+router.post('/friends/:username/reject', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
+  const meLower = req.user.username.toLowerCase();
+  const requesterLower = String(req.body?.requester || '').trim().toLowerCase();
+  try {
+    await dbRun('DELETE FROM friend_requests WHERE from_user = ? AND to_user = ?', [requesterLower, meLower]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);

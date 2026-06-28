@@ -165,6 +165,18 @@ export const initDb = async () => {
     )
   `);
 
+  // 6a. Friend requests (pending). Stored lowercased; reciprocal contacts are
+  //     created on accept.
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS friend_requests (
+      from_user VARCHAR(100),
+      to_user VARCHAR(100),
+      from_name VARCHAR(100),
+      created_at TEXT,
+      PRIMARY KEY (from_user, to_user)
+    )
+  `);
+
   // 6b. Gallery likes (one row per user per screenshot -> prevents duplicate likes)
   await dbRun(`
     CREATE TABLE IF NOT EXISTS gallery_likes (

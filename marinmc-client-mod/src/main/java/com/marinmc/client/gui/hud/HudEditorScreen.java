@@ -241,17 +241,11 @@ public class HudEditorScreen extends Screen {
         String arrow = sidebarOpen ? "◀" : "▶";
         context.drawCenteredTextWithShadow(this.textRenderer, arrow, tabX + 6, tabY + 11, 0xFFFFFFFF);
 
-        // Draw Global Top Control Panel
-        context.fill(0, 0, this.width, 36, 0xEB070B19); // Premium dark glass
-        
-        // Neon Aurora bottom border gradient line
-        int segW = Math.max(1, this.width / 8);
-        int[] auroraColors = {0xFF00FBFF, 0xFF00D4FF, 0xFF3BA3FF, 0xFF7B6FFF, 0xFFA855F7, 0xFFD946EF, 0xFFA855F7, 0xFF7B6FFF};
-        for (int s = 0; s < 8; s++) {
-            int axStart = s * segW;
-            int axEnd = (s == 7) ? this.width : (s + 1) * segW;
-            context.fill(axStart, 34, axEnd, 36, auroraColors[s]);
-        }
+        // Draw Global Top Control Panel (more transparent so elements placed near
+        // the top stay visible behind it).
+        context.fill(0, 0, this.width, 36, 0xB8070B19);
+        // Subtle single divider line instead of the heavy neon gradient strip.
+        context.fill(0, 35, this.width, 36, 0x402D7DD2);
 
         // Left: Presets label & buttons
         context.drawTextWithShadow(this.textRenderer, I18n.translate("marinmc.menu.presets"), 10, 14, 0xFFA1A1AA);
@@ -634,6 +628,22 @@ public class HudEditorScreen extends Screen {
                 HudManager.getInstance().saveConfig();
                 return true;
             }
+
+            // No toolbar control hit: let the user grab a HUD element sitting under
+            // the (semi-transparent) toolbar so top-placed elements stay movable.
+            if (button == 0) {
+                for (HudElement element : HudManager.getInstance().getElements()) {
+                    if (element.isEnabled() && element.isHovered(mouseX, mouseY) && mouseX > getSidebarWidth()) {
+                        draggedElement = element;
+                        dragOffsetX = (int) mouseX - element.getX();
+                        dragOffsetY = (int) mouseY - element.getY();
+                        snapLineX = -1;
+                        snapLineY = -1;
+                        saveUndoState();
+                        return true;
+                    }
+                }
+            }
             return true;
         }
 
@@ -932,9 +942,10 @@ public class HudEditorScreen extends Screen {
                 }
             }
             
-            // Bounds clamping
+            // Bounds clamping. Allow placing elements all the way to the top edge
+            // (the toolbar only exists in edit mode, in-game that area is free).
             newX = Math.max(getSidebarWidth(), Math.min(this.width - draggedElement.getWidth(), newX));
-            newY = Math.max(36, Math.min(this.height - draggedElement.getHeight(), newY));
+            newY = Math.max(2, Math.min(this.height - draggedElement.getHeight(), newY));
             
             draggedElement.setX(newX);
             draggedElement.setY(newY);

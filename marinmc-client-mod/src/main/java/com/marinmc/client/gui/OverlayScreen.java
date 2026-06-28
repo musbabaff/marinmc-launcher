@@ -332,19 +332,9 @@ public class OverlayScreen extends Screen {
         drawRoundedBorder(context, x - 2, y - 2, w + 4, h + 4, 0x0800FBFF, 15);
         drawRoundedBorder(context, x - 1, y - 1, w + 2, h + 2, 0x1800FBFF, 14);
         
-        // Draw outer glassmorphic window panel - deep navy space bg
-        drawRoundedRect(context, x, y, w, h, 0xEB03050C, 12);
+        // Draw outer glassmorphic window panel - deep navy space bg (more transparent)
+        drawRoundedRect(context, x, y, w, h, 0xC003050C, 12);
         drawRoundedBorder(context, x, y, w, h, 0x3500FBFF, 12); // glowing neon active border
-
-        // Aurora gradient top line (Cyan -> Violet neon strip)
-        int auroraY = y + 1;
-        int auroraH = 2;
-        int segments = 8;
-        int segW = (w - 24) / segments;
-        int[] auroraColors = {0xFF00FBFF, 0xFF00D4FF, 0xFF3BA3FF, 0xFF7B6FFF, 0xFFA855F7, 0xFFD946EF, 0xFFA855F7, 0xFF7B6FFF};
-        for (int s = 0; s < segments; s++) {
-            context.fill(x + 12 + s * segW, auroraY, x + 12 + (s + 1) * segW, auroraY + auroraH, auroraColors[s]);
-        }
 
         // Draw Moon Logo on Header
         int logoSize = 18;

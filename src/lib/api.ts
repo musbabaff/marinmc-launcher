@@ -215,6 +215,16 @@ export const api = {
     }
   },
 
+  removeFriendApi: async (me: string, target: string): Promise<boolean> => {
+    try {
+      await apiInstance.post(`/friends/${me}/remove`, { target });
+      return true;
+    } catch (err) {
+      console.warn('[API] removeFriend failed', err);
+      return false;
+    }
+  },
+
   getChatMessages: async (username: string): Promise<Record<string, ChatMessage[]>> => {
     try {
       const res = await apiInstance.get(`/chats/${username}/messages`);

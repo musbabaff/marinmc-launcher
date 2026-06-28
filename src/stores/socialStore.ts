@@ -43,11 +43,13 @@ export const useSocialStore = create<SocialState>((set, get) => {
         return;
       }
 
-      // Bind WS listeners once: incoming/accepted friend events refresh in real time.
+      // Bind WS listeners once: friend events + presence changes refresh in real time.
       if (!wsBound) {
         wsBound = true;
         wsManager.addListener('friend:request', () => get().initializeSocial());
         wsManager.addListener('friend:accept', () => get().initializeSocial());
+        wsManager.addListener('friend:remove', () => get().initializeSocial());
+        wsManager.addListener('status:change', () => get().initializeSocial());
       }
 
       try {
@@ -115,12 +117,10 @@ export const useSocialStore = create<SocialState>((set, get) => {
       const session = useAuthStore.getState().session;
       if (!session) return;
       try {
-        // Remove contact from contacts list
-        const contacts = await api.getContacts(session.name);
-        const updated = contacts.filter(c => c.name.toLowerCase() !== username.toLowerCase());
-        await api.updateContacts(session.name, updated);
+        // Reciprocal removal: server deletes the contact on BOTH sides.
+        await api.removeFriendApi(session.name, username);
 
-        // Also remove their chat messages
+        // Also clear our local chat history with them
         try {
           const allMessages = await api.getChatMessages(session.name);
           const contactId = username.toLowerCase();

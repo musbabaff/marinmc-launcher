@@ -896,6 +896,25 @@ router.post('/friends/:username/reject', validateUsername, authenticateToken, au
   }
 });
 
+// Remove a friend on BOTH sides (reciprocal) and clear any pending requests.
+router.post('/friends/:username/remove', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
+  const me = req.user.username;
+  const meLower = me.toLowerCase();
+  const targetLower = String(req.body?.target || '').trim().toLowerCase();
+  if (!targetLower) return res.status(400).json({ error: 'Hedef kullanıcı gerekli.' });
+  try {
+    await dbRun('DELETE FROM contacts WHERE LOWER(username) = ? AND contact_id = ?', [meLower, targetLower]);
+    await dbRun('DELETE FROM contacts WHERE LOWER(username) = ? AND contact_id = ?', [targetLower, meLower]);
+    await dbRun('DELETE FROM friend_requests WHERE (from_user = ? AND to_user = ?) OR (from_user = ? AND to_user = ?)',
+      [meLower, targetLower, targetLower, meLower]);
+    sendToUser(targetLower, 'friend:remove', { by: me });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
+  }
+});
+
 router.get('/chats/:username/messages', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
   const username = req.params.username;
   try {

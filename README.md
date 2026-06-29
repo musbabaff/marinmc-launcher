@@ -10,7 +10,7 @@ Official client-side and server-side ecosystem for the **MarinMC** network. This
 
 <p align="center">
   <a href="https://github.com/musbabaff/marinmc-launcher/releases">
-    <img src="https://img.shields.io/badge/version-1.2.2-blue?style=for-the-badge&logo=github" alt="Version 1.2.2" />
+    <img src="https://img.shields.io/badge/version-1.3.5-blue?style=for-the-badge&logo=github" alt="Version 1.3.5" />
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License MIT" />
@@ -48,17 +48,21 @@ graph TD
 ### 🚀 Electron Launcher
 * **Premium & Cracked Account Support**: Dual-mode login with session caching, Microsoft authentication, and custom offline registration.
 * **Legacy Session Migration**: Automatic migration of active accounts and profile databases from legacy domains to new infrastructure.
-* **Modern UI & High-fidelity Aesthetics**: Custom-designed sidebar, interactive animations, and page transitions.
+* **Modern UI & High-fidelity Aesthetics**: Custom-designed sidebar, interactive animations, page transitions, and blurred background video overlays.
 * **Automatic Game Downloader**: Downloads client binaries, assets, libraries, and asset index maps directly from Mojang and Modrinth.
 * **Background Selection**: Choice of themes (Classic, Lunar, Spring, and Vanilla) with customized launcher layout styles.
+* **System Tray & Window Integration**: Minimize to tray, custom taskbar icon load path, and window state caching.
+* **Social Friends & Messaging System**: Integrated lobby chat and real-time reciprocal friend system with online presence.
 
 ### 🧩 Fabric Client Mod
 * **Dynamic HUD Editor**: Drag-and-drop, resize, and configure layout elements directly in-game. Features collapsing configurations, snap-to-grid, and reset options.
 * **3D Waypoint System**: Add and track 3D waypoints rendered directly in the game world using Fabric API events (`WorldRenderEvents.LAST`), completely avoiding fragile obfuscated Mixin targets.
-* **Fullbright Control**: Toggle night vision easily with keybinds.
+* **Fullbright Control**: Toggle night vision easily with keybinds (gamma value unlocked beyond vanilla constraints).
 * **Freelook Handler**: Perform 360-degree camera sweeps while walking.
 * **RAM Cleaner**: Clear memory fragmentation dynamically with a key press.
 * **Emote Synchronizer**: Real-time broadcast and receipt of emotes via custom WebSockets.
+* **PvP Upgrades**: damage flash indicator, chat macros, and hold-to-zoom support.
+* **Animated Title Screen**: Optimized frame-by-frame background video rendering directly in the main menu.
 
 ---
 

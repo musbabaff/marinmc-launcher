@@ -6,7 +6,7 @@ import net.minecraft.util.Identifier;
 public class AnimatedBackgroundRenderer {
     private static float frameTimer = 0.0f;
     private static int currentFrameIndex = 0;
-    private static final float FRAME_DURATION = 1.0f / 8.0f; // 8 FPS background loop (frames extracted at 8fps)
+    private static final float FRAME_DURATION = 1.0f / 60.0f; // 60 FPS smooth background (300 pre-blurred frames @ 480x270)
     private static long lastTime = 0;
     private static int cachedFrameCount = -1;
 

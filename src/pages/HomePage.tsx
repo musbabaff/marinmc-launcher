@@ -243,6 +243,11 @@ export default function HomePage() {
 
     try {
       if (window.electronAPI) {
+        // Optional pre-launch memory cleanup (Settings → "Oyun Öncesi Bellek Temizliği").
+        if (localStorage.getItem('marinmc_setting_autoCleanRam') === 'true') {
+          try { await window.electronAPI.optimizeMemory?.(); } catch { /* non-fatal */ }
+        }
+
         // Step 1: Detect Java
         const javaCheck = await window.electronAPI.detectJava();
         if (!javaCheck.found) {
@@ -293,6 +298,10 @@ export default function HomePage() {
             timePlayed: 'Just now',
             artworkUrl: ''
           });
+          // Optional: open the live console (Settings → "Konsol Günlüğünü Göster").
+          if (localStorage.getItem('marinmc_setting_showConsole') === 'true') {
+            navigate('/console');
+          }
         }
       } else {
         // The game can only be launched from the desktop app, not the browser.

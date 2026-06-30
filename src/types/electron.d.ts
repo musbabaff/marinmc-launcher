@@ -34,6 +34,11 @@ export interface IElectronAPI {
     crashDetails?: string; 
   }) => void) => () => void;
   getSystemInfo: () => Promise<{ totalRAM: number; javaPath: string; os: string; defaultGameDir?: string }>;
+  getHardware: () => Promise<{ cpuModel: string; cores: number; totalRAM: number; gpuModel: string; glVersion: string; osName: string; arch: string }>;
+  getSystemStats: () => Promise<{ cpuUsage: number; ramUsedMB: number; ramTotalMB: number }>;
+  optimizeMemory: () => Promise<{ freedMB: number; rssMB: number }>;
+  getStartup: () => Promise<boolean>;
+  setStartup: (enabled: boolean) => Promise<{ success: boolean; error?: string }>;
   updateSettings: (settings: { smartJvmOpt: boolean; discordRpcEnabled: boolean; language: 'tr' | 'en'; launcherDir: string }) => Promise<{ success: boolean }>;
   validateMojangUsername: (username: string) => Promise<{ success: boolean; uuid?: string; name?: string }>;
   checkConnectivity: () => Promise<boolean>;

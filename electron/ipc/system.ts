@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell, clipboard } from 'electron';
+import { ipcMain, dialog, shell, clipboard, app, session } from 'electron';
 import * as os from 'os';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -37,6 +37,109 @@ ipcMain.handle('system:info', async () => {
     os: osType === 'win32' ? 'Windows' : osType === 'darwin' ? 'macOS' : 'Linux',
     defaultGameDir: resolveGameDir()
   };
+});
+
+// --- Real-time system monitoring (no mock data) ---
+
+// CPU usage is computed from the delta between two os.cpus() snapshots.
+let lastCpuTimes = os.cpus().map(c => c.times);
+function sampleCpuUsage(): number {
+  const current = os.cpus().map(c => c.times);
+  let idleDiff = 0;
+  let totalDiff = 0;
+  for (let i = 0; i < current.length; i++) {
+    const c = current[i];
+    const p = lastCpuTimes[i];
+    if (!p) continue;
+    const cTotal = c.user + c.nice + c.sys + c.idle + c.irq;
+    const pTotal = p.user + p.nice + p.sys + p.idle + p.irq;
+    idleDiff += c.idle - p.idle;
+    totalDiff += cTotal - pTotal;
+  }
+  lastCpuTimes = current;
+  if (totalDiff <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((1 - idleDiff / totalDiff) * 100)));
+}
+
+function extractGpuName(glRenderer: string): string {
+  if (!glRenderer) return '';
+  // ANGLE strings look like: "ANGLE (NVIDIA, NVIDIA GeForce GTX 1050 Direct3D11 vs_5_0 ps_5_0, D3D11)"
+  const m = glRenderer.match(/(NVIDIA GeForce[^,/)]*|NVIDIA[^,/)]*|AMD Radeon[^,/)]*|Radeon[^,/)]*|Intel\(R\)[^,/)]*|Intel[^,/)]*|Apple[^,/)]*|Mali[^,/)]*|Adreno[^,/)]*)/i);
+  let name = m ? m[1] : glRenderer;
+  return name.replace(/\s+(Direct3D11|OpenGL|vs_\d_\d|ps_\d_\d).*$/i, '').trim();
+}
+
+let cachedHardware: any = null;
+ipcMain.handle('system:hardware', async () => {
+  if (cachedHardware) return cachedHardware;
+  const cpus = os.cpus();
+  const cpuModel = (cpus[0]?.model || 'Bilinmiyor').replace(/\s+@.*$/, '').trim();
+  const cores = cpus.length;
+  const totalRAM = Math.round(os.totalmem() / (1024 * 1024));
+  const osType = os.platform();
+  const osName = osType === 'win32' ? 'Windows' : osType === 'darwin' ? 'macOS' : 'Linux';
+
+  let gpuModel = 'Bilinmiyor';
+  let glVersion = '';
+  try {
+    const info: any = await app.getGPUInfo('complete');
+    const aux = info?.auxAttributes || {};
+    glVersion = (aux.glVersion || '').toString();
+    gpuModel = extractGpuName(aux.glRenderer || '') || gpuModel;
+  } catch { /* ignore */ }
+
+  // Windows fallback for a clean GPU name when ANGLE parsing is unhelpful.
+  if ((gpuModel === 'Bilinmiyor' || gpuModel.length < 3) && osType === 'win32') {
+    try {
+      const out = execSync(
+        'powershell -NoProfile -Command "(Get-CimInstance Win32_VideoController | Where-Object { $_.AdapterRAM -gt 0 } | Select-Object -First 1 -ExpandProperty Name)"',
+        { encoding: 'utf8', timeout: 5000 }
+      );
+      if (out.trim()) gpuModel = out.trim();
+    } catch { /* ignore */ }
+  }
+
+  cachedHardware = { cpuModel, cores, totalRAM, gpuModel, glVersion, osName, arch: os.arch() };
+  return cachedHardware;
+});
+
+ipcMain.handle('system:stats', async () => {
+  const totalBytes = os.totalmem();
+  const freeBytes = os.freemem();
+  return {
+    cpuUsage: sampleCpuUsage(),
+    ramUsedMB: Math.round((totalBytes - freeBytes) / (1024 * 1024)),
+    ramTotalMB: Math.round(totalBytes / (1024 * 1024))
+  };
+});
+
+// Honest memory optimization: clears the launcher's own browser caches and runs
+// V8 GC when available, then reports the real RSS drop of the launcher process.
+ipcMain.handle('system:optimize-memory', async () => {
+  const before = process.memoryUsage().rss;
+  try { (global as any).gc?.(); } catch { /* gc not exposed */ }
+  try {
+    await session.defaultSession.clearCache();
+    await session.defaultSession.clearCodeCaches({ urls: [] });
+  } catch { /* ignore */ }
+  await new Promise(r => setTimeout(r, 350));
+  try { (global as any).gc?.(); } catch { /* ignore */ }
+  const after = process.memoryUsage().rss;
+  const freedMB = Math.max(0, Math.round((before - after) / (1024 * 1024)));
+  return { freedMB, rssMB: Math.round(after / (1024 * 1024)) };
+});
+
+// Real OS-level "launch on startup" toggle.
+ipcMain.handle('system:get-startup', async () => {
+  try { return app.getLoginItemSettings().openAtLogin; } catch { return false; }
+});
+ipcMain.handle('system:set-startup', async (_event, enabled: boolean) => {
+  try {
+    app.setLoginItemSettings({ openAtLogin: !!enabled });
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 });
 
 ipcMain.handle('system:select-directory', async () => {

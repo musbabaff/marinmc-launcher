@@ -253,6 +253,21 @@ export const api = {
     }
   },
 
+  // Deliver a message to the recipient over REST (reliable even if WebSocket
+  // can't connect). The server writes it to the recipient's log and notifies live.
+  sendChatMessage: async (
+    me: string,
+    payload: { recipient: string; content: string; time: string; fileAttachment?: any; voiceDuration?: string }
+  ): Promise<boolean> => {
+    try {
+      await apiInstance.post(`/chats/${me}/send`, payload);
+      return true;
+    } catch (err) {
+      console.warn('[API] sendChatMessage failed', err);
+      return false;
+    }
+  },
+
   getOnlineCount: async (): Promise<{ total: number }> => {
     try {
       const res = await apiInstance.get('/stats/online-count');

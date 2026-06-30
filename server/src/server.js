@@ -1062,6 +1062,49 @@ router.put('/chats/:username/messages', validateUsername, authenticateToken, aut
   }
 });
 
+// Deliver a single chat message to the recipient's log over REST (works even if
+// the WebSocket can't connect, e.g. behind a proxy). Also notifies live via WS.
+router.post('/chats/:username/send', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
+  const sender = req.user.username;
+  const senderId = sender.toLowerCase();
+  const recipient = String(req.body?.recipient || '').trim();
+  const content = String(req.body?.content || '');
+  const time = String(req.body?.time || '');
+  const fileAttachment = req.body?.fileAttachment || null;
+  const voiceDuration = req.body?.voiceDuration || null;
+  if (!recipient || !content || content.length > 4000) {
+    return res.status(400).json({ error: 'Geçersiz mesaj.' });
+  }
+  const recipientId = recipient.toLowerCase();
+  if (recipientId === senderId) return res.status(400).json({ error: 'Kendine mesaj gönderemezsin.' });
+  try {
+    const rUser = await dbGet('SELECT username FROM users WHERE LOWER(username) = ?', [recipientId]);
+    const recipientName = rUser ? rUser.username : recipient;
+
+    // Write to the recipient's incoming log (their view of the conversation)
+    await dbRun(
+      `INSERT INTO messages (id, username, contact_id, sender, content, time, is_self, file_name, file_size, is_image, voice_duration)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [genId(), recipientName, senderId, sender, content, time, 0,
+       fileAttachment?.name || null, fileAttachment?.size || null, fileAttachment?.isImage ? 1 : 0, voiceDuration || null]
+    );
+
+    // Update the recipient's contact preview + unread badge (if they have the contact)
+    const c = await dbGet('SELECT unread FROM contacts WHERE LOWER(username) = ? AND contact_id = ?', [recipientId, senderId]);
+    if (c) {
+      await dbRun('UPDATE contacts SET last_message = ?, time = ?, unread = ? WHERE LOWER(username) = ? AND contact_id = ?',
+        [content, time, (Number(c.unread) || 0) + 1, recipientId, senderId]);
+    }
+
+    // Real-time delivery if the recipient is connected
+    sendToUser(recipientId, 'chat:message', { id: genId(), sender, content, time, fileAttachment, voiceDuration });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
+  }
+});
+
 // --- COMMUNITY GALLERY ---
 router.get('/gallery/community', async (req, res) => {
   try {

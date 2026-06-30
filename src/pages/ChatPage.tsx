@@ -167,6 +167,25 @@ export default function ChatPage() {
     };
   }, [username]);
 
+  // Fallback polling: refresh contacts + messages every few seconds so incoming
+  // messages show up even when the WebSocket can't connect (e.g. behind a proxy).
+  useEffect(() => {
+    if (!username) return;
+    const interval = setInterval(async () => {
+      try {
+        const [msgs, contactsData] = await Promise.all([
+          api.getChatMessages(username),
+          api.getContacts(username)
+        ]);
+        setChatMessages(msgs as any);
+        setContacts(contactsData as any);
+      } catch (err) {
+        // ignore transient poll errors
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [username]);
+
   // Scroll to bottom on message updates
   const activeMessages = activeContact ? (chatMessages[activeContact.id] || []) : [];
   useEffect(() => {
@@ -396,8 +415,9 @@ export default function ChatPage() {
     setChatMessages(newChatMessages);
     api.updateChatMessages(username, newChatMessages as any);
 
-    // Send over websocket
-    wsManager.send('chat:message', {
+    // Deliver to the recipient over REST (reliable even without WebSocket; the
+    // server writes it to their log AND pushes it live over WS if they're online).
+    api.sendChatMessage(username, {
       recipient: activeContact.id,
       content: inputText.trim(),
       time: timeNow

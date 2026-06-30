@@ -732,6 +732,80 @@ function syncModsFolder(gameDir: string, targetVersion: string, is121Version: bo
   }
 }
 
+// Map the UI version selection (major like "1.21", concrete like "1.17.1",
+// or an existing "fabric-loader-..." id) to a concrete vanilla game version.
+function resolveGameVersion(selected: string): string {
+  if (!selected) return '1.21.8';
+  if (selected.startsWith('fabric-loader-')) {
+    const parts = selected.split('-');
+    return parts[parts.length - 1];
+  }
+  // Major version shortcuts → the concrete version we officially support.
+  const majorMap: Record<string, string> = {
+    '1.21': '1.21.8',
+    '1.20': '1.20.4',
+    '1.19': '1.19.4',
+    '1.18': '1.18.2',
+    '1.17': '1.17.1'
+  };
+  return majorMap[selected] || selected;
+}
+
+// The full MarinMC mod set (Sodium/Iris/client mod/etc.) is built for 1.21.8.
+// Only that version gets the performance mods + custom client mod; every other
+// supported version launches as clean Fabric so it never crashes on incompatible mods.
+function isFullModVersion(gameVersion: string): boolean {
+  return gameVersion === '1.21.8';
+}
+
+// Install a Fabric Loader profile for ANY supported game version (1.17.1–1.21.8).
+// Returns the fabric version id (e.g. "fabric-loader-0.16.14-1.17.1") on success,
+// or null if it could not be installed (caller falls back to vanilla).
+async function installFabricProfile(
+  gameDir: string,
+  gameVersion: string,
+  isCancelled: () => boolean,
+  log: (msg: string) => void
+): Promise<string | null> {
+  try {
+    // Resolve a Fabric Loader version that supports this game version.
+    // A recent loader is backward-compatible with all older game versions.
+    let loaderVersion = '0.19.3';
+    try {
+      const loadersRes = await axios.get(
+        `https://meta.fabricmc.net/v2/versions/loader/${gameVersion}`,
+        { timeout: 15000 }
+      );
+      if (Array.isArray(loadersRes.data) && loadersRes.data.length > 0) {
+        const stable = loadersRes.data.find((l: any) => l?.loader?.stable);
+        loaderVersion = (stable || loadersRes.data[0]).loader.version;
+      }
+    } catch (metaErr: any) {
+      log(`[UYARI] Fabric Loader listesi alınamadı (${metaErr.message}). Varsayılan ${loaderVersion} kullanılıyor.`);
+    }
+    if (isCancelled()) return null;
+
+    const fabricVersionId = `fabric-loader-${loaderVersion}-${gameVersion}`;
+    const fabricVersionDir = path.join(gameDir, 'versions', fabricVersionId);
+    const fabricJsonPath = path.join(fabricVersionDir, `${fabricVersionId}.json`);
+
+    if (!fs.existsSync(fabricJsonPath)) {
+      log(`[MarinMC Launcher] Fabric Loader ${loaderVersion} (${gameVersion}) profili kuruluyor...`);
+      fs.mkdirSync(fabricVersionDir, { recursive: true });
+      const profileUrl = `https://meta.fabricmc.net/v2/versions/loader/${gameVersion}/${loaderVersion}/profile/json`;
+      const profileRes = await axios.get(profileUrl, { timeout: 20000 });
+      if (isCancelled()) return null;
+      fs.writeFileSync(fabricJsonPath, JSON.stringify(profileRes.data, null, 2), 'utf8');
+      log(`[MarinMC Launcher] Fabric Loader profili başarıyla kuruldu.`);
+    }
+
+    return fs.existsSync(fabricJsonPath) ? fabricVersionId : null;
+  } catch (err: any) {
+    log(`[HATA] Fabric Loader profili (${gameVersion}) indirilemedi: ${err.message}. Vanilla deneniyor.`);
+    return null;
+  }
+}
+
 let gameProcess: any = null;
 let isLaunching = false;
 let launchCancelled = false;
@@ -841,18 +915,18 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
         sendAndLog(`[UYARI] Kozmetik konfigürasyonu yazılamadı: ${cosmErr.message}`);
       }
 
-      // Resolve Fabric Loader version if 1.21 or 1.21.8 is selected (or an old fabric-loader version of it)
-      let versionToLaunch = options.version || '1.21';
-      const is121Version = versionToLaunch === '1.21' || 
-                            versionToLaunch === '1.21.8' || 
-                            (versionToLaunch.startsWith('fabric-loader-') && (versionToLaunch.endsWith('-1.21.8') || versionToLaunch.endsWith('-1.21')));
+      // Resolve the concrete game version (1.17.1 … 1.21.8) from the UI selection.
+      let versionToLaunch = options.version || '1.21.8';
+      const gameVersion = resolveGameVersion(versionToLaunch);
+      const fullMods = isFullModVersion(gameVersion);
 
-      // Separating mods folders for different versions
-      syncModsFolder(gameDir, versionToLaunch, is121Version, (msg) => {
+      // Separating mods folders for different versions (keeps 1.21.8 mods out of
+      // other versions and vice versa, so nothing incompatible ever loads).
+      syncModsFolder(gameDir, gameVersion, fullMods, (msg) => {
         sendAndLog(msg);
       });
 
-      if (is121Version) {
+      if (fullMods) {
         // Geliştirici modunda yerel istemci modunu derle ve kopyala
         if (!app.isPackaged) {
           await compileAndCopyClientModDev(gameDir, (msg) => {
@@ -877,33 +951,24 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
         injectResourcePack(gameDir, (msg) => {
           sendAndLog(msg);
         });
+      } else {
+        sendAndLog(`[MarinMC Launcher] ${gameVersion} için temiz Fabric kurulumu hazırlanıyor (1.21.8'e özel modlar atlanıyor).`);
       }
 
-      if (is121Version) {
-        const gameVersion = '1.21.8';
-        const loaderVersion = '0.19.3';
-        const fabricVersionId = `fabric-loader-${loaderVersion}-${gameVersion}`;
-        const fabricVersionDir = path.join(gameDir, 'versions', fabricVersionId);
-        const fabricJsonPath = path.join(fabricVersionDir, `${fabricVersionId}.json`);
-
-        if (!fs.existsSync(fabricJsonPath)) {
-          sendAndLog(`[MarinMC Launcher] Fabric Loader 1.21.8 profili kuruluyor...`);
-          try {
-            fs.mkdirSync(fabricVersionDir, { recursive: true });
-            const profileUrl = `https://meta.fabricmc.net/v2/versions/loader/${gameVersion}/${loaderVersion}/profile/json`;
-            const profileRes = await axios.get(profileUrl, { timeout: 15000 });
-            if (launchCancelled) { isLaunching = false; return { success: false, error: 'Başlatma iptal edildi.' }; }
-            fs.writeFileSync(fabricJsonPath, JSON.stringify(profileRes.data, null, 2), 'utf8');
-            sendAndLog(`[MarinMC Launcher] Fabric Loader profili başarıyla kuruldu.`);
-          } catch (fabricErr: any) {
-            console.error('Failed to download Fabric profile:', fabricErr.message);
-            sendAndLog(`[HATA] Fabric Loader profili indirilemedi: ${fabricErr.message}. Vanilla olarak başlatmayı deniyor.`);
-          }
-        }
-
-        if (fs.existsSync(fabricJsonPath)) {
-          versionToLaunch = fabricVersionId;
-        }
+      // Install a Fabric Loader profile for EVERY supported version so the launch
+      // path is consistent and reliable (fixes vanilla 1.17/1.18 classpath crashes).
+      const fabricVersionId = await installFabricProfile(
+        gameDir,
+        gameVersion,
+        () => launchCancelled,
+        (msg) => sendAndLog(msg)
+      );
+      if (launchCancelled) { isLaunching = false; return { success: false, error: 'Başlatma iptal edildi.' }; }
+      if (fabricVersionId) {
+        versionToLaunch = fabricVersionId;
+      } else {
+        // Fall back to vanilla concrete version if Fabric could not be installed.
+        versionToLaunch = gameVersion;
       }
 
       sendAndLog(`[MarinMC Launcher] Oyun başlatma motoru hazırlandı.`);

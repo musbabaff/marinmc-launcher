@@ -259,7 +259,7 @@ export default function HomePage() {
           accessToken: session?.token,
           uuid: session?.id,
           userType: session?.type,
-          version: settings.selectedVersion || '1.21',
+          version: settings.selectedSubVersion || '1.21.8',
           serverId: 'towny',
           gameDir: settings.launcherDir,
           javaPath: settings.javaPath,

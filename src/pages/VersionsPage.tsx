@@ -23,7 +23,7 @@ const VERSION_LIST: VersionItem[] = [
   {
     num: '1.21',
     label: 'Fabric 🔷 1.21.x',
-    subs: ['1.21.11', '1.21.8', '1.21'],
+    subs: ['1.21.8', '1.21.4', '1.21.1'],
     bgUrl: vBg2,
     iconType: 'tag'
   },

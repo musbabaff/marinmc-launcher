@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore.ts';
 import { useSocialStore } from '../stores/socialStore.ts';
 import { api } from '../lib/api';
+import { incrementStat } from '../lib/achievements';
 import { STEVE_AVATAR_FALLBACK } from '../lib/constants.ts';
 import { wsManager } from '../lib/websocket';
 import {
@@ -308,22 +309,7 @@ export default function ChatPage() {
     setContacts(updatedContacts);
     api.updateContacts(username, updatedContacts as any);
 
-    // Unlock achievement a7 (Relay Sohbetçisi)
-    const achievementsStr = localStorage.getItem(`marinmc_achievements_${username}`);
-    if (achievementsStr) {
-      try {
-        const achievements = JSON.parse(achievementsStr);
-        const a7 = achievements.find((a: any) => a.id === 'a7');
-        if (a7 && !a7.completed) {
-          a7.completed = true;
-          a7.date = new Date().toLocaleDateString('tr-TR');
-          localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(achievements));
-          api.updateAchievements(username, achievements).catch(err => console.error(err));
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    incrementStat('marinmc_stat_messages_sent');
   };
 
   const handleSendVoice = (duration: string) => {
@@ -360,22 +346,7 @@ export default function ChatPage() {
     setContacts(updatedContacts);
     api.updateContacts(username, updatedContacts as any);
 
-    // Unlock achievement a7 (Relay Sohbetçisi)
-    const achievementsStr = localStorage.getItem(`marinmc_achievements_${username}`);
-    if (achievementsStr) {
-      try {
-        const achievements = JSON.parse(achievementsStr);
-        const a7 = achievements.find((a: any) => a.id === 'a7');
-        if (a7 && !a7.completed) {
-          a7.completed = true;
-          a7.date = new Date().toLocaleDateString('tr-TR');
-          localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(achievements));
-          api.updateAchievements(username, achievements).catch(err => console.error(err));
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    incrementStat('marinmc_stat_messages_sent');
   };
 
   const handleSelectContact = (contact: Contact) => {
@@ -432,23 +403,9 @@ export default function ChatPage() {
     setContacts(updatedContacts);
     api.updateContacts(username, updatedContacts as any);
 
-    // Unlock achievement a7 (Relay Sohbetçisi)
-    const achievementsStr = localStorage.getItem(`marinmc_achievements_${username}`);
-    if (achievementsStr) {
-      try {
-        const achievements = JSON.parse(achievementsStr);
-        const a7 = achievements.find((a: any) => a.id === 'a7');
-        if (a7 && !a7.completed) {
-          a7.completed = true;
-          a7.date = new Date().toLocaleDateString('tr-TR');
-          localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(achievements));
-          api.updateAchievements(username, achievements).catch(err => console.error(err));
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    
+    // Track sent messages for achievements (Relay Sohbetçisi, Geveze, Sohbet Kurdu).
+    incrementStat('marinmc_stat_messages_sent');
+
     setInputText('');
 
   };

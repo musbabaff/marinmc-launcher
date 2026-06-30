@@ -7,6 +7,7 @@ import { useSocialStore } from '../stores/socialStore.ts';
 import { useAppStore } from '../stores/appStore.ts';
 import { sanitizeUrl, sanitizeParam } from '../lib/security.ts';
 import { api, getApiBaseUrl } from '../lib/api.ts';
+import { incrementStat } from '../lib/achievements.ts';
 import { STEVE_AVATAR_FALLBACK } from '../lib/constants.ts';
 import VersionModal from '../components/VersionModal.tsx';
 import ProfileSettingsModal from '../components/ProfileSettingsModal.tsx';
@@ -281,6 +282,8 @@ export default function HomePage() {
           setLaunchStatus('ERROR');
           setErrorMessage(result.error || t('home.launchError'));
         } else {
+          // Track successful launches for achievements (Oyuna Hazır, Düzenli Oyuncu, Maratoncu).
+          incrementStat('marinmc_stat_games_launched');
           // Add to recent played
           settings.addRecentProfile({
             id: 'towny',

@@ -9,6 +9,7 @@ import {
   Heart, Share2, Globe, Image, X
 } from 'lucide-react';
 import { api, CommunityScreenshot } from '../lib/api.ts';
+import { incrementStat } from '../lib/achievements.ts';
 
 interface Screenshot {
   id: string;
@@ -132,22 +133,8 @@ export default function GalleryPage() {
         setShareTitle('');
         setActiveTab('community');
 
-        // Unlock achievement a8 (Fotoğrafçı)
-        const achievementsStr = localStorage.getItem(`marinmc_achievements_${currentUsername}`);
-        if (achievementsStr) {
-          try {
-            const achievements = JSON.parse(achievementsStr);
-            const a8 = achievements.find((a: any) => a.id === 'a8');
-            if (a8 && !a8.completed) {
-              a8.completed = true;
-              a8.date = new Date().toLocaleDateString('tr-TR');
-              localStorage.setItem(`marinmc_achievements_${currentUsername}`, JSON.stringify(achievements));
-              api.updateAchievements(currentUsername, achievements).catch(err => console.error(err));
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        }
+        // Track shared screenshots for achievements (Fotoğrafçı, Paparazzi).
+        incrementStat('marinmc_stat_screenshots_shared');
       }
     } catch (err) {
       console.error('Failed to share screenshot:', err);

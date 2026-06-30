@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { computeAchievements } from './achievements';
 
 // Production API base. Override at build time with VITE_API_URL, or at runtime
 // via the marinmc_api_url localStorage key (Settings). Defaults to the public
@@ -403,89 +404,10 @@ export const api = {
   },
 
   // --- ACHIEVEMENTS ---
+  // Achievements are computed entirely from real local stats/flags (no mock data).
+  // See src/lib/achievements.ts for the catalog and computation logic.
   getAchievements: async (username: string): Promise<Achievement[]> => {
-    const defaultAchievements: Achievement[] = [
-      { id: 'a1', title: 'İlk Adım', description: 'Yeni tasarımlı launcher\'a ilk kez giriş yap.', completed: true, date: new Date().toLocaleDateString('tr-TR') },
-      { id: 'a2', title: 'Mod Meraklısı', description: 'Mod Yöneticisinden ilk modunu indir.', completed: false, date: '-' },
-      { id: 'a3', title: 'Sosyal Keşif', description: 'Arkadaş listene ilk arkadaşını ekle.', completed: false, date: '-' },
-      { id: 'a4', title: 'Jeton Avcısı', description: 'Cüzdanında 1,000 veya daha fazla Jeton barındır.', completed: false, date: '-' },
-      { id: 'a5', title: 'Kozmetik Ustası', description: 'Gardıroptan ilk pelerin veya kanat kozmetiğini kuşan.', completed: false, date: '-' },
-      { id: 'a6', title: 'Zaman Bükücü', description: 'Toplam oynama süresini 10 saate ulaştır.', completed: false, date: '-' },
-      { id: 'a7', title: 'Relay Sohbetçisi', description: 'Relay Sohbet kanalında ilk mesajını gönder.', completed: false, date: '-' },
-      { id: 'a8', title: 'Fotoğrafçı', description: 'Galeri sayfasında ilk ekran görüntünü toplulukla paylaş.', completed: false, date: '-' },
-      { id: 'a9', title: 'Kusursuz Entegrasyon', description: 'Özel JVM optimizasyon ayarlarını aktif et.', completed: false, date: '-' }
-    ];
-
-    let backendList: any[] = [];
-    try {
-      const res = await apiInstance.get(`/users/${username}/achievements`);
-      backendList = Array.isArray(res.data) ? res.data : [];
-    } catch (err) {
-      console.warn('[API] getAchievements failed, loading from local.');
-      const local = localStorage.getItem(`marinmc_achievements_${username}`);
-      if (local) {
-        backendList = JSON.parse(local);
-      } else {
-        backendList = defaultAchievements;
-      }
-    }
-
-    const currentCoins = parseInt(localStorage.getItem('marinmc_coins') || '500', 10);
-    const totalPlayTime = Number(localStorage.getItem('marinmc_total_play_time') || '0');
-
-    // a3: Sosyal Keşif (Friend check)
-    const contactsStr = localStorage.getItem('marinmc_chat_contacts') || '[]';
-    let hasFriend = false;
-    try {
-      const contacts = JSON.parse(contactsStr);
-      hasFriend = Array.isArray(contacts) && contacts.length > 0;
-    } catch (e) {}
-
-    // a5: Kozmetik Ustası (Cosmetics check)
-    const activeCape = localStorage.getItem('marinmc_active_cape_url') || '';
-    const wingsEnabled = localStorage.getItem('marinmc_active_wings_enabled') !== 'false';
-    const hasCosmetic = activeCape !== '' || wingsEnabled;
-
-    const merged = defaultAchievements.map(def => {
-      const found = backendList.find((b: any) => b.id === def.id);
-      let completed = found ? (found.completed === true || found.completed === 1) : def.completed;
-      let date = found ? (found.date || '-') : def.date;
-
-      if (def.id === 'a3' && hasFriend) {
-        completed = true;
-        if (date === '-') date = new Date().toLocaleDateString('tr-TR');
-      }
-      if (def.id === 'a4' && currentCoins >= 1000) {
-        completed = true;
-        if (date === '-') date = new Date().toLocaleDateString('tr-TR');
-      }
-      if (def.id === 'a5' && hasCosmetic) {
-        completed = true;
-        if (date === '-') date = new Date().toLocaleDateString('tr-TR');
-      }
-      if (def.id === 'a6' && totalPlayTime >= 600) { // 10 hours = 600 minutes
-        completed = true;
-        if (date === '-') date = new Date().toLocaleDateString('tr-TR');
-      }
-
-      return {
-        ...def,
-        completed,
-        date
-      };
-    });
-
-    localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(merged));
-    return merged;
-  },
-
-  updateAchievements: async (username: string, achievements: Achievement[]) => {
-    try {
-      await apiInstance.put(`/users/${username}/achievements`, { achievements });
-    } catch (err) {
-      console.warn('[API] updateAchievements failed, updating locally.');
-      localStorage.setItem(`marinmc_achievements_${username}`, JSON.stringify(achievements));
-    }
+    return computeAchievements(username);
   }
 };
 

@@ -116,18 +116,16 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => { setIsRegister(false); setLocalError(null); }}
-                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${
-                  !isRegister ? 'bg-[#2D7DD2] text-white shadow-sm' : 'text-white/60 hover:text-white'
-                }`}
+                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${!isRegister ? 'bg-[#2D7DD2] text-white shadow-sm' : 'text-white/60 hover:text-white'
+                  }`}
               >
                 {t('login.loginTab')}
               </button>
               <button
                 type="button"
                 onClick={() => { setIsRegister(true); setLocalError(null); }}
-                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${
-                  isRegister ? 'bg-[#2D7DD2] text-white shadow-sm' : 'text-white/60 hover:text-white'
-                }`}
+                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${isRegister ? 'bg-[#2D7DD2] text-white shadow-sm' : 'text-white/60 hover:text-white'
+                  }`}
               >
                 {t('login.registerTab')}
               </button>
@@ -252,7 +250,7 @@ export default function LoginPage() {
 
             {/* Instagram */}
             <button
-              onClick={() => openExternal('https://instagram.com/marinmc')}
+              onClick={() => openExternal('https://instagram.com/marinmc.official')}
               className="w-11 h-11 rounded-xl bg-[#0f172a]/80 border border-[#EAB308]/60 hover:border-[#EAB308] flex items-center justify-center text-[#EAB308] hover:bg-[#EAB308]/10 transition-all duration-300 cursor-pointer"
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -264,11 +262,11 @@ export default function LoginPage() {
 
             {/* TikTok */}
             <button
-              onClick={() => openExternal('https://tiktok.com/@marinmc')}
+              onClick={() => openExternal('https://tiktok.com/@marinmc.official')}
               className="w-11 h-11 rounded-xl bg-[#0f172a]/80 border border-[#EAB308]/60 hover:border-[#EAB308] flex items-center justify-center text-[#EAB308] hover:bg-[#EAB308]/10 transition-all duration-300 cursor-pointer"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.94 1.15 2.25 1.95 3.69 2.27.01 1.34.01 2.68 0 4.02-1.44-.04-2.84-.52-3.99-1.42-.39-.31-.73-.66-1.01-1.07v6.62c-.08 2.05-.8 4.07-2.14 5.61-1.6 1.83-3.97 2.87-6.4 2.76-2.58-.1-4.99-1.45-6.39-3.62-1.57-2.4-1.84-5.54-.74-8.17 1.05-2.55 3.41-4.37 6.16-4.76v4.06c-1.31.25-2.45 1.16-2.94 2.4-.64 1.57-.1 3.43 1.29 4.38.97.66 2.22.79 3.32.32 1-.41 1.68-1.4 1.74-2.48.01-3.69.01-7.38.01-11.08z"/>
+                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.94 1.15 2.25 1.95 3.69 2.27.01 1.34.01 2.68 0 4.02-1.44-.04-2.84-.52-3.99-1.42-.39-.31-.73-.66-1.01-1.07v6.62c-.08 2.05-.8 4.07-2.14 5.61-1.6 1.83-3.97 2.87-6.4 2.76-2.58-.1-4.99-1.45-6.39-3.62-1.57-2.4-1.84-5.54-.74-8.17 1.05-2.55 3.41-4.37 6.16-4.76v4.06c-1.31.25-2.45 1.16-2.94 2.4-.64 1.57-.1 3.43 1.29 4.38.97.66 2.22.79 3.32.32 1-.41 1.68-1.4 1.74-2.48.01-3.69.01-7.38.01-11.08z" />
               </svg>
             </button>
 
@@ -310,7 +308,7 @@ export default function LoginPage() {
         />
         {/* Subtle gradient overlay on left edge for blend */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#070b19] via-transparent to-transparent w-[80px]" />
-        
+
         {/* Subtle N watermark on the image */}
         <div className="absolute bottom-1/3 right-1/4 opacity-[0.08]">
           <svg className="w-32 h-32 text-white" viewBox="0 0 24 24" fill="currentColor">

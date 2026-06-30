@@ -20,7 +20,8 @@
     "CameraMixin",
     "MouseMixin",
     "OnlineNetworkInstanceMixin",
-    "ServerListMixin"
+    "ServerListMixin",
+    "SimpleOptionAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -68,6 +68,53 @@ app.use(cors({
 
 app.use(express.json());
 
+// --- Branded landing page at the root (instead of "Cannot GET /") ---
+const LANDING_PAGE = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MarinMC API</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+  body{min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 30%,#0a1428,#03050c 70%);color:#e2e8f0;overflow:hidden}
+  .card{position:relative;text-align:center;padding:48px 56px;border-radius:24px;
+    background:rgba(8,13,26,.6);border:1px solid rgba(0,251,255,.18);
+    box-shadow:0 30px 80px rgba(0,0,0,.6);backdrop-filter:blur(12px);max-width:520px}
+  .badge{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;
+    letter-spacing:1px;text-transform:uppercase;color:#0ECB81;background:rgba(14,203,129,.1);
+    border:1px solid rgba(14,203,129,.3);padding:6px 14px;border-radius:999px;margin-bottom:24px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#0ECB81;box-shadow:0 0 10px #0ECB81;animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  h1{font-size:40px;font-weight:900;letter-spacing:2px;
+    background:linear-gradient(90deg,#EAB308,#fde68a,#EAB308);-webkit-background-clip:text;
+    background-clip:text;color:transparent;margin-bottom:8px}
+  p{color:#94a3b8;font-size:14px;line-height:1.6;margin-bottom:28px}
+  .links{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  a{text-decoration:none;font-size:13px;font-weight:600;padding:10px 20px;border-radius:12px;
+    color:#e2e8f0;background:rgba(45,125,210,.12);border:1px solid rgba(45,125,210,.35);transition:.2s}
+  a:hover{background:rgba(45,125,210,.28);transform:translateY(-2px)}
+  .ver{margin-top:24px;font-size:11px;color:#475569;letter-spacing:1px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge"><span class="dot"></span> API ÇALIŞIYOR</div>
+    <h1>MARINMC</h1>
+    <p>Bu, MarinMC Launcher'ın resmi API sunucusudur.<br/>Oyuna katılmak için MarinMC Launcher'ı kullanın.</p>
+    <div class="links">
+      <a href="https://marinmc.com">🌐 Web Sitesi</a>
+      <a href="https://discord.gg/marinmc">💬 Discord</a>
+      <a href="/health">⚙️ Durum</a>
+    </div>
+    <div class="ver">oyna.marinmc.com</div>
+  </div>
+</body>
+</html>`;
+
+app.get('/', (_req, res) => res.type('html').send(LANDING_PAGE));
+
 // Serve static cosmetics files
 app.use('/cosmetics', express.static(path.join(__dirname, '../cosmetics')));
 

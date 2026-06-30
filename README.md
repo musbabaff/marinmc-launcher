@@ -1,160 +1,143 @@
-# 🎮 MarinMC Minecraft Ecosystem
+<div align="center">
 
-Official client-side and server-side ecosystem for the **MarinMC** network. This repository integrates a custom **Electron Launcher**, a **Fabric 1.21.8 client mod** with a dynamic 3D cosmetics engine, and a **Node.js/Express API & WebSocket server** for friends, lobby chat, and real-time emote synchronization.
+<img src="assets/logo.png" alt="MarinMC" width="120" />
 
----
+# MarinMC Launcher
 
-<p align="center">
-  <img src="assets/logo.png" alt="MarinMC Logo" width="128" />
-</p>
+**MarinMC ağı için resmi, modern Minecraft launcher'ı — özel Fabric client modu, gerçek-zamanlı sosyal özellikler ve tek tıkla oyun.**
 
-<p align="center">
-  <a href="https://github.com/musbabaff/marinmc-launcher/releases">
-    <img src="https://img.shields.io/badge/version-1.3.5-blue?style=for-the-badge&logo=github" alt="Version 1.3.5" />
-  </a>
-  <a href="LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License MIT" />
-  </a>
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=for-the-badge" alt="Platforms" />
-</p>
+[![Version](https://img.shields.io/badge/sürüm-1.3.6-EAB308?style=for-the-badge)](https://github.com/musbabaff/marinmc-launcher/releases)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.8-2D7DD2?style=for-the-badge)](https://minecraft.net)
+[![Fabric](https://img.shields.io/badge/Fabric-Loader-7B6FFF?style=for-the-badge)](https://fabricmc.net)
+[![License](https://img.shields.io/badge/lisans-MIT-10B981?style=for-the-badge)](LICENSE)
+[![Build](https://img.shields.io/badge/CI-GitHub%20Actions-94A3B8?style=for-the-badge&logo=githubactions)](.github/workflows/build.yml)
+
+[İndir](https://github.com/musbabaff/marinmc-launcher/releases/latest) · [Sunucu Kurulumu](server/DEPLOYMENT.md) · [Derleme](BUILD.md) · [Discord](https://discord.gg/marinmc)
+
+</div>
 
 ---
 
-## 🏛️ Project Architecture
+## 📖 Hakkında
 
-The ecosystem consists of three main components:
+**MarinMC Launcher**, `oyna.marinmc.com` Minecraft ağı için geliştirilmiş; oyuncuların tek tıkla oyuna girmesini, arkadaşlarıyla gerçek-zamanlı sohbet etmesini, kozmetiklerini yönetmesini ve performanslı bir özel client kullanmasını sağlayan kapsamlı bir masaüstü ekosistemidir.
 
-```mermaid
-graph TD
-    Launcher[1. Electron Launcher] -->|Bakes & Installs Mod| ClientMod[2. Fabric Client Mod]
-    Launcher -->|Configures apiBaseUrl| Config[marinmc-cosmetics.json]
-    ClientMod -->|Reads config & fetches| API[3. Node.js API /express]
-    ClientMod -->|Connects `/emotes`| WS[3. WebSocket Server /ws]
-    API -->|Queries SQL data| DB[(SQLite marinmc.db)]
-    WS -->|Relays Emotes| API
-```
+Üç ana parçadan oluşur:
 
-1. **MarinMC Launcher (`/`)**: Desktop client built with Electron, React, and TypeScript. Handles game installations, performance mods downloading (GeckoLib, Sodium, etc.), account settings, and configures the API connection.
-2. **MarinMC API & WS Server (`/server`)**: Backend service providing REST endpoints for user authentication, friend management, and public cosmetics metadata. It also hosts the `/emotes` WebSocket room for instant player-to-player animation sync.
-3. **MarinMC Client Mod (`/marinmc-client-mod`)**: Fabric 1.21.8 client mod built in Java. Features:
-   * **3D Cosmetics Engine**: Parses Blockbench `.geo.json` models and custom textures from the API, binds them to player bones, and renders them in-game using GeckoLib/Minecraft APIs.
-   * **Skin & Cape Sync**: Decodes and registers custom skins/capes to the client's TextureManager.
-   * **Emotecraft Custom WS**: Redirects client emote packages to our custom `/emotes` WebSocket server.
+| Parça | Teknoloji | Görev |
+|-------|-----------|-------|
+| **Launcher** | Electron + React + Vite + TailwindCSS | Masaüstü arayüz, oyun başlatma, sosyal/kozmetik/mağaza ekranları |
+| **Backend API** | Node.js + Express + WebSocket + PostgreSQL | Kimlik doğrulama, arkadaşlık, sohbet, kozmetik, istatistik |
+| **Client Mod** | Java 21 + Fabric (1.21.8) | Oyun-içi HUD, kozmetikler, performans, özel menüler |
 
 ---
 
-## ✨ Features
+## ✨ Özellikler
 
-### 🚀 Electron Launcher
-* **Premium & Cracked Account Support**: Dual-mode login with session caching, Microsoft authentication, and custom offline registration.
-* **Legacy Session Migration**: Automatic migration of active accounts and profile databases from legacy domains to new infrastructure.
-* **Modern UI & High-fidelity Aesthetics**: Custom-designed sidebar, interactive animations, page transitions, and blurred background video overlays.
-* **Automatic Game Downloader**: Downloads client binaries, assets, libraries, and asset index maps directly from Mojang and Modrinth.
-* **Background Selection**: Choice of themes (Classic, Lunar, Spring, and Vanilla) with customized launcher layout styles.
-* **System Tray & Window Integration**: Minimize to tray, custom taskbar icon load path, and window state caching.
-* **Social Friends & Messaging System**: Integrated lobby chat and real-time reciprocal friend system with online presence.
+### 🚀 Launcher
+- **Tek tıkla oyna** — Java tespiti, mod indirme/doğrulama (MD5), otomatik kurulum
+- **Microsoft (premium) ve offline giriş**, çoklu profil desteği
+- **Otomatik güncelleme** (electron-updater, diferansiyel indirme) — profiller/ayarlar korunur
+- **Sosyal:** gerçek arkadaşlık isteği sistemi, karşılıklı ekleme/silme, canlı online durumu, DM + lobi sohbeti (WebSocket)
+- **Kozmetikler:** skin/pelerin/kanat önizleme, 3D karakter görünümü
+- **Mod yöneticisi** (Modrinth), sürüm seçimi, **galeri** (oyun-içi F2 ekran görüntüleri otomatik listelenir), profil/istatistik/başarımlar
+- **Akıllı JVM optimizasyonu** (RAM'e göre G1GC), Discord RPC
+- Çerçevesiz premium arayüz, video arka plan, tam Türkçe + İngilizce
 
-### 🧩 Fabric Client Mod
-* **Dynamic HUD Editor**: Drag-and-drop, resize, and configure layout elements directly in-game. Features collapsing configurations, snap-to-grid, and reset options.
-* **3D Waypoint System**: Add and track 3D waypoints rendered directly in the game world using Fabric API events (`WorldRenderEvents.LAST`), completely avoiding fragile obfuscated Mixin targets.
-* **Fullbright Control**: Toggle night vision easily with keybinds (gamma value unlocked beyond vanilla constraints).
-* **Freelook Handler**: Perform 360-degree camera sweeps while walking.
-* **RAM Cleaner**: Clear memory fragmentation dynamically with a key press.
-* **Emote Synchronizer**: Real-time broadcast and receipt of emotes via custom WebSockets.
-* **PvP Upgrades**: damage flash indicator, chat macros, and hold-to-zoom support.
-* **Animated Title Screen**: Optimized frame-by-frame background video rendering directly in the main menu.
-
----
-
-## 🛠️ Getting Started & Running Locally
-
-### Prerequisites
-* [Node.js](https://nodejs.org/) 20+
-* [Java Development Kit (JDK)](https://adoptium.net/) 21
-* [Git](https://git-scm.com/)
+### 🎮 Client Mod (MarinMC Client)
+- **HUD modülleri:** FPS, CPS, Keystrokes, Koordinat, Pusula, Ping, Hız, Zırh, İksir, Crosshair, Hasar göstergesi… — sürükle-bırak **HUD editörü** ile tam özelleştirme (ölçek, renk, saydamlık, kenar)
+- **Mekanikler:** Freelook (360°), Zoom (basılı tut), Toggle Sneak/Sprint, **Fullbright**, Block Outline, TNT menzili, 1.7 vuruş animasyonları
+- **Sohbet makroları** (tuşa atanabilir), **kayıt göstergesi**
+- **Gerçek ayarlar:** General/Performance toggle'ları gerçek oyun seçeneklerine bağlı (Reduced Particles, FPS Boost, Raw Mouse Input…)
+- Paketli performans modları: **Sodium · Lithium · Iris · FerriteCore · ImmediatelyFast · EntityCulling · Dynamic FPS** ve dahası
+- Optimize edilmiş animasyonlu menü arka planı, özel başlık ekranı, kozmetik render (GeckoLib)
 
 ---
 
-### Step 1: Start the API & WebSocket Server
+## 📥 Kurulum (Oyuncular için)
+
+1. [**Releases**](https://github.com/musbabaff/marinmc-launcher/releases/latest) sayfasından işletim sistemine uygun dosyayı indir:
+   - Windows → `MarinMC-Launcher-Setup-x.x.x.exe`
+   - macOS → `.dmg` · Linux → `.AppImage`
+2. Kur ve aç — gerisini launcher halleder (Java, modlar, client mod otomatik gelir).
+3. Microsoft veya offline hesabınla giriş yap, **OYNA**'ya bas.
+
+> Güncellemeler otomatik gelir; profillerin, ayarların ve oyun dosyaların korunur.
+
+---
+
+## 🛠️ Geliştirme & Derleme
+
 ```bash
-cd server
+git clone https://github.com/musbabaff/marinmc-launcher.git
+cd marinmc-launcher
+git lfs pull          # LFS varlıkları (mod jar, video)
 npm install
-npm run dev
+npm run dev           # launcher'ı geliştirme modunda çalıştır
 ```
-The server will initialize the SQLite database (`marinmc.db`) and start listening on `http://localhost:3000`.
+
+> Bu repo büyük binary'ler için **Git LFS** kullanır (`*.jar`, `*.mp4`). `git lfs install` kurulu olmalı.
+
+Sürümler **GitHub Actions** ile otomatik üretilir: `v*` etiketi push'lanınca Windows/macOS/Linux derlenir ve release oluşturulur. Ayrıntılı talimatlar: **[BUILD.md](BUILD.md)**
 
 ---
 
-### Step 2: Start the Launcher (Dev Mode)
-In another terminal, go to the root folder:
-```bash
-npm install
-npm run dev
-```
-This launches the Electron interface. In developer mode, whenever you press **Play**, the launcher will:
-1. Automatically run `./gradlew.bat build -x test` inside `marinmc-client-mod` to compile the client mod jar.
-2. Copy the compiled jar (`marinmc-client-mod-1.0.0.jar`) to your game directory's `mods/` folder.
-3. Fetch and download **GeckoLib v5.2.2** and other dependencies.
-4. Launch the Minecraft client.
+## 🌐 Sunucu / API
+
+Backend (REST + WebSocket + PostgreSQL) kalıcı bir VPS'te çalışır. Kapsamlı kurulum (Node, PostgreSQL/Neon, PM2, Nginx, TLS, domain) rehberi: **[server/DEPLOYMENT.md](server/DEPLOYMENT.md)**
+
+- Üretim API'si: `https://api.marinmc.com` (kök adres markalı bir durum sayfası gösterir)
+- Oyun sunucusu: `oyna.marinmc.com`
+
+> WebSocket gerektirdiği için backend serverless değil, **kalıcı bir sunucuda** çalışmalıdır.
 
 ---
 
-## 🧪 Development & Compilation
+## 🧱 Proje Yapısı
 
-### Compiling the Fabric Client Mod manually
-If you wish to build the Fabric client mod JAR independently:
-```bash
-cd marinmc-client-mod
-./gradlew build
 ```
-The compiled mod JAR will be output to `marinmc-client-mod/build/libs/marinmc-client-mod-1.0.0.jar`.
-
-### Packaging the Electron Launcher
-To package the launcher as a production build:
-```bash
-npm run build
+marinmc-launcher/
+├── electron/            # Electron ana süreç (main, ipc, tray, updater, splash)
+├── src/                 # React arayüz (pages, components, stores, lib)
+├── assets/              # Logo, ikonlar, video (LFS), client mod jar (LFS)
+├── server/              # Node.js backend (Express + WS + DB)  → DEPLOYMENT.md
+├── marinmc-client-mod/  # Fabric client modu (Java 21)
+├── scripts/             # Asset/araç script'leri
+├── .github/workflows/   # CI/CD (build.yml)
+└── electron-builder.yml # Paketleme yapılandırması
 ```
-This builds both the frontend renderer and the Electron main process, packaging them using `electron-builder`.
 
 ---
 
-## 🛡️ Antivirus & SmartScreen Notice
+## 🧰 Teknoloji
 
-> **⚠️ Important:** When downloading the launcher, your browser or Windows Defender may show a security warning. **This is a false positive** — the application is completely safe.
-
-This happens because the installer is not yet digitally signed with a code signing certificate. This is common for open-source Electron applications and does **not** mean the software contains malware.
-
-### ✅ VirusTotal Scan Result
-
-The latest release has been scanned and verified clean by **70+ antivirus engines** on VirusTotal:
-
-🔗 **[View Full VirusTotal Report](https://www.virustotal.com/gui/file/2714530da39f04cec7b9c13202d1931318dd1db1e14e19d77791633b3ca6bc32?nocache=1)**
-
-### 💻 How to Install on Windows
-
-If Windows SmartScreen blocks the installer:
-
-1. Click **"More info"** on the SmartScreen popup
-2. Click **"Run anyway"**
-3. The installer will proceed normally
-
-If Windows Defender flags the file:
-
-1. Open **Windows Security** → **Virus & threat protection**
-2. Go to **Protection history**
-3. Find the MarinMC Launcher entry and select **"Allow on device"**
-
-### 🔍 Why Does This Happen?
-
-| Reason | Explanation |
-|---|---|
-| **No Code Signing Certificate** | The `.exe` is not digitally signed, which triggers SmartScreen warnings for all unsigned apps |
-| **Low Reputation** | New/unknown publishers start with zero reputation on Microsoft SmartScreen |
-| **Electron Framework** | Some antivirus engines flag Electron-based apps due to the bundled Chromium runtime |
-
-> 💡 **Tip:** You can always verify the source code yourself — this project is fully open source under the MIT license. Build it from source using `npm run build` if you prefer.
+**Launcher:** Electron 28 · React 18 · TypeScript · Vite · TailwindCSS · Zustand · Framer Motion · i18next
+**Backend:** Node.js · Express · ws · PostgreSQL (pg) · Zod · Helmet · express-rate-limit
+**Mod:** Java 21 · Fabric Loom · Mixin · GeckoLib
 
 ---
 
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 🔒 Güvenlik
+
+- Microsoft token'ları Mojang'a karşı doğrulanır (sahte giriş engellenir)
+- Oturum token'ları süre dolumlu (30 gün), CORS allowlist, rate-limit, parametreli SQL
+- IPC dosya işlemlerinde path traversal/symlink koruması, indirme host allowlist'i
+- Güvenlik açığı bildirimi: [SECURITY.md](SECURITY.md)
+
+---
+
+## 🤝 Katkı
+
+[CONTRIBUTING.md](CONTRIBUTING.md) ve PR şablonuna göz at.
+
+## 📜 Lisans
+
+[MIT Lisansı](LICENSE) ile lisanslanmıştır.
+
+---
+
+<div align="center">
+
+**MarinMC** · [marinmc.com](https://marinmc.com) · [Discord](https://discord.gg/marinmc) · `oyna.marinmc.com`
+
+</div>

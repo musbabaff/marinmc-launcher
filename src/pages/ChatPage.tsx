@@ -182,7 +182,7 @@ export default function ChatPage() {
       } catch (err) {
         // ignore transient poll errors
       }
-    }, 5000);
+    }, 2500);
     return () => clearInterval(interval);
   }, [username]);
 
@@ -408,15 +408,15 @@ export default function ChatPage() {
       isSelf: true
     };
 
-    // Update messages
+    // Optimistic local add (instant display). We do NOT PUT the whole message map
+    // here — that DELETE+reinsert raced with incoming messages and could wipe them.
     const currentMsgs = chatMessages[activeContact.id] || [];
     const updatedMsgs = [...currentMsgs, userMsg];
     const newChatMessages = { ...chatMessages, [activeContact.id]: updatedMsgs };
     setChatMessages(newChatMessages);
-    api.updateChatMessages(username, newChatMessages as any);
 
-    // Deliver to the recipient over REST (reliable even without WebSocket; the
-    // server writes it to their log AND pushes it live over WS if they're online).
+    // Persist + deliver via the send endpoint, which writes BOTH our own log and
+    // the recipient's log additively (and pushes live over WS if connected).
     api.sendChatMessage(username, {
       recipient: activeContact.id,
       content: inputText.trim(),

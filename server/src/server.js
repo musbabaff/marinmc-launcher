@@ -1084,6 +1084,15 @@ router.post('/chats/:username/send', validateUsername, authenticateToken, author
     const rUser = await dbGet('SELECT username FROM users WHERE LOWER(username) = ?', [recipientId]);
     const recipientName = rUser ? rUser.username : recipient;
 
+    // Write to the SENDER's own log too (additive). This lets the client avoid the
+    // destructive whole-map PUT that raced with incoming messages and wiped them.
+    await dbRun(
+      `INSERT INTO messages (id, username, contact_id, sender, content, time, is_self, file_name, file_size, is_image, voice_duration)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [genId(), sender, recipientId, 'Sen', content, time, 1,
+       fileAttachment?.name || null, fileAttachment?.size || null, fileAttachment?.isImage ? 1 : 0, voiceDuration || null]
+    );
+
     // Write to the recipient's incoming log (their view of the conversation)
     await dbRun(
       `INSERT INTO messages (id, username, contact_id, sender, content, time, is_self, file_name, file_size, is_image, voice_duration)
@@ -1092,7 +1101,12 @@ router.post('/chats/:username/send', validateUsername, authenticateToken, author
        fileAttachment?.name || null, fileAttachment?.size || null, fileAttachment?.isImage ? 1 : 0, voiceDuration || null]
     );
 
-    // Update the recipient's contact preview + unread badge (if they have the contact)
+    // Update both sides' contact preview (recipient also gets an unread bump).
+    const sc = await dbGet('SELECT 1 FROM contacts WHERE LOWER(username) = ? AND contact_id = ?', [senderId, recipientId]);
+    if (sc) {
+      await dbRun('UPDATE contacts SET last_message = ?, time = ? WHERE LOWER(username) = ? AND contact_id = ?',
+        [content, time, senderId, recipientId]);
+    }
     const c = await dbGet('SELECT unread FROM contacts WHERE LOWER(username) = ? AND contact_id = ?', [recipientId, senderId]);
     if (c) {
       await dbRun('UPDATE contacts SET last_message = ?, time = ?, unread = ? WHERE LOWER(username) = ? AND contact_id = ?',

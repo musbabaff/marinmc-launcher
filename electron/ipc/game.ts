@@ -806,6 +806,63 @@ async function installFabricProfile(
   }
 }
 
+// Fast validity check: a real .jar/.zip ends with an End-Of-Central-Directory
+// record (signature 0x06054b50). Truncated/partial downloads lack it.
+function isValidZip(filePath: string): boolean {
+  let fd: number | null = null;
+  try {
+    const size = fs.statSync(filePath).size;
+    if (size < 22) return false;
+    fd = fs.openSync(filePath, 'r');
+    // Fast path: EOCD with no archive comment sits in exactly the last 22 bytes.
+    const tail = Buffer.alloc(22);
+    fs.readSync(fd, tail, 0, 22, size - 22);
+    if (tail.readUInt32LE(0) === 0x06054b50) return true;
+    // Slow path: scan up to 64 KB back for the EOCD (archives with a comment).
+    const scanLen = Math.min(size, 65557);
+    const buf = Buffer.alloc(scanLen);
+    fs.readSync(fd, buf, 0, scanLen, size - scanLen);
+    for (let i = scanLen - 22; i >= 0; i--) {
+      if (buf.readUInt32LE(i) === 0x06054b50) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  } finally {
+    if (fd !== null) { try { fs.closeSync(fd); } catch { /* ignore */ } }
+  }
+}
+
+// Remove corrupt/truncated library jars so the launcher re-downloads clean copies.
+// Fixes Fabric "zip END header not found" crashes from interrupted downloads.
+function cleanCorruptLibraries(gameDir: string, log: (msg: string) => void): void {
+  const libDir = path.join(gameDir, 'libraries');
+  if (!fs.existsSync(libDir)) return;
+  let removed = 0;
+  const walk = (dir: string) => {
+    let entries: fs.Dirent[];
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.name.endsWith('.jar')) {
+        if (!isValidZip(full)) {
+          try {
+            fs.unlinkSync(full);
+            removed++;
+            log(`[MarinMC Launcher] Bozuk kütüphane silindi (yeniden indirilecek): ${entry.name}`);
+          } catch { /* ignore */ }
+        }
+      }
+    }
+  };
+  try { walk(libDir); } catch { /* ignore */ }
+  if (removed > 0) {
+    log(`[MarinMC Launcher] ${removed} bozuk kütüphane temizlendi; eksikler otomatik indirilecek.`);
+  }
+}
+
 function calculateHash(filePath: string, algo: 'sha1' | 'md5' = 'sha1'): Promise<string> {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash(algo);
@@ -1199,6 +1256,11 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
       // Status: CHECKING
       mainWindow.webContents.send('game:status', 'CHECKING');
       sendAndLog(`[MarinMC Launcher] Dosyalar kontrol ediliyor...`);
+
+      // Integrity sweep: drop any corrupt/truncated library jars (e.g. a partially
+      // downloaded jna jar) so the launcher fetches clean copies — prevents the
+      // Fabric "zip END header not found" startup crash.
+      cleanCorruptLibraries(gameDir, sendAndLog);
 
       // Listen for debug logs from the launcher
       launcher.on('debug', (e: any) => {

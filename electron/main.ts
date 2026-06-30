@@ -236,8 +236,19 @@ autoUpdater.on('download-progress', (progressObj) => {
   mainWindow?.webContents.send('updater:progress', progressObj.percent);
 });
 
+let isInstallingUpdate = false;
 autoUpdater.on('update-downloaded', (info) => {
+  if (isInstallingUpdate) return; // never trigger the installer twice
+  isInstallingUpdate = true;
   mainWindow?.webContents.send('updater:status', 'downloaded', info);
-  // Install the update silently and relaunch
-  autoUpdater.quitAndInstall(true, true);
+  // Give the renderer a moment to show the "installing" state, then install the
+  // silent one-click update (no UAC) and relaunch automatically.
+  setTimeout(() => {
+    try {
+      autoUpdater.quitAndInstall(true, true); // isSilent, isForceRunAfter
+    } catch (err: any) {
+      isInstallingUpdate = false;
+      console.error(`quitAndInstall failed: ${err?.message || err}`);
+    }
+  }, 1200);
 });

@@ -41,9 +41,13 @@ win:
     repo: marinmc-launcher
 
 nsis:
-  oneClick: false
+  # Silent one-click, per-user install: enables seamless background auto-updates
+  # with NO UAC prompt and automatic relaunch. perMachine:false installs to
+  # %LOCALAPPDATA%\Programs (no admin needed); allowElevation:false never asks UAC.
+  oneClick: true
   perMachine: false
-  allowElevation: true
+  allowElevation: false
+  runAfterFinish: true
   installerIcon: assets/icon.ico
   installerHeaderIcon: assets/icon.ico
   createDesktopShortcut: true

@@ -806,6 +806,97 @@ async function installFabricProfile(
   }
 }
 
+function calculateHash(filePath: string, algo: 'sha1' | 'md5' = 'sha1'): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash(algo);
+    const stream = fs.createReadStream(filePath);
+    stream.on('data', data => hash.update(data));
+    stream.on('end', () => resolve(hash.digest('hex')));
+    stream.on('error', err => reject(err));
+  });
+}
+
+// Performance / QoL mods available across 1.17–1.21 on Modrinth (Fabric).
+// For non-1.21.8 versions we resolve each mod's correct build per game version,
+// so every supported version launches WITH mods (not just clean Fabric).
+const MODRINTH_VERSION_MODS = [
+  'fabric-api', 'sodium', 'lithium', 'iris', 'ferrite-core',
+  'modmenu', 'cloth-config', 'yacl', 'reeses-sodium-options', 'sodium-extra',
+  'entityculling', 'dynamic-fps', 'krypton', 'immediatelyfast', 'moreculling'
+];
+
+// Resolve + download version-appropriate Fabric mods from Modrinth for a given game
+// version. Each mod is independent: if a mod has no build for this version it is
+// skipped (never fatal), so the launch always succeeds.
+async function installVersionMods(
+  gameDir: string,
+  gameVersion: string,
+  isCancelled: () => boolean,
+  log: (msg: string) => void
+): Promise<void> {
+  const modsDir = path.join(gameDir, 'mods');
+  if (!fs.existsSync(modsDir)) fs.mkdirSync(modsDir, { recursive: true });
+
+  log(`[MarinMC Launcher] ${gameVersion} için modlar Modrinth üzerinden çözümleniyor...`);
+  let installed = 0;
+  let skipped = 0;
+
+  for (const slug of MODRINTH_VERSION_MODS) {
+    if (isCancelled()) return;
+    try {
+      const verRes = await axios.get(`https://api.modrinth.com/v2/project/${slug}/version`, {
+        params: {
+          loaders: JSON.stringify(['fabric']),
+          game_versions: JSON.stringify([gameVersion])
+        },
+        timeout: 15000,
+        headers: { 'User-Agent': 'MarinMC-Launcher/1.0 (marinmc.com)' }
+      });
+      const versions = verRes.data;
+      if (!Array.isArray(versions) || versions.length === 0) {
+        skipped++;
+        continue; // no compatible build for this version — skip silently
+      }
+      const ver = versions[0]; // newest compatible
+      const file = (ver.files || []).find((f: any) => f.primary) || (ver.files || [])[0];
+      if (!file || !file.url) { skipped++; continue; }
+
+      const destPath = path.join(modsDir, file.filename);
+      const expectedSha1: string | undefined = file.hashes?.sha1;
+
+      // Already present & verified? Skip re-download.
+      if (fs.existsSync(destPath) && expectedSha1) {
+        try {
+          const existing = await calculateHash(destPath, 'sha1');
+          if (existing === expectedSha1) { installed++; continue; }
+        } catch { /* re-download below */ }
+      }
+
+      const dl = await axios.get(file.url, { responseType: 'arraybuffer', timeout: 60000 });
+      if (isCancelled()) return;
+      fs.writeFileSync(destPath, Buffer.from(dl.data));
+
+      // Verify integrity; drop the file if it doesn't match (never ship a bad jar).
+      if (expectedSha1) {
+        const actual = await calculateHash(destPath, 'sha1');
+        if (actual !== expectedSha1) {
+          try { fs.unlinkSync(destPath); } catch { /* ignore */ }
+          log(`[Atlandı] ${slug}: bütünlük doğrulanamadı.`);
+          skipped++;
+          continue;
+        }
+      }
+      log(`[MarinMC Launcher] Mod kuruldu: ${file.filename}`);
+      installed++;
+    } catch (err: any) {
+      skipped++;
+      log(`[Atlandı] ${slug}: ${gameVersion} için alınamadı (${err.message}).`);
+    }
+  }
+
+  log(`[MarinMC Launcher] ${gameVersion} mod kurulumu tamamlandı (${installed} kuruldu, ${skipped} atlandı).`);
+}
+
 let gameProcess: any = null;
 let isLaunching = false;
 let launchCancelled = false;
@@ -952,7 +1043,11 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
           sendAndLog(msg);
         });
       } else {
-        sendAndLog(`[MarinMC Launcher] ${gameVersion} için temiz Fabric kurulumu hazırlanıyor (1.21.8'e özel modlar atlanıyor).`);
+        // Non-1.21.8 versions: install version-appropriate Fabric mods from Modrinth
+        // (Sodium/Iris/Lithium/etc.) so every version launches WITH mods. The custom
+        // MarinMC client mod is 1.21.8-only and intentionally not added here.
+        await installVersionMods(gameDir, gameVersion, () => launchCancelled, (msg) => sendAndLog(msg));
+        if (launchCancelled) { isLaunching = false; return { success: false, error: 'Başlatma iptal edildi.' }; }
       }
 
       // Install a Fabric Loader profile for EVERY supported version so the launch

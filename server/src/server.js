@@ -768,6 +768,9 @@ router.get('/chats/:username/contacts', validateUsername, authenticateToken, aut
   const username = req.params.username;
   try {
     const contacts = await dbAll('SELECT * FROM contacts WHERE username = ?', [username]);
+    // Compute live presence from each user's last_seen heartbeat (works without WS).
+    const onlineRows = await dbAll('SELECT LOWER(username) AS u FROM users WHERE last_seen IS NOT NULL AND last_seen > ?', [Date.now() - 45000]);
+    const onlineSet = new Set(onlineRows.map(r => r.u));
     if (contacts.length === 0) {
       const initial = [];
       for (const c of initial) {
@@ -792,7 +795,7 @@ router.get('/chats/:username/contacts', validateUsername, authenticateToken, aut
         id: c.contact_id,
         name: c.name,
         avatar: c.avatar,
-        status: c.status,
+        status: onlineSet.has(String(c.contact_id).toLowerCase()) ? 'online' : 'offline',
         lastMessage: c.last_message,
         time: c.time,
         type: c.type,
@@ -1098,6 +1101,18 @@ router.post('/chats/:username/send', validateUsername, authenticateToken, author
 
     // Real-time delivery if the recipient is connected
     sendToUser(recipientId, 'chat:message', { id: genId(), sender, content, time, fileAttachment, voiceDuration });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Sunucu hatası oluştu.' });
+  }
+});
+
+// Presence heartbeat: the launcher pings this periodically; friends see the user
+// as online if they pinged within the last ~45s (REST-based, no WebSocket needed).
+router.post('/presence/:username/ping', validateUsername, authenticateToken, authorizeUser, async (req, res) => {
+  try {
+    await dbRun('UPDATE users SET last_seen = ? WHERE LOWER(username) = ?', [Date.now(), req.user.username.toLowerCase()]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);

@@ -227,6 +227,7 @@ export const initDb = async () => {
   await addColumnSafe('users', 'password_hash', 'TEXT');
   await addColumnSafe('users', 'token', 'TEXT');
   await addColumnSafe('users', 'token_expires_at', 'BIGINT');
+  await addColumnSafe('users', 'last_seen', 'BIGINT');
   await addColumnSafe('users', 'email', 'TEXT');
   await addColumnSafe('cosmetics', 'purchased_capes', "TEXT DEFAULT '[]'");
   await addColumnSafe('cosmetics', 'model_type', "VARCHAR(50) DEFAULT 'classic'");

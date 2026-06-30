@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { wsManager } from '../lib/websocket';
 
 let wsBound = false;
+let presenceStarted = false;
 
 export interface Friend {
   username: string;
@@ -41,6 +42,18 @@ export const useSocialStore = create<SocialState>((set, get) => {
       if (!session) {
         set({ friends: [], pendingNames: [], pendingRequests: 0 });
         return;
+      }
+
+      // Presence heartbeat: ping the server every 15s so friends see us online
+      // (works without WebSocket; the server marks us online from last_seen).
+      if (!presenceStarted) {
+        presenceStarted = true;
+        const ping = () => {
+          const s = useAuthStore.getState().session;
+          if (s) api.pingPresence(s.name);
+        };
+        ping();
+        setInterval(ping, 15000);
       }
 
       // Bind WS listeners once: friend events + presence changes refresh in real time.

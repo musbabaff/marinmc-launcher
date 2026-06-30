@@ -268,6 +268,11 @@ export const api = {
     }
   },
 
+  // Presence heartbeat so friends see us as online (REST, no WebSocket needed).
+  pingPresence: async (me: string): Promise<void> => {
+    try { await apiInstance.post(`/presence/${me}/ping`); } catch { /* ignore */ }
+  },
+
   getOnlineCount: async (): Promise<{ total: number }> => {
     try {
       const res = await apiInstance.get('/stats/online-count');

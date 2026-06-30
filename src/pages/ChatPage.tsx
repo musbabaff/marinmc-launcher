@@ -608,7 +608,7 @@ export default function ChatPage() {
         ) : (
           <>
             {/* Chat Header */}
-            <div className="px-5 py-3 border-b border-white/[0.04] flex items-center justify-between shrink-0 bg-[#070507]">
+            <div className="px-5 py-3 border-b border-white/[0.04] flex items-center justify-between shrink-0 bg-[#0a0f1f]">
               <div className="flex items-center gap-3">
                 <img src={activeContact.avatar} alt="" className="w-8 h-8 rounded-lg border border-white/10" />
                 <div>
@@ -768,11 +768,11 @@ export default function ChatPage() {
             )}
 
             {/* Input bar */}
-            <div className="px-4 py-3 border-t border-white/[0.04] flex items-center gap-2 shrink-0 bg-[#070507] relative">
+            <div className="px-4 py-3 border-t border-white/[0.04] flex items-center gap-2 shrink-0 bg-[#0a0f1f] relative">
               
               {/* Emoji Picker Popover */}
               {isEmojiPickerOpen && (
-                <div className="absolute bottom-14 right-14 bg-[#0a080a] border border-white/[0.06] rounded-xl p-2.5 flex gap-1.5 z-40 shadow-xl">
+                <div className="absolute bottom-14 right-14 bg-[#0b1022] border border-white/[0.06] rounded-xl p-2.5 flex gap-1.5 z-40 shadow-xl">
                   {['😊', '😂', '🔥', '❤️', '👍', '🎮', '🚀', '☠️'].map(emoji => (
                     <button
                       key={emoji}
@@ -872,7 +872,7 @@ export default function ChatPage() {
       {/* ===== NEW CHAT MODAL ===== */}
       {isNewChatOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0a080a] border border-white/[0.06] rounded-2xl w-80 max-w-full overflow-hidden shadow-2xl">
+          <div className="bg-[#0b1022] border border-white/[0.06] rounded-2xl w-80 max-w-full overflow-hidden shadow-2xl">
             <div className="px-5 py-4 border-b border-white/[0.04] flex items-center justify-between">
               <h3 className="text-xs font-black text-white uppercase tracking-wider">Yeni Sohbet Başlat</h3>
               <button onClick={() => setIsNewChatOpen(false)} className="p-1 text-[#52525B] hover:text-white">
@@ -909,7 +909,7 @@ export default function ChatPage() {
       {/* ===== VIDEO CALL MODAL ===== */}
       {isVideoCallOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0a080a] border border-[#2D7DD2]/20 rounded-2xl w-[400px] max-w-full overflow-hidden shadow-2xl p-6 text-center space-y-6">
+          <div className="bg-[#0b1022] border border-[#2D7DD2]/20 rounded-2xl w-[400px] max-w-full overflow-hidden shadow-2xl p-6 text-center space-y-6">
             <div className="flex flex-col items-center gap-3">
               <div className="relative">
                 <img
@@ -960,7 +960,7 @@ export default function ChatPage() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: "spring", duration: 0.4 }}
-              className="bg-[#0c0a0e] border border-white/[0.06] rounded-2xl w-full max-w-[360px] p-6 relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] flex flex-col items-center text-center overflow-hidden"
+              className="bg-[#0c1022] border border-white/[0.06] rounded-2xl w-full max-w-[360px] p-6 relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] flex flex-col items-center text-center overflow-hidden"
             >
               {/* Decorative top red light effect */}
               <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-80" />

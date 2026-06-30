@@ -184,6 +184,7 @@
     "inLauncher": "Başlatıcıda",
     "inMenus": "Menülerde",
     "idle": "Boşta",
+    "offline": "Çevrimdışı",
     "justAdded": "Az önce eklendi",
     "offlineDays": "{{count}} gün önce çevrimdışı",
     "offlineHours": "{{count}} saat önce çevrimdışı",

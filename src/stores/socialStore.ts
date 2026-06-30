@@ -46,9 +46,9 @@ export const useSocialStore = create<SocialState>((set, get) => {
         return;
       }
 
-      // Presence heartbeat + polling: every 15s ping (so friends see us online)
-      // AND reload friends/requests so incoming requests show up without a restart
-      // (works without WebSocket).
+      // Presence heartbeat + polling: every 10s ping (so friends see us online)
+      // AND reload friends/requests so incoming requests + online status changes
+      // show up quickly without a restart (works without WebSocket).
       if (!presenceStarted) {
         presenceStarted = true;
         setInterval(() => {
@@ -57,7 +57,7 @@ export const useSocialStore = create<SocialState>((set, get) => {
             api.pingPresence(s.name);
             get().initializeSocial();
           }
-        }, 15000);
+        }, 10000);
       }
       // initial heartbeat
       api.pingPresence(session.name);
@@ -90,7 +90,7 @@ export const useSocialStore = create<SocialState>((set, get) => {
             username: c.name,
             status,
             currentServer,
-            lastSeen: c.status === 'offline' ? (c.time ? `Offline since ${c.time}` : 'Offline') : undefined,
+            lastSeen: c.status === 'offline' ? 'offline' : undefined,
             favorite: c.favorite
           };
         });

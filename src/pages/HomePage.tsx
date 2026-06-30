@@ -14,7 +14,7 @@ import ProfileSettingsModal from '../components/ProfileSettingsModal.tsx';
 import {
   ChevronDown, Search,
   MessageSquare, UserPlus, X, AlertTriangle,
-  Trophy, CheckCircle2, WifiOff, ExternalLink,
+  CheckCircle2, WifiOff, ExternalLink,
   Pause, Trash2, Send,
   Settings, Sparkles, Loader2, Square
 } from 'lucide-react';
@@ -354,23 +354,16 @@ export default function HomePage() {
   const onlineFriends = social.friends.filter(f => f.status !== 'offline' && f.username.toLowerCase().includes(friendsSearch.toLowerCase()));
   const offlineFriends = social.friends.filter(f => f.status === 'offline' && f.username.toLowerCase().includes(friendsSearch.toLowerCase()));
 
-  // Map user status indicators to specific dots from design
-  const getStatusColor = (username: string, _status: string) => {
-    if (username === 'daaaavidds' || username === 'zakhbear') return 'bg-[#ef4444]'; // Busy (Red)
-    if (username === '3wafyy') return 'bg-[#2D7DD2]'; // In Launcher (Purple)
-    if (username === 'KingofHalo04' || username === 'meegreyone') return 'bg-[#F59E0B]'; // Idle (Amber)
-    return 'bg-[#259457]'; // Online / In Game (Green)
+  // Status dot color derived purely from real presence state.
+  const getStatusColor = (_username: string, status: string) => {
+    if (status === 'idle') return 'bg-[#F59E0B]'; // Boşta (Amber)
+    return 'bg-[#259457]'; // Çevrimiçi / Oyunda (Yeşil)
   };
 
   const getStatusText = (friend: any) => {
-    if (friend.username === '172px') return 'In-game: Hypixel';
-    if (friend.username === 'daaaavidds') return 'In-game: Singleplayer';
-    if (friend.username === 'masaya46') return 'In-game: Private Server';
-    if (friend.username === '3wafyy') return 'In Launcher';
-    if (friend.username === 'cuvsa') return 'In-game: Donut SMP';
-    if (friend.username === 'zakhbear') return 'In Menus';
-    if (friend.status === 'idle') return 'Idle';
-    return friend.status === 'in-game' ? t('social.inGame', { server: friend.currentServer }) : t('social.inLauncher');
+    if (friend.status === 'idle') return t('social.idle');
+    if (friend.status === 'in-game') return t('social.inGame', { server: friend.currentServer });
+    return t('social.inLauncher');
   };
 
   return (
@@ -889,7 +882,7 @@ export default function HomePage() {
                               />
                               <div className="flex-1 min-w-0">
                                 <h4 className="text-[11px] font-bold text-white leading-none mb-1">{f.username}</h4>
-                                <p className="text-[8px] text-[#A1A1AA] leading-none font-semibold uppercase">{f.lastSeen || t('social.offlineDays', { count: 3 })}</p>
+                                <p className="text-[8px] text-[#A1A1AA] leading-none font-semibold uppercase">{t('social.offline')}</p>
                               </div>
                             </div>
                           ))}
@@ -921,8 +914,6 @@ export default function HomePage() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1 mb-0.5">
                                   <h4 className="text-[11px] font-bold text-white leading-none">{f.username}</h4>
-                                  {f.username === '172px' && <Trophy className="w-2.5 h-2.5 text-[#F59E0B]" />}
-                                  {f.username === 'cuvsa' && <CheckCircle2 className="w-2.5 h-2.5 text-[#06B6D4]" />}
                                 </div>
                                 <p className="text-[8.5px] text-[#A1A1AA] truncate leading-none font-semibold">
                                   {getStatusText(f)}
@@ -944,9 +935,6 @@ export default function HomePage() {
                                   <Trash2 className="w-3 h-3" />
                                 </button>
                                 {/* Chat Badge mockup unread dot */}
-                                {(f.username === '172px' || f.username === '3wafyy' || f.username === 'cuvsa') && (
-                                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-[#ef4444] rounded-full" />
-                                )}
                               </div>
                             </div>
                           ))}
@@ -969,7 +957,7 @@ export default function HomePage() {
                                 />
                               <div className="flex-1 min-w-0">
                                 <h4 className="text-[11px] font-bold text-white leading-none mb-1">{f.username}</h4>
-                                <p className="text-[8px] text-[#A1A1AA] leading-none font-semibold uppercase">{f.lastSeen}</p>
+                                <p className="text-[8px] text-[#A1A1AA] leading-none font-semibold uppercase">{t('social.offline')}</p>
                               </div>
                               <div className="relative opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                                 <button

@@ -12,7 +12,7 @@ import { STEVE_AVATAR_FALLBACK } from '../lib/constants.ts';
 import VersionModal from '../components/VersionModal.tsx';
 import ProfileSettingsModal from '../components/ProfileSettingsModal.tsx';
 import {
-  ChevronDown, Search,
+  ChevronDown, ChevronUp, Search, Play,
   MessageSquare, UserPlus, X, AlertTriangle,
   CheckCircle2, WifiOff, ExternalLink,
   Pause, Trash2, Send,
@@ -612,20 +612,21 @@ export default function HomePage() {
                     </div>
                   </button>
                 ) : (
-                  // Large Green Launch Game Button matching Screenshot
-                  <div
-                    className="flex-grow h-[88px] bg-gradient-to-r from-[#22c55e] to-[#15803d] hover:from-[#4ade80] hover:to-[#16a34a] active:scale-[0.98] text-white rounded-2xl transition-all duration-300 shadow-[0_12px_40px_rgba(34,197,94,0.4),0_0_20px_rgba(34,197,94,0.15)] flex items-center justify-between px-6 border border-[#4ade80]/20 relative"
-                  >
-                    {/* Symmetrical spacing item */}
-                    <div className="w-8 h-8 shrink-0 opacity-0" />
+                  // Professional split PLAY button: main launch + attached version switcher.
+                  <div className="flex-grow h-[88px] flex rounded-2xl overflow-hidden border border-[#4ade80]/25 shadow-[0_12px_40px_rgba(34,197,94,0.35),0_0_20px_rgba(34,197,94,0.12)]">
                     <button
                       onClick={handleLaunch}
-                      className="flex-grow flex flex-col items-center text-center h-full justify-center cursor-pointer select-none"
+                      className="flex-grow flex items-center justify-center gap-3.5 bg-gradient-to-r from-[#22c55e] to-[#15803d] hover:from-[#4ade80] hover:to-[#16a34a] active:scale-[0.99] text-white transition-all duration-300 cursor-pointer select-none px-6"
                     >
-                      <span className="font-black text-[17px] tracking-widest uppercase text-white shadow-sm">{t('home.launch')}</span>
-                      <span className="text-[11px] text-white/90 font-extrabold uppercase tracking-wider mt-0.5">
-                        MarinMC {settings.selectedSubVersion || '1.21.3'}
-                      </span>
+                      <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0 shadow-inner">
+                        <Play className="w-5.5 h-5.5 fill-current text-white" />
+                      </div>
+                      <div className="flex flex-col items-start leading-none">
+                        <span className="font-black text-[18px] tracking-widest uppercase text-white drop-shadow-sm">{t('home.launch')}</span>
+                        <span className="text-[10.5px] text-white/85 font-extrabold uppercase tracking-wider mt-1">
+                          MarinMC {settings.selectedSubVersion || '1.21.8'}
+                        </span>
+                      </div>
                     </button>
                     <button
                       type="button"
@@ -634,21 +635,22 @@ export default function HomePage() {
                         e.preventDefault();
                         setVersionModalOpen(true);
                       }}
-                      className="w-8 h-8 rounded-lg bg-black/25 hover:bg-black/40 flex items-center justify-center transition-colors border border-white/5 cursor-pointer z-20 shrink-0"
+                      className="w-[60px] shrink-0 bg-[#15803d] hover:bg-[#1a9648] active:scale-[0.97] border-l border-black/20 flex items-center justify-center transition-colors cursor-pointer group"
                       title={t('home.changeVersion')}
                     >
-                      <ChevronDown className="w-4.5 h-4.5 text-white/90 rotate-180" />
+                      <ChevronUp className="w-5 h-5 text-white/80 group-hover:text-white transition-colors" />
                     </button>
                   </div>
                 )}
 
-                {/* Settings cog wheel next to it */}
+                {/* Profile/Java settings (RAM, resolution, version) — distinct from version switcher */}
                 <button
                   onClick={() => setProfileSettingsOpen(true)}
-                  className="w-[88px] h-[88px] bg-white/5 hover:bg-white/10 active:scale-[0.96] border border-white/[0.08] rounded-2xl flex items-center justify-center transition-all duration-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] shrink-0"
+                  className="w-[88px] h-[88px] bg-white/[0.04] hover:bg-white/[0.08] active:scale-[0.96] border border-white/[0.08] rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] shrink-0 group"
                   title={t('home.settings')}
                 >
-                  <Settings className="w-6.5 h-6.5 text-white/70 hover:text-white transition-colors" />
+                  <Settings className="w-6 h-6 text-white/60 group-hover:text-white group-hover:rotate-45 transition-all duration-300" />
+                  <span className="text-[7px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/70 transition-colors">{t('home.settings')}</span>
                 </button>
               </div>
 

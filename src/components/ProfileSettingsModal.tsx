@@ -14,32 +14,16 @@ interface ProfileSettingsModalProps {
 
 type TabType = 'files' | 'java' | 'versions' | 'export';
 
-const LOADER_VERSIONS = {
-  fabric: [
-    { num: '1.21', sub: '1.21.8' },
-    { num: '26.1', sub: '26.1.1' },
-    { num: '26.1', sub: '26.1.0' },
-    { num: '1.16', sub: '1.16.5' },
-    { num: '1.16', sub: '1.16.4' },
-    { num: '1.16', sub: '1.16.1' }
-  ],
-  forge: [
-    { num: '1.20', sub: '1.20.4' },
-    { num: '1.20', sub: '1.20.2' },
-    { num: '1.20', sub: '1.20.1' },
-    { num: '1.20', sub: '1.20.0' },
-    { num: '1.12', sub: '1.12.2' },
-    { num: '1.12', sub: '1.12.1' },
-    { num: '1.7', sub: '1.7.10' },
-    { num: '1.7', sub: '1.7.2' }
-  ],
-  vanilla: [
-    { num: '1.13', sub: '1.13.2' },
-    { num: '1.13', sub: '1.13.1' },
-    { num: '1.8', sub: '1.8.9' },
-    { num: '1.8', sub: '1.8.8' }
-  ]
-};
+// Real, officially supported MarinMC versions (all run on Fabric). No mock data —
+// this matches exactly what the launcher can install & launch (see VersionsPage /
+// resolveGameVersion in electron/ipc/game.ts).
+const SUPPORTED_VERSIONS = [
+  { num: '1.21', sub: '1.21.8', full: true },
+  { num: '1.20', sub: '1.20.4', full: false },
+  { num: '1.19', sub: '1.19.4', full: false },
+  { num: '1.18', sub: '1.18.2', full: false },
+  { num: '1.17', sub: '1.17.1', full: false }
+];
 
 export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSettingsModalProps) {
   const { t } = useTranslation();
@@ -50,7 +34,8 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
   const [resW, setResW] = useState(1280);
   const [resH, setResH] = useState(720);
   const [fullscreen, setFullscreen] = useState(false);
-  const [loaderType, setLoaderType] = useState<'vanilla' | 'fabric' | 'forge'>('fabric');
+  // MarinMC runs exclusively on Fabric — no loader picker, no mock loaders.
+  const loaderType = 'fabric' as const;
   const [selectedSubVer, setSelectedSubVer] = useState('1.21.8');
   const [gameDir, setGameDir] = useState('');
   
@@ -66,18 +51,10 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
       setFullscreen(settings.fullscreen);
       setGameDir(settings.launcherDir);
       
+      // Snap to a real supported version (fall back to the latest if unknown).
       const sub = settings.selectedSubVersion || '1.21.8';
-      setSelectedSubVer(sub);
-      
-      // Infer loader type based on selected subversion or string
-      const subLower = sub.toLowerCase();
-      if (subLower.includes('fabric') || settings.selectedVersion === '1.21' || settings.selectedVersion === '26.1' || settings.selectedVersion === '1.16') {
-        setLoaderType('fabric');
-      } else if (subLower.includes('forge') || settings.selectedVersion === '1.20' || settings.selectedVersion === '1.12' || settings.selectedVersion === '1.7') {
-        setLoaderType('forge');
-      } else {
-        setLoaderType('vanilla');
-      }
+      const known = SUPPORTED_VERSIONS.find(v => v.sub === sub);
+      setSelectedSubVer(known ? known.sub : '1.21.8');
     }
   }, [isOpen, settings]);
 
@@ -107,8 +84,8 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
     settings.setResolution(resW, resH);
     settings.setFullscreen(fullscreen);
     
-    // Save version/loader details based on selection
-    const matchedVer = LOADER_VERSIONS[loaderType].find(v => v.sub === selectedSubVer) || LOADER_VERSIONS[loaderType][0];
+    // Save version details based on selection
+    const matchedVer = SUPPORTED_VERSIONS.find(v => v.sub === selectedSubVer) || SUPPORTED_VERSIONS[0];
     settings.setSelectedVersion(matchedVer.num);
     settings.setSelectedSubVersion(matchedVer.sub);
     
@@ -162,7 +139,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
         resolutionHeight: resH,
         fullscreen: fullscreen,
         loaderType: loaderType,
-        selectedVersion: LOADER_VERSIONS[loaderType].find(v => v.sub === selectedSubVer)?.num || '1.21',
+        selectedVersion: SUPPORTED_VERSIONS.find(v => v.sub === selectedSubVer)?.num || '1.21',
         selectedSubVersion: selectedSubVer
       };
       try {
@@ -187,8 +164,10 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
           if (s.resolutionHeight) setResH(s.resolutionHeight);
           if (s.fullscreen !== undefined) setFullscreen(s.fullscreen);
           if (s.launcherDir) setGameDir(s.launcherDir);
-          if (s.loaderType) setLoaderType(s.loaderType);
-          if (s.selectedSubVersion) setSelectedSubVer(s.selectedSubVersion);
+          if (s.selectedSubVersion) {
+            const known = SUPPORTED_VERSIONS.find(v => v.sub === s.selectedSubVersion);
+            setSelectedSubVer(known ? known.sub : '1.21.8');
+          }
           showToast(t('profileSettings.importSuccess'));
         }
       } catch (err) {
@@ -222,11 +201,6 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
         console.error('Clone error:', err);
       }
     }
-  };
-
-  const handleLoaderChange = (type: 'vanilla' | 'fabric' | 'forge') => {
-    setLoaderType(type);
-    setSelectedSubVer(LOADER_VERSIONS[type][0].sub);
   };
 
   const maxRam = Math.max(16, Math.round(settings.totalSystemRAM / 1024));
@@ -491,6 +465,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                 {/* 3. VERSIONS TAB */}
                 {activeTab === 'versions' && (
                   <div className="space-y-5">
+                    {/* Mod loader (Fabric — the only loader MarinMC uses) */}
                     <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-5 space-y-4">
                       <div>
                         <h4 className="text-[10px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -502,57 +477,61 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                         </p>
                       </div>
 
-                      {/* Selector cards */}
-                      <div className="grid grid-cols-3 gap-3.5">
-                        <button
-                          onClick={() => handleLoaderChange('vanilla')}
-                          className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
-                            loaderType === 'vanilla'
-                              ? 'border-[#2D7DD2] bg-[#2D7DD2]/10 text-white'
-                              : 'border-white/[0.04] bg-black/40 hover:bg-black/60 text-[#A1A1AA]'
-                          }`}
-                        >
-                          <span className="text-[13px] font-black mb-1">{t('profileSettings.vanilla')}</span>
-                          <span className="text-[7.5px] font-bold uppercase tracking-wider opacity-60">{t('profileSettings.vanillaDesc')}</span>
-                        </button>
-                        <button
-                          onClick={() => handleLoaderChange('fabric')}
-                          className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
-                            loaderType === 'fabric'
-                              ? 'border-[#2D7DD2] bg-[#2D7DD2]/10 text-white'
-                              : 'border-white/[0.04] bg-black/40 hover:bg-black/60 text-[#A1A1AA]'
-                          }`}
-                        >
-                          <span className="text-[13px] font-black mb-1">{t('profileSettings.fabric')}</span>
-                          <span className="text-[7.5px] font-bold uppercase tracking-wider opacity-60">{t('profileSettings.fabricDesc')}</span>
-                        </button>
-                        <button
-                          onClick={() => handleLoaderChange('forge')}
-                          className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
-                            loaderType === 'forge'
-                              ? 'border-[#2D7DD2] bg-[#2D7DD2]/10 text-white'
-                              : 'border-white/[0.04] bg-black/40 hover:bg-black/60 text-[#A1A1AA]'
-                          }`}
-                        >
-                          <span className="text-[13px] font-black mb-1">{t('profileSettings.forge')}</span>
-                          <span className="text-[7.5px] font-bold uppercase tracking-wider opacity-60">{t('profileSettings.forgeDesc')}</span>
-                        </button>
+                      <div className="flex items-center justify-between bg-[#2D7DD2]/10 border border-[#2D7DD2]/40 rounded-xl px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-[#2D7DD2]/20 border border-[#2D7DD2]/30 flex items-center justify-center">
+                            <Layers className="w-3.5 h-3.5 text-[#2D7DD2]" />
+                          </div>
+                          <div className="leading-tight">
+                            <span className="text-[12px] font-black text-white block">Fabric</span>
+                            <span className="text-[7.5px] font-bold uppercase tracking-wider text-[#2D7DD2]">{t('profileSettings.fabricDesc')}</span>
+                          </div>
+                        </div>
+                        <span className="text-[8px] font-black uppercase tracking-widest bg-[#259457]/20 text-[#259457] border border-[#259457]/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          {t('profileSettings.loaderActive')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Real, supported game versions */}
+                    <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-5 space-y-4">
+                      <div>
+                        <h4 className="text-[10px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                          <Settings className="w-4 h-4 text-[#2D7DD2]" />
+                          <span>{t('profileSettings.versionSelect')}</span>
+                        </h4>
+                        <p className="text-[8.5px] text-[#A1A1AA] font-semibold mt-1">
+                          {t('profileSettings.versionSelectDesc')}
+                        </p>
                       </div>
 
-                      {/* Dropdown for Subversions */}
-                      <div className="pt-2">
-                        <label className="text-[8.5px] font-black text-[#52525B] uppercase tracking-wider block mb-1.5">{t('profileSettings.versionSelect')}</label>
-                        <select
-                          value={selectedSubVer}
-                          onChange={(e) => setSelectedSubVer(e.target.value)}
-                          className="bg-black/40 border border-white/10 px-3.5 py-2 rounded-xl text-[10px] font-bold text-white w-full max-w-[200px] focus:outline-none focus:ring-0 cursor-pointer"
-                        >
-                          {LOADER_VERSIONS[loaderType].map((v) => (
-                            <option key={v.sub} value={v.sub} className="bg-[#070b19] text-white">
-                              {v.sub}
-                            </option>
-                          ))}
-                        </select>
+                      <div className="grid grid-cols-5 gap-2.5">
+                        {SUPPORTED_VERSIONS.map((v) => (
+                          <button
+                            key={v.sub}
+                            onClick={() => setSelectedSubVer(v.sub)}
+                            className={`relative p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
+                              selectedSubVer === v.sub
+                                ? 'border-[#259457] bg-[#259457]/10 text-white shadow-[0_0_15px_rgba(37,148,87,0.12)]'
+                                : 'border-white/[0.04] bg-black/40 hover:bg-black/60 text-[#A1A1AA]'
+                            }`}
+                          >
+                            <span className="text-[12px] font-black leading-none">{v.num}</span>
+                            <span className="text-[7.5px] font-bold mt-1 opacity-70">{v.sub}</span>
+                            {v.full && (
+                              <span className="absolute -top-1.5 -right-1.5 text-[6.5px] font-black uppercase tracking-wider bg-[#259457] text-white px-1.5 py-0.5 rounded-md shadow">
+                                {t('profileSettings.fullMods')}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Honest note: full MarinMC mod suite is 1.21.8; others run clean Fabric */}
+                      <div className="flex gap-2 items-start text-[8px] text-[#52525B] font-bold uppercase tracking-wider leading-relaxed">
+                        <Info className="w-3.5 h-3.5 text-[#52525B] shrink-0 mt-0.5" />
+                        <span>{t('profileSettings.modScopeNote')}</span>
                       </div>
                     </div>
                   </div>

@@ -18,23 +18,9 @@ export default function NotificationsPage() {
     return notifications.filter(n => n.unread).length;
   };
 
-  const getLocalizedTitle = (not: any) => {
-    if (not.title === 'Planlı Sunucu Bakımı' || not.title === 'Scheduled Server Maintenance') return t('notifications.titleUrgent');
-    if (not.title === 'Arkadaşlık İsteği' || not.title === 'Friend Request') return t('notifications.titleFriendRequest');
-    if (not.title === 'Yeni Sürüm Güncellemesi' || not.title === 'New Client Version') return t('notifications.titleUpdate');
-    if (not.title === 'Mod Güncellemesi Mevcut' || not.title === 'Mod Update Available') return t('notifications.titleModUpdate');
-    if (not.title === 'Ödeme Başarılı' || not.title === 'Payment Successful') return t('notifications.titleSuccessVIP');
-    return not.title;
-  };
-
-  const getLocalizedDesc = (not: any) => {
-    if (not.description.includes('Towny')) return t('notifications.descUrgent');
-    if (not.description.includes('RedstoneGuy')) return t('notifications.descFriendRequest');
-    if (not.description.includes('v1.0.1')) return t('notifications.descUpdate');
-    if (not.description.includes('Sodium')) return t('notifications.descModUpdate');
-    if (not.description.includes('VIP')) return t('notifications.descSuccessVIP');
-    return not.description;
-  };
+  // Real notifications already carry their own text; show it directly.
+  const getLocalizedTitle = (not: any) => not.title;
+  const getLocalizedDesc = (not: any) => not.description;
 
   const getLocalizedDate = (date: string) => {
     const lower = date.toLowerCase();

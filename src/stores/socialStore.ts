@@ -2,9 +2,11 @@ import { create } from 'zustand';
 import { useAuthStore } from './authStore.ts';
 import { api } from '../lib/api';
 import { wsManager } from '../lib/websocket';
+import { useNotificationStore } from './notificationStore.ts';
 
 let wsBound = false;
 let presenceStarted = false;
+let firstSocialLoad = true;
 
 export interface Friend {
   username: string;
@@ -44,17 +46,21 @@ export const useSocialStore = create<SocialState>((set, get) => {
         return;
       }
 
-      // Presence heartbeat: ping the server every 15s so friends see us online
-      // (works without WebSocket; the server marks us online from last_seen).
+      // Presence heartbeat + polling: every 15s ping (so friends see us online)
+      // AND reload friends/requests so incoming requests show up without a restart
+      // (works without WebSocket).
       if (!presenceStarted) {
         presenceStarted = true;
-        const ping = () => {
+        setInterval(() => {
           const s = useAuthStore.getState().session;
-          if (s) api.pingPresence(s.name);
-        };
-        ping();
-        setInterval(ping, 15000);
+          if (s) {
+            api.pingPresence(s.name);
+            get().initializeSocial();
+          }
+        }, 15000);
       }
+      // initial heartbeat
+      api.pingPresence(session.name);
 
       // Bind WS listeners once: friend events + presence changes refresh in real time.
       if (!wsBound) {
@@ -96,7 +102,23 @@ export const useSocialStore = create<SocialState>((set, get) => {
       // Load real incoming friend requests from the server
       try {
         const requests = await api.getFriendRequests(session.name);
-        set({ pendingNames: requests.map(r => r.fromName), pendingRequests: requests.length });
+        const newNames = requests.map(r => r.fromName);
+        const prevNames = get().pendingNames;
+        // Notify only for requests that arrived while the app was running (skip the
+        // very first load so we don't re-notify existing requests on every startup).
+        if (!firstSocialLoad) {
+          for (const r of requests) {
+            if (!prevNames.includes(r.fromName)) {
+              useNotificationStore.getState().addNotification(
+                'Arkadaşlık İsteği',
+                `${r.fromName} sana arkadaşlık isteği gönderdi.`,
+                'info'
+              );
+            }
+          }
+        }
+        firstSocialLoad = false;
+        set({ pendingNames: newNames, pendingRequests: requests.length });
       } catch (err) {
         console.error('Failed to load friend requests:', err);
       }

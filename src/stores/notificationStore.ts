@@ -18,22 +18,18 @@ interface NotificationState {
   clearAll: () => void;
 }
 
-const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
-  { id: '1', title: 'Planlı Sunucu Bakımı', description: 'MarinMC Towny sunucusu 5 dakika içinde yedekleme ve bakım için yeniden başlatılacaktır.', type: 'urgent', date: 'Az önce', unread: true },
-  { id: '2', title: 'Arkadaşlık İsteği', description: 'RedstoneGuy size bir arkadaşlık isteği gönderdi.', type: 'info', date: '10 dakika önce', unread: true },
-  { id: '3', title: 'Yeni Sürüm Güncellemesi', description: 'MarinMC Client v1.0.1 güncellemesi indirilmeye hazır. Değişiklik listesini görmek için tıklayın.', type: 'info', date: '2 saat önce', unread: false },
-  { id: '4', title: 'Mod Güncellemesi Mevcut', description: 'Sodium modu için yeni bir v0.6.1 sürümü yayınlandı. Ayarlar penceresinden güncelleyebilirsiniz.', type: 'info', date: '1 gün önce', unread: false },
-  { id: '5', title: 'Ödeme Başarılı', description: 'VIP üyelik siparişiniz başarıyla işlendi. Sunucuya giriş yaptığınızda aktif edilecektir.', type: 'success', date: '3 gün önce', unread: false }
-];
-
 export const useNotificationStore = create<NotificationState>((set) => {
-  // Load initially from localStorage
+  // Load from localStorage. No seeded/sample notifications — real ones only.
   const loadInitial = (): NotificationItem[] => {
     try {
       const stored = localStorage.getItem('marinmc_notifications');
-      return stored ? JSON.parse(stored) : DEFAULT_NOTIFICATIONS;
+      if (!stored) return [];
+      const list = JSON.parse(stored);
+      if (!Array.isArray(list)) return [];
+      // One-time cleanup: drop the old hardcoded sample notifications (fixed ids 1-5).
+      return list.filter((n: NotificationItem) => !['1', '2', '3', '4', '5'].includes(n.id));
     } catch {
-      return DEFAULT_NOTIFICATIONS;
+      return [];
     }
   };
 

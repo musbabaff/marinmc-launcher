@@ -1,6 +1,6 @@
 export const SERVER_IP = "oyna.marinmc.com";
 export const LAUNCHER_NAME = "MarinMC Launcher";
-export const APP_VERSION = "1.3.9";
+export const APP_VERSION = "1.3.10";
 export const API_BASE = "https://api.marinmc.com";
 
 export const DISCORD_URL = "https://discord.gg/marinmc";

@@ -39,6 +39,8 @@ export interface IElectronAPI {
   optimizeMemory: () => Promise<{ freedMB: number; rssMB: number }>;
   getStartup: () => Promise<boolean>;
   setStartup: (enabled: boolean) => Promise<{ success: boolean; error?: string }>;
+  encryptSecret: (text: string) => Promise<{ ok: boolean; value: string }>;
+  decryptSecret: (b64: string) => Promise<{ ok: boolean; value: string | null }>;
   listContent: (kind: string) => Promise<Array<{ name: string; displayName: string; size: number; enabled: boolean; modified: number }>>;
   toggleContent: (kind: string, name: string) => Promise<{ success: boolean; error?: string }>;
   deleteContent: (kind: string, name: string) => Promise<{ success: boolean; error?: string }>;

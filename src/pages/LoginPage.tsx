@@ -43,12 +43,18 @@ export default function LoginPage() {
       setLocalError(t('login.validationError'));
       return;
     }
-    if (password.length < 6) {
+    if (isRegister) {
+      // Stronger policy only for new accounts (existing passwords still log in).
+      if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+        setLocalError(t('login.passwordMinLength'));
+        return;
+      }
+      if (password !== confirmPassword) {
+        setLocalError(t('login.passwordMismatch'));
+        return;
+      }
+    } else if (!password) {
       setLocalError(t('login.passwordMinLength'));
-      return;
-    }
-    if (isRegister && password !== confirmPassword) {
-      setLocalError(t('login.passwordMismatch'));
       return;
     }
     try {

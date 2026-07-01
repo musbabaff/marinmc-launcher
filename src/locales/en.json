@@ -214,7 +214,7 @@
     "support": "Support",
     "loginTab": "Sign In",
     "registerTab": "Sign Up",
-    "passwordMinLength": "Password must be at least 6 characters.",
+    "passwordMinLength": "Password must be at least 8 characters and include a letter and a number.",
     "authFailed": "Login/Registration failed.",
     "setPasswordPlaceholder": "Set a password (Min 6 characters)",
     "enterPasswordPlaceholder": "Enter your password",

@@ -214,7 +214,7 @@
     "support": "Destek",
     "loginTab": "Giriş Yap",
     "registerTab": "Kayıt Ol",
-    "passwordMinLength": "Şifre en az 6 karakter olmalıdır.",
+    "passwordMinLength": "Şifre en az 8 karakter olmalı, harf ve rakam içermelidir.",
     "authFailed": "Giriş/Kayıt başarısız oldu.",
     "setPasswordPlaceholder": "Şifre belirleyin (En az 6 karakter)",
     "enterPasswordPlaceholder": "Şifrenizi girin",

@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell, clipboard, app, session } from 'electron';
+import { ipcMain, dialog, shell, clipboard, app, session, safeStorage } from 'electron';
 import * as os from 'os';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -139,6 +139,30 @@ ipcMain.handle('system:set-startup', async (_event, enabled: boolean) => {
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
+  }
+});
+
+// --- Secure secret storage (OS-backed via safeStorage; for auth tokens) ---
+// Encrypts with the OS keychain/DPAPI so tokens are never stored in plaintext on
+// disk. Falls back to returning the plaintext (ok:false) when encryption isn't
+// available (e.g. some Linux setups) so the app keeps working.
+ipcMain.handle('secure:encrypt', async (_event, text: string) => {
+  try {
+    if (typeof text !== 'string' || !text) return { ok: false, value: text };
+    if (!safeStorage.isEncryptionAvailable()) return { ok: false, value: text };
+    return { ok: true, value: safeStorage.encryptString(text).toString('base64') };
+  } catch {
+    return { ok: false, value: text };
+  }
+});
+
+ipcMain.handle('secure:decrypt', async (_event, b64: string) => {
+  try {
+    if (typeof b64 !== 'string' || !b64) return { ok: false, value: null };
+    if (!safeStorage.isEncryptionAvailable()) return { ok: false, value: b64 };
+    return { ok: true, value: safeStorage.decryptString(Buffer.from(b64, 'base64')) };
+  } catch {
+    return { ok: false, value: null };
   }
 });
 

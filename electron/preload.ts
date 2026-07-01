@@ -47,6 +47,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   optimizeMemory: () => ipcRenderer.invoke('system:optimize-memory'),
   getStartup: () => ipcRenderer.invoke('system:get-startup'),
   setStartup: (enabled: boolean) => ipcRenderer.invoke('system:set-startup', enabled),
+  encryptSecret: (text: string) => ipcRenderer.invoke('secure:encrypt', text),
+  decryptSecret: (b64: string) => ipcRenderer.invoke('secure:decrypt', b64),
   listContent: (kind: string) => ipcRenderer.invoke('system:list-content', kind),
   toggleContent: (kind: string, name: string) => ipcRenderer.invoke('system:toggle-content', kind, name),
   deleteContent: (kind: string, name: string) => ipcRenderer.invoke('system:delete-content', kind, name),

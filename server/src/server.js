@@ -225,7 +225,8 @@ const authSchema = z.object({
 
 const registerSchema = z.object({
   username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/),
-  password: z.string().min(6).max(100),
+  // Stronger policy for new accounts: min 8 chars, at least one letter and one digit.
+  password: z.string().min(8).max(100).regex(/^(?=.*[A-Za-z])(?=.*\d).+$/, 'Şifre en az bir harf ve bir rakam içermelidir.'),
   email: z.string().email().optional().or(z.literal(''))
 });
 

@@ -11,6 +11,7 @@ base {
 
 repositories {
     maven { url = "https://maven.terraformersmc.com/releases/" }
+    maven { url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/" }
     mavenCentral()
 }
 
@@ -19,8 +20,14 @@ dependencies {
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    // Cosmetics (GeckoLib) and emote-server integration removed: the mod is now
-    // cosmetic-free and portable across Minecraft versions.
+    
+    // GeckoLib
+    modImplementation "software.bernie.geckolib:geckolib-fabric-1.21.8:5.2.2"
+    
+    // Local mod dependencies for compileOnly
+    compileOnly files('libs/online-emotes-3.4.1+mc1.21.8-fabric.jar')
+    compileOnly files('libs/emotecraft-fabric-for-MC1.21.7-3.0.0-b.build.139.jar')
+    compileOnly files('libs/PlayerAnimationLibFabric-1.1.2+mc.1.21.8.jar')
 }
 
 processResources {

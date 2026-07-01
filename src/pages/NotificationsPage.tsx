@@ -102,10 +102,10 @@ export default function NotificationsPage() {
         <div className="flex items-center gap-2 bg-white/[0.02] border border-white/[0.03] p-1 rounded-xl w-fit">
           {(['all', 'urgent', 'info', 'success'] as const).map((filter) => {
             const labels: Record<FilterType, string> = {
-              all: t('store.categories.all') || 'Tümü',
-              urgent: t('profileSettings.tabExport') || 'Kritik',
-              info: 'Bilgi',
-              success: 'Başarılı'
+              all: t('notifications.filterAll'),
+              urgent: t('notifications.filterUrgent'),
+              info: t('notifications.filterInfo'),
+              success: t('notifications.filterSuccess')
             };
             const counts = {
               all: notifications.length,

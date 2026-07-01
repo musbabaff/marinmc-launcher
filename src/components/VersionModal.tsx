@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../stores/settingsStore.ts';
 import {
-  X, Settings, FolderOpen, Save, RefreshCw, Filter, ShieldAlert,
-  Globe, Sun, HardDrive, Layout, CheckCircle2, Trash2, Cloud,
-  ChevronDown, Search, Compass as LoaderIcon
+  X, Settings, FolderOpen, Save, RefreshCw, ShieldAlert,
+  Globe, Sun, HardDrive, Layout, CheckCircle2, Trash2,
+  ChevronDown, Search, Compass as LoaderIcon, Package, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,165 +16,153 @@ interface VersionModalProps {
 
 type SettingsTab = 'loader' | 'mods' | 'shaders' | 'worlds' | 'resources' | 'advanced';
 
-interface ModItem {
-  id: string;
+interface ContentItem {
   name: string;
-  author: string;
-  version: string;
-  size: string;
+  displayName: string;
+  size: number;
   enabled: boolean;
-  iconBg: string;
+  modified: number;
 }
 
-const INITIAL_MODS: ModItem[] = [
-  { id: '1', name: 'Litematica', author: 'By masa', version: 'v0.26.3', size: '1.82MB', enabled: true, iconBg: 'bg-[#2D7DD2]' },
-  { id: '2', name: 'Mod Menu', author: 'By Terraformers', version: 'v17.0.0', size: '1.12MB', enabled: true, iconBg: 'bg-[#06B6D4]' },
-  { id: '3', name: 'Inventory Profiles Next', author: 'By blackd', version: 'v2.3.1', size: '1.48MB', enabled: false, iconBg: 'bg-[#259457]' },
-  { id: '4', name: 'Chat Patches', author: 'By OBro1961', version: 'v8.0-alpha.8', size: '1.93MB', enabled: false, iconBg: 'bg-[#F59E0B]' },
-  { id: '5', name: 'FerriteCore', author: 'By malte0811', version: 'v8.2.0', size: '2.16MB', enabled: true, iconBg: 'bg-[#EF4444]' }
-];
+const CONTENT_TABS: SettingsTab[] = ['mods', 'shaders', 'worlds', 'resources'];
+
+function formatSize(bytes: number): string {
+  if (!bytes) return '—';
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+const ICON_BG = ['bg-[#2D7DD2]', 'bg-[#06B6D4]', 'bg-[#259457]', 'bg-[#F59E0B]', 'bg-[#8B5CF6]', 'bg-[#EF4444]'];
 
 export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: VersionModalProps) {
   const { t } = useTranslation();
   const settings = useSettingsStore();
 
-  const [activeTab, setActiveTab] = useState<SettingsTab>('advanced');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('mods');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Advanced tab states
-  const [resolutionEnabled, setResolutionEnabled] = useState(true);
-  const [resW, setResW] = useState('1920');
-  const [resH, setResH] = useState('1080');
-  const [fullscreen, setFullscreen] = useState(false);
-  const [borderless, setBorderless] = useState(true);
-  const [lockAspect, setLockAspect] = useState(true);
-
-  const [ramEnabled, setRamEnabled] = useState(true);
-  const [ramVal, setRamVal] = useState(6); // 6 GB
-
-  const [jvmEnabled, setJvmEnabled] = useState(false);
+  // Advanced tab — synced to the real settings store.
+  const [resW, setResW] = useState(String(settings.resolutionWidth));
+  const [resH, setResH] = useState(String(settings.resolutionHeight));
+  const [fullscreen, setFullscreen] = useState(settings.fullscreen);
+  const [ramVal, setRamVal] = useState(Math.round(settings.ram / 1024));
   const [jvmVal, setJvmVal] = useState(settings.jvmArgs);
+  const [saved, setSaved] = useState(false);
 
-  // Mods tab states
-  const [mods, setMods] = useState<ModItem[]>(INITIAL_MODS);
+  // Real content state
+  const [content, setContent] = useState<ContentItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Close on Escape
+  const maxRamGb = Math.max(8, Math.round(settings.totalSystemRAM / 1024));
+
+  const loadContent = useCallback(async (kind: SettingsTab) => {
+    if (!CONTENT_TABS.includes(kind) || !window.electronAPI?.listContent) return;
+    setLoading(true);
+    try {
+      const items = await window.electronAPI.listContent(kind);
+      setContent(Array.isArray(items) ? items : []);
+    } catch {
+      setContent([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Reset + sync when opening / switching tabs.
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) onClose();
-    };
+    if (!isOpen) return;
+    setSearchQuery('');
+    if (activeTab === 'advanced') {
+      setResW(String(settings.resolutionWidth));
+      setResH(String(settings.resolutionHeight));
+      setFullscreen(settings.fullscreen);
+      setRamVal(Math.round(settings.ram / 1024));
+      setJvmVal(settings.jvmArgs);
+    } else if (CONTENT_TABS.includes(activeTab)) {
+      loadContent(activeTab);
+    } else {
+      setContent([]);
+    }
+  }, [isOpen, activeTab, loadContent, settings]);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape' && isOpen) onClose(); };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isOpen, onClose]);
 
   const handleApplySettings = () => {
-    // Save to settings store
     settings.saveSettings({
-      ram: ramEnabled ? ramVal * 1024 : settings.ram,
-      jvmArgs: jvmEnabled ? jvmVal : settings.jvmArgs,
+      ram: ramVal * 1024,
+      jvmArgs: jvmVal,
       launcherDir: settings.launcherDir,
-      javaPath: settings.javaPath
+      javaPath: settings.javaPath,
     });
-    onClose();
+    settings.setResolution(parseInt(resW, 10) || 1280, parseInt(resH, 10) || 720);
+    settings.setFullscreen(fullscreen);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
   };
 
-  const toggleMod = (id: string) => {
-    setMods(mods.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m));
+  const toggleItem = async (item: ContentItem) => {
+    if (!window.electronAPI?.toggleContent) return;
+    await window.electronAPI.toggleContent(activeTab, item.name);
+    loadContent(activeTab);
   };
 
-  const deleteMod = (id: string) => {
-    setMods(mods.filter(m => m.id !== id));
+  const deleteItem = async (item: ContentItem) => {
+    if (!window.electronAPI?.deleteContent) return;
+    await window.electronAPI.deleteContent(activeTab, item.name);
+    loadContent(activeTab);
   };
+
+  const openFolder = () => { window.electronAPI?.openContentFolder?.(activeTab); };
+
+  const filtered = content.filter(c => c.displayName.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const tabs: { id: SettingsTab; icon: any; label: string }[] = [
+    { id: 'loader', icon: LoaderIcon, label: t('versionModal.loader') },
+    { id: 'mods', icon: HardDrive, label: t('versionModal.mods') },
+    { id: 'shaders', icon: Sun, label: t('versionModal.shaders') },
+    { id: 'worlds', icon: Globe, label: t('versionModal.worlds') },
+    { id: 'resources', icon: Layout, label: t('versionModal.resources') },
+  ];
 
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
             className="w-[820px] h-[520px] bg-[#070b19] border border-white/[0.08] rounded-2xl flex overflow-hidden shadow-2xl relative"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Left Sidebar inside modal */}
+            {/* Sidebar */}
             <div className="w-[185px] border-r border-white/[0.04] bg-[#040204]/40 p-4 flex flex-col justify-between select-none">
-              
-              {/* Top controls: Version display + Menu items */}
               <div className="space-y-4">
                 <div>
                   <span className="text-[8px] font-bold text-[#52525B] tracking-widest uppercase block mb-1">{t('servers.versionText')}</span>
-                  <button className="bg-black/40 border border-white/10 px-3 py-1.8 rounded-xl text-[10px] font-extrabold text-white flex items-center justify-between w-full pointer-events-none select-none">
-                    <span>1.21.8</span>
+                  <div className="bg-black/40 border border-white/10 px-3 py-2 rounded-xl text-[10px] font-extrabold text-white flex items-center justify-between w-full">
+                    <span>{settings.selectedSubVersion || '1.21.8'}</span>
                     <ChevronDown className="w-3.5 h-3.5 text-white/20" />
-                  </button>
+                  </div>
                 </div>
-
-                {/* Vertical Tabs */}
                 <div className="flex flex-col space-y-1">
-                  <button
-                    onClick={() => setActiveTab('loader')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[10px] font-bold transition-all text-left ${
-                      activeTab === 'loader'
-                        ? 'text-white bg-[#2D7DD2]/20 border border-[#2D7DD2]/40 shadow-[0_0_15px_rgba(45,125,210,0.12)]'
-                        : 'text-[#52525B] hover:text-[#d2d2d2] hover:bg-white/5'
-                    }`}
-                  >
-                    <LoaderIcon className="w-3.5 h-3.5" />
-                    <span>{t('versionModal.loader')}</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('mods')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[10px] font-bold transition-all text-left ${
-                      activeTab === 'mods'
-                        ? 'text-white bg-[#2D7DD2]/20 border border-[#2D7DD2]/40 shadow-[0_0_15px_rgba(45,125,210,0.12)]'
-                        : 'text-[#52525B] hover:text-[#d2d2d2] hover:bg-white/5'
-                    }`}
-                  >
-                    <HardDrive className="w-3.5 h-3.5" />
-                    <span>{t('versionModal.mods')}</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('shaders')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[10px] font-bold transition-all text-left ${
-                      activeTab === 'shaders'
-                        ? 'text-white bg-[#2D7DD2]/20 border border-[#2D7DD2]/40 shadow-[0_0_15px_rgba(45,125,210,0.12)]'
-                        : 'text-[#52525B] hover:text-[#d2d2d2] hover:bg-white/5'
-                    }`}
-                  >
-                    <Sun className="w-3.5 h-3.5" />
-                    <span>{t('versionModal.shaders')}</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('worlds')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[10px] font-bold transition-all text-left ${
-                      activeTab === 'worlds'
-                        ? 'text-white bg-[#2D7DD2]/20 border border-[#2D7DD2]/40 shadow-[0_0_15px_rgba(45,125,210,0.12)]'
-                        : 'text-[#52525B] hover:text-[#d2d2d2] hover:bg-white/5'
-                    }`}
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>{t('versionModal.worlds')}</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('resources')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[10px] font-bold transition-all text-left ${
-                      activeTab === 'resources'
-                        ? 'text-white bg-[#2D7DD2]/20 border border-[#2D7DD2]/40 shadow-[0_0_15px_rgba(45,125,210,0.12)]'
-                        : 'text-[#52525B] hover:text-[#d2d2d2] hover:bg-white/5'
-                    }`}
-                  >
-                    <Layout className="w-3.5 h-3.5" />
-                    <span>{t('versionModal.resources')}</span>
-                  </button>
+                  {tabs.map(({ id, icon: Icon, label }) => (
+                    <button
+                      key={id}
+                      onClick={() => setActiveTab(id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[10px] font-bold transition-all text-left ${
+                        activeTab === id
+                          ? 'text-white bg-[#2D7DD2]/20 border border-[#2D7DD2]/40 shadow-[0_0_15px_rgba(45,125,210,0.12)]'
+                          : 'text-[#52525B] hover:text-[#d2d2d2] hover:bg-white/5'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" /><span>{label}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
-
-              {/* Bottom "Advanced" Tab Trigger */}
               <button
                 onClick={() => setActiveTab('advanced')}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[10px] font-bold transition-all text-left ${
@@ -183,64 +171,135 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                     : 'text-[#52525B] hover:text-[#d2d2d2] hover:bg-white/5'
                 }`}
               >
-                <Settings className="w-3.5 h-3.5" />
-                <span>{t('versionModal.advanced')}</span>
+                <Settings className="w-3.5 h-3.5" /><span>{t('versionModal.advanced')}</span>
               </button>
-
             </div>
 
-            {/* Right Main settings panel */}
+            {/* Main panel */}
             <div className="flex-grow flex flex-col h-full bg-[#070b19] text-[#d2d2d2] overflow-hidden">
-              
-              {/* Modal Topbar Search + Controls */}
+              {/* Topbar */}
               <div className="flex justify-between items-center p-5 border-b border-white/[0.04]">
-                {/* Search Inputs based on tab */}
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 text-[#52525B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={
-                      activeTab === 'mods'
-                        ? 'Find a mod...'
-                        : activeTab === 'worlds'
-                        ? 'Find a world...'
-                        : 'Search settings...'
-                    }
-                    className="bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-1.8 text-[10px] font-bold text-white placeholder-white/20 w-[240px] focus:outline-none focus:border-[#2D7DD2]"
+                    type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                    disabled={!CONTENT_TABS.includes(activeTab)}
+                    placeholder={activeTab === 'mods' ? t('versionModal.findMod') : activeTab === 'worlds' ? t('versionModal.findWorld') : t('versionModal.searchSettings')}
+                    className="bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-[10px] font-bold text-white placeholder-white/20 w-[240px] focus:outline-none focus:border-[#2D7DD2] disabled:opacity-40"
                   />
                 </div>
-
-                {/* Right controls */}
                 <div className="flex items-center gap-1.5">
-                  {activeTab === 'mods' && (
-                    <button className="bg-[#259457]/10 hover:bg-[#259457]/20 border border-[#259457]/20 text-[#259457] p-1.8 rounded-xl transition-all cursor-pointer">
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    </button>
+                  {CONTENT_TABS.includes(activeTab) && (
+                    <>
+                      <button onClick={() => loadContent(activeTab)} className="bg-[#259457]/10 hover:bg-[#259457]/20 border border-[#259457]/20 text-[#259457] p-2 rounded-xl transition-all cursor-pointer" title={t('versionModal.refresh')}>
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={openFolder} className="bg-black/40 border border-white/10 p-2 rounded-xl text-[#52525B] hover:text-white transition-colors cursor-pointer" title={t('versionModal.openFolder')}>
+                        <FolderOpen className="w-3.5 h-3.5" />
+                      </button>
+                    </>
                   )}
-                  <button className="bg-black/40 border border-white/10 p-1.8 rounded-xl text-[#52525B] hover:text-white transition-colors cursor-pointer">
-                    <Filter className="w-3.5 h-3.5" />
-                  </button>
-                  <button className="bg-black/40 border border-white/10 p-1.8 rounded-xl text-[#52525B] hover:text-white transition-colors cursor-pointer">
-                    <FolderOpen className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={onClose}
-                    className="hover:bg-white/5 text-[#52525B] hover:text-white p-1.8 rounded-xl transition-colors cursor-pointer ml-1.5"
-                  >
+                  <button onClick={onClose} className="hover:bg-white/5 text-[#52525B] hover:text-white p-2 rounded-xl transition-colors cursor-pointer ml-1.5">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              {/* Scrollable Modal Content */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-4.5 custom-scrollbar">
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
 
-                {/* ================== TAB: ADVANCED ================== */}
+                {/* LOADER tab — real info */}
+                {activeTab === 'loader' && (
+                  <div className="space-y-4">
+                    <div className="border border-[#2D7DD2]/25 bg-[#2D7DD2]/[0.06] rounded-2xl p-5 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-[#2D7DD2]/15 border border-[#2D7DD2]/30 flex items-center justify-center shrink-0">
+                        <LoaderIcon className="w-6 h-6 text-[#2D7DD2]" />
+                      </div>
+                      <div>
+                        <h3 className="text-[13px] font-black text-white">Fabric</h3>
+                        <p className="text-[9px] text-[#A1A1AA] font-bold mt-0.5">{t('versionModal.loaderInfoDesc')}</p>
+                      </div>
+                      <span className="ml-auto text-[8px] font-black uppercase tracking-widest bg-[#259457]/20 text-[#259457] border border-[#259457]/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />{t('versionModal.enabled')}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <InfoCard label={t('servers.versionText')} value={settings.selectedSubVersion || '1.21.8'} />
+                      <InfoCard label="Mod Loader" value="Fabric" />
+                    </div>
+                  </div>
+                )}
+
+                {/* MODS / SHADERS / RESOURCES / WORLDS — real content */}
+                {CONTENT_TABS.includes(activeTab) && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center text-[9px] text-[#52525B] font-extrabold uppercase tracking-wider">
+                      <span>{filtered.length} {t('versionModal.itemsLoaded')}</span>
+                    </div>
+
+                    <button
+                      onClick={openFolder}
+                      className="w-full border border-dashed border-white/[0.08] bg-black/25 hover:bg-black/40 hover:border-white/15 rounded-2xl p-4 flex items-center gap-3.5 group transition-all cursor-pointer"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/55 group-hover:scale-105 transition-transform">
+                        <span className="text-lg font-bold">+</span>
+                      </div>
+                      <div className="text-left">
+                        <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.addContent')}</h4>
+                        <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.addContentDesc')}</p>
+                      </div>
+                    </button>
+
+                    {loading ? (
+                      <div className="flex flex-col items-center justify-center h-40 text-[#52525B]">
+                        <Loader2 className="w-6 h-6 animate-spin mb-2" />
+                        <span className="text-[9px] font-bold uppercase tracking-widest">{t('versionModal.loadingContent')}</span>
+                      </div>
+                    ) : filtered.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-40 text-[#52525B]">
+                        <Package className="w-8 h-8 mb-2.5 opacity-60" />
+                        <p className="text-[10px] font-extrabold uppercase tracking-widest">{t('versionModal.emptyContent')}</p>
+                        <p className="text-[8px] mt-0.5 font-semibold">{t('versionModal.emptyContentDesc')}</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col space-y-1.5 max-h-[240px] overflow-y-auto pr-1.5 custom-scrollbar">
+                        {filtered.map((item, i) => (
+                          <div key={item.name} className={`flex items-center justify-between p-2.5 bg-black/10 border border-white/[0.03] rounded-xl hover:border-white/[0.06] transition-all ${!item.enabled ? 'opacity-50' : ''}`}>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={`w-8 h-8 ${ICON_BG[i % ICON_BG.length]} text-white border border-white/10 rounded-lg flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/35`}>
+                                {activeTab === 'worlds' ? <Globe className="w-4 h-4" /> : 'JAR'}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-[11px] font-bold text-white truncate leading-none mb-1">{item.displayName}</h4>
+                                <span className="text-[8px] text-[#52525B] font-semibold">{formatSize(item.size)}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {activeTab !== 'worlds' && (
+                                <button
+                                  onClick={() => toggleItem(item)}
+                                  className={`text-[8.5px] font-extrabold uppercase px-2 py-1 rounded-md border flex items-center gap-1 transition-all ${
+                                    item.enabled ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/5 text-[#52525B]'
+                                  }`}
+                                >
+                                  {item.enabled && <CheckCircle2 className="w-2.5 h-2.5" />}
+                                  <span>{item.enabled ? t('versionModal.enabled') : t('versionModal.disabled')}</span>
+                                </button>
+                              )}
+                              <button onClick={() => deleteItem(item)} className="p-1.5 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-[#EF4444] transition-colors" title={t('versionModal.delete')}>
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ADVANCED — real settings */}
                 {activeTab === 'advanced' && (
-                  <div className="space-y-4.5">
-                    {/* Header Alert */}
+                  <div className="space-y-4">
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="text-[11px] font-bold text-white uppercase">{t('versionModal.advancedTitle')}</h3>
@@ -249,317 +308,86 @@ export default function VersionModal({ isOpen, onClose, onLaunch: _onLaunch }: V
                           <span>{t('versionModal.advancedWarning')}</span>
                         </p>
                       </div>
-                      <div className="flex items-center gap-1 text-[#52525B]">
-                        <Cloud className="w-3 h-3" />
-                        <span className="text-[7.5px] font-bold uppercase tracking-wider">{t('versionModal.synced')} · {t('versionModal.lastSyncedHours', { count: 2 })}</span>
-                      </div>
                     </div>
 
-                    {/* Card: Game Resolution */}
-                    <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-4 space-y-3.5 relative">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.gameResolution')}</h4>
-                          <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.gameResolutionDesc')}</p>
-                        </div>
-                        <button
-                          onClick={() => setResolutionEnabled(!resolutionEnabled)}
-                          className={`text-[8.5px] font-extrabold uppercase px-2 py-0.5 rounded-md border flex items-center gap-1 transition-all ${
-                            resolutionEnabled
-                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                              : 'bg-white/5 border-white/5 text-[#52525B]'
-                          }`}
-                        >
-                          {resolutionEnabled && <CheckCircle2 className="w-2.5 h-2.5" />}
-                          <span>{t('versionModal.enabled')}</span>
-                        </button>
-                      </div>
-
-                      {resolutionEnabled && (
-                        <div className="space-y-3">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <div className="flex items-center gap-1.5 bg-black/40 border border-white/10 px-3 py-1.5 rounded-xl text-[9px] font-black text-white w-24">
-                              <span className="text-white/40">W</span>
-                              <input
-                                type="text"
-                                value={resW}
-                                onChange={(e) => setResW(e.target.value)}
-                                className="bg-transparent border-none w-full focus:outline-none focus:ring-0 text-right pr-1"
-                              />
-                            </div>
-                            <div className="flex items-center gap-1.5 bg-black/40 border border-white/10 px-3 py-1.5 rounded-xl text-[9px] font-black text-white w-24">
-                              <span className="text-white/40">H</span>
-                              <input
-                                type="text"
-                                value={resH}
-                                onChange={(e) => setResH(e.target.value)}
-                                className="bg-transparent border-none w-full focus:outline-none focus:ring-0 text-right pr-1"
-                              />
-                            </div>
-
-                            {/* Preset Buttons */}
-                            <div className="flex gap-1.5">
-                              <button onClick={() => { setResW('1920'); setResH('1080'); }} className="px-2 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[8px] font-bold uppercase text-[#A1A1AA] hover:text-white transition-all">1080p</button>
-                              <button onClick={() => { setResW('2560'); setResH('1440'); }} className="px-2 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[8px] font-bold uppercase text-[#A1A1AA] hover:text-white transition-all">1440p</button>
-                              <button onClick={() => { setResW('3840'); setResH('2160'); }} className="px-2 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[8px] font-bold uppercase text-[#A1A1AA] hover:text-white transition-all">4K</button>
-                            </div>
-                          </div>
-
-                          {/* Checkbox controls */}
-                          <div className="flex flex-wrap gap-4 text-[8px] font-bold text-[#A1A1AA] uppercase tracking-wider select-none">
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors">
-                              <input type="checkbox" checked={fullscreen} onChange={(e) => setFullscreen(e.target.checked)} className="rounded border-white/10 bg-black/40 text-[#2D7DD2] focus:ring-0 w-3 h-3" />
-                              <span>{t('versionModal.fullscreenMode')}</span>
-                            </label>
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors">
-                              <input type="checkbox" checked={borderless} onChange={(e) => setBorderless(e.target.checked)} className="rounded border-white/10 bg-black/40 text-[#2D7DD2] focus:ring-0 w-3 h-3" />
-                              <span>{t('versionModal.borderlessWindow')}</span>
-                            </label>
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors">
-                              <input type="checkbox" checked={lockAspect} onChange={(e) => setLockAspect(e.target.checked)} className="rounded border-white/10 bg-black/40 text-[#2D7DD2] focus:ring-0 w-3 h-3" />
-                              <span>{t('versionModal.lockAspect')}</span>
-                            </label>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Card: Allocated Memory */}
                     <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-4 space-y-3.5">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.allocatedMemory')}</h4>
-                          <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.allocatedMemoryDesc')}</p>
-                        </div>
-                        <button
-                          onClick={() => setRamEnabled(!ramEnabled)}
-                          className={`text-[8.5px] font-extrabold uppercase px-2 py-0.5 rounded-md border flex items-center gap-1 transition-all ${
-                            ramEnabled
-                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                              : 'bg-white/5 border-white/5 text-[#52525B]'
-                          }`}
-                        >
-                          {ramEnabled && <CheckCircle2 className="w-2.5 h-2.5" />}
-                          <span>{t('versionModal.enabled')}</span>
-                        </button>
+                      <div>
+                        <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.gameResolution')}</h4>
+                        <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.gameResolutionDesc')}</p>
                       </div>
-
-                      {ramEnabled && (
-                        <div className="flex items-center gap-4.5 pt-2">
-                          <div className="bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-[10px] font-black text-white shrink-0 min-w-[70px] text-center">
-                            {ramVal} GB
-                          </div>
-                          
-                          {/* Premium custom RAM slider */}
-                          <div className="flex-grow space-y-1.5 pr-2">
-                            <input
-                              type="range"
-                              min="1"
-                              max="32"
-                              step="1"
-                              value={ramVal}
-                              onChange={(e) => setRamVal(parseInt(e.target.value, 10))}
-                              className="w-full h-1 bg-white/[0.04] rounded-lg appearance-none cursor-pointer accent-[#2D7DD2]"
-                            />
-                            {/* Ticks */}
-                            <div className="flex justify-between text-[7px] text-[#52525B] font-bold uppercase tracking-wider">
-                              <span>1 GB</span>
-                              <span>8 GB</span>
-                              <span>16 GB</span>
-                              <span>24 GB</span>
-                              <span>32 GB</span>
-                            </div>
-                          </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-1.5 bg-black/40 border border-white/10 px-3 py-1.5 rounded-xl text-[9px] font-black text-white w-24">
+                          <span className="text-white/40">W</span>
+                          <input type="text" value={resW} onChange={(e) => setResW(e.target.value)} className="bg-transparent border-none w-full focus:outline-none text-right pr-1" />
                         </div>
-                      )}
+                        <div className="flex items-center gap-1.5 bg-black/40 border border-white/10 px-3 py-1.5 rounded-xl text-[9px] font-black text-white w-24">
+                          <span className="text-white/40">H</span>
+                          <input type="text" value={resH} onChange={(e) => setResH(e.target.value)} className="bg-transparent border-none w-full focus:outline-none text-right pr-1" />
+                        </div>
+                        <div className="flex gap-1.5">
+                          <button onClick={() => { setResW('1920'); setResH('1080'); }} className="px-2 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[8px] font-bold uppercase text-[#A1A1AA] hover:text-white transition-all">1080p</button>
+                          <button onClick={() => { setResW('2560'); setResH('1440'); }} className="px-2 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[8px] font-bold uppercase text-[#A1A1AA] hover:text-white transition-all">1440p</button>
+                          <button onClick={() => { setResW('3840'); setResH('2160'); }} className="px-2 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[8px] font-bold uppercase text-[#A1A1AA] hover:text-white transition-all">4K</button>
+                        </div>
+                        <label className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors text-[8px] font-bold text-[#A1A1AA] uppercase tracking-wider ml-auto">
+                          <input type="checkbox" checked={fullscreen} onChange={(e) => setFullscreen(e.target.checked)} className="rounded border-white/10 bg-black/40 text-[#2D7DD2] focus:ring-0 w-3 h-3" />
+                          <span>{t('versionModal.fullscreenMode')}</span>
+                        </label>
+                      </div>
                     </div>
 
-                    {/* Card: JVM Arguments */}
+                    <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-4 space-y-3.5">
+                      <div>
+                        <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.allocatedMemory')}</h4>
+                        <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.allocatedMemoryDesc')}</p>
+                      </div>
+                      <div className="flex items-center gap-4.5 pt-1">
+                        <div className="bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-[10px] font-black text-white shrink-0 min-w-[70px] text-center">{ramVal} GB</div>
+                        <div className="flex-grow space-y-1.5 pr-2">
+                          <input type="range" min="1" max={maxRamGb} step="1" value={ramVal} onChange={(e) => setRamVal(parseInt(e.target.value, 10))} className="w-full h-1 bg-white/[0.04] rounded-lg appearance-none cursor-pointer accent-[#2D7DD2]" />
+                          <div className="flex justify-between text-[7px] text-[#52525B] font-bold uppercase tracking-wider">
+                            <span>1 GB</span><span>{Math.round(maxRamGb / 2)} GB</span><span>{maxRamGb} GB</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-4 space-y-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.jvmArgs')}</h4>
-                          <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.jvmArgsDesc')}</p>
-                        </div>
-                        <button
-                          onClick={() => setJvmEnabled(!jvmEnabled)}
-                          className={`text-[8.5px] font-extrabold uppercase px-2 py-0.5 rounded-md border flex items-center gap-1 transition-all ${
-                            jvmEnabled
-                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                              : 'bg-white/5 border-white/5 text-[#52525B]'
-                          }`}
-                        >
-                          {jvmEnabled && <CheckCircle2 className="w-2.5 h-2.5" />}
-                          <span>{t('versionModal.enabled')}</span>
-                        </button>
-                      </div>
-
-                      {jvmEnabled && (
-                        <div className="pt-2">
-                          <textarea
-                            value={jvmVal}
-                            onChange={(e) => setJvmVal(e.target.value)}
-                            rows={2}
-                            placeholder="-XX:+UseG1GC -XX:+ParallelRefProcEnabled..."
-                            className="w-full p-2.5 rounded-xl bg-black/40 border border-white/10 text-[9px] text-white leading-normal font-mono resize-none focus:outline-none focus:border-[#2D7DD2]"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* ================== TAB: MODS ================== */}
-                {activeTab === 'mods' && (
-                  <div className="space-y-4">
-                    {/* Header sub-bar */}
-                    <div className="flex justify-between items-center text-[9px] text-[#52525B] font-extrabold uppercase tracking-wider">
-                      <span>{mods.length} {t('versionModal.modsLoaded')}</span>
-                      <div className="flex items-center gap-1 text-[#52525B] font-normal">
-                        <Cloud className="w-3 h-3 text-[#52525B]" />
-                        <span className="text-[7.5px] font-bold uppercase tracking-wider">{t('versionModal.synced')} · {t('versionModal.lastSyncedMins', { count: 18 })}</span>
-                      </div>
-                    </div>
-
-                    {/* Drag and Drop Zone */}
-                    <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-4 flex items-center gap-3.5 relative group">
-                      <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/55 group-hover:scale-105 transition-transform duration-300">
-                        <span className="text-lg font-bold">+</span>
-                      </div>
                       <div>
-                        <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.thirdPartyMods')}</h4>
-                        <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.thirdPartyModsDesc')}</p>
+                        <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.jvmArgs')}</h4>
+                        <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.jvmArgsDesc')}</p>
                       </div>
+                      <textarea value={jvmVal} onChange={(e) => setJvmVal(e.target.value)} rows={2} placeholder="-XX:+UseG1GC..." className="w-full p-2.5 rounded-xl bg-black/40 border border-white/10 text-[9px] text-white leading-normal font-mono resize-none focus:outline-none focus:border-[#2D7DD2]" />
                     </div>
-
-                    {/* Mod list items */}
-                    <div className="flex flex-col space-y-1.5 max-h-[220px] overflow-y-auto pr-1.5 custom-scrollbar">
-                      {mods
-                        .filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                        .map((mod) => (
-                          <div
-                            key={mod.id}
-                            className="flex items-center justify-between p-2.5 bg-black/10 border border-white/[0.03] rounded-xl hover:border-white/[0.06] transition-all"
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              {/* Voxel styled jar icon */}
-                              <div className={`w-8 h-8 ${mod.iconBg} text-white border border-white/10 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 shadow-lg shadow-black/35`}>
-                                JAR
-                              </div>
-                              <div className="min-w-0">
-                                <h4 className="text-[11px] font-bold text-white truncate leading-none mb-1">{mod.name}</h4>
-                                <span className="text-[8px] text-[#52525B] font-semibold">{mod.author}</span>
-                              </div>
-                            </div>
-
-                            {/* Status & Options */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-[9.5px] font-bold text-[#A1A1AA]">{mod.version}</span>
-                              <span className="text-[8.5px] text-[#52525B] font-semibold pr-2 border-r border-white/[0.04]">{mod.size}</span>
-                              
-                              <button
-                                onClick={() => toggleMod(mod.id)}
-                                className={`text-[8.5px] font-extrabold uppercase px-2 py-0.5 rounded-md border flex items-center gap-1 transition-all ${
-                                  mod.enabled
-                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                    : 'bg-white/5 border-white/5 text-[#52525B]'
-                                }`}
-                              >
-                                {mod.enabled && <CheckCircle2 className="w-2.5 h-2.5" />}
-                                <span>{t('versionModal.enabled')}</span>
-                              </button>
-
-                              <button className="p-1 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-white transition-colors">
-                                <Settings className="w-3 h-3" />
-                              </button>
-
-                              <button
-                                onClick={() => deleteMod(mod.id)}
-                                className="p-1 rounded bg-white/5 border border-white/5 text-[#52525B] hover:text-[#EF4444] transition-colors"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* ================== TAB: WORLDS ================== */}
-                {activeTab === 'worlds' && (
-                  <div className="space-y-4">
-                    {/* Header info */}
-                    <div className="flex justify-between items-center text-[9px] text-[#52525B] font-extrabold uppercase tracking-wider">
-                      <span>{t('versionModal.fetchingWorlds')}</span>
-                      <div className="flex items-center gap-1 text-[#52525B] font-normal">
-                        <Cloud className="w-3 h-3 text-[#52525B]" />
-                        <span className="text-[7.5px] font-bold uppercase tracking-wider">{t('versionModal.syncingCloud')}</span>
-                      </div>
-                    </div>
-
-                    {/* World drag and drop zone */}
-                    <div className="border border-white/[0.04] bg-black/25 rounded-2xl p-4 flex items-center gap-3.5 relative group">
-                      <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/55 group-hover:scale-105 transition-transform duration-300">
-                        <span className="text-lg font-bold">+</span>
-                      </div>
-                      <div>
-                        <h4 className="text-[10px] font-bold text-white uppercase">{t('versionModal.worldsTitle')}</h4>
-                        <p className="text-[8px] text-[#52525B] mt-0.5">{t('versionModal.worldsDesc')}</p>
-                      </div>
-                    </div>
-
-                    {/* Animated Skeleton loader rows for world list matching mockup */}
-                    <div className="flex flex-col space-y-1.5 select-none">
-                      {Array.from({ length: 4 }).map((_, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between p-2.5 bg-black/10 border border-white/[0.02] rounded-xl relative overflow-hidden animate-pulse"
-                        >
-                          <div className="flex items-center gap-3 w-1/3">
-                            <div className="w-8 h-8 bg-white/[0.04] border border-white/5 rounded-lg shrink-0" />
-                            <div className="space-y-1.5 w-full">
-                              <div className="h-2.5 bg-white/[0.04] rounded-md w-3/4" />
-                              <div className="h-1.5 bg-white/[0.02] rounded-md w-1/2" />
-                            </div>
-                          </div>
-                          <div className="h-3 bg-white/[0.04] rounded-md w-16" />
-                          <div className="flex items-center gap-2">
-                            <div className="h-5 bg-white/[0.04] rounded-md w-16" />
-                            <div className="w-5 h-5 bg-white/[0.04] rounded-md" />
-                            <div className="w-5 h-5 bg-white/[0.04] rounded-md" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* ================== OTHER TABS ================== */}
-                {activeTab !== 'advanced' && activeTab !== 'mods' && activeTab !== 'worlds' && (
-                  <div className="flex flex-col items-center justify-center h-48 text-[#52525B]">
-                    <LoaderIcon className="w-8 h-8 mb-2.5 text-[#52525B] animate-spin" />
-                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#52525B]">{t('versionModal.loaderShadersTitle')}</p>
-                    <p className="text-[8px] text-[#52525B] mt-0.5 font-semibold">{t('versionModal.loaderShadersDesc')}</p>
                   </div>
                 )}
               </div>
 
-              {/* Save settings bottom panel */}
-              <div className="p-5 border-t border-white/[0.04] bg-black/10 flex justify-end">
-                <button
-                  onClick={handleApplySettings}
-                  className="px-4.5 py-2 bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white font-extrabold text-[9.5px] uppercase tracking-widest rounded-xl transition-all shadow-[0_5px_15px_rgba(45,125,210,0.25)] hover:scale-[1.02] flex items-center gap-2"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{t('versionModal.saveProfileSettings')}</span>
-                </button>
-              </div>
-
+              {/* Bottom save (advanced only) */}
+              {activeTab === 'advanced' && (
+                <div className="p-5 border-t border-white/[0.04] bg-black/10 flex justify-end">
+                  <button
+                    onClick={handleApplySettings}
+                    className="px-4.5 py-2 bg-[#2D7DD2] hover:bg-[#4A9AE8] text-white font-extrabold text-[9.5px] uppercase tracking-widest rounded-xl transition-all shadow-[0_5px_15px_rgba(45,125,210,0.25)] hover:scale-[1.02] flex items-center gap-2"
+                  >
+                    {saved ? <CheckCircle2 className="w-3.5 h-3.5 text-green-300" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>{saved ? t('profileSettings.saveSuccess') : t('versionModal.saveProfileSettings')}</span>
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
+  );
+}
+
+function InfoCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border border-white/[0.04] bg-black/25 rounded-xl px-4 py-3">
+      <span className="text-[8px] font-bold text-[#52525B] uppercase tracking-widest block">{label}</span>
+      <span className="text-[12px] font-black text-white mt-1 block">{value}</span>
+    </div>
   );
 }

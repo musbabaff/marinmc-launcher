@@ -39,6 +39,10 @@ export interface IElectronAPI {
   optimizeMemory: () => Promise<{ freedMB: number; rssMB: number }>;
   getStartup: () => Promise<boolean>;
   setStartup: (enabled: boolean) => Promise<{ success: boolean; error?: string }>;
+  listContent: (kind: string) => Promise<Array<{ name: string; displayName: string; size: number; enabled: boolean; modified: number }>>;
+  toggleContent: (kind: string, name: string) => Promise<{ success: boolean; error?: string }>;
+  deleteContent: (kind: string, name: string) => Promise<{ success: boolean; error?: string }>;
+  openContentFolder: (kind: string) => Promise<{ success: boolean; error?: string }>;
   updateSettings: (settings: { smartJvmOpt: boolean; discordRpcEnabled: boolean; language: 'tr' | 'en'; launcherDir: string }) => Promise<{ success: boolean }>;
   validateMojangUsername: (username: string) => Promise<{ success: boolean; uuid?: string; name?: string }>;
   checkConnectivity: () => Promise<boolean>;

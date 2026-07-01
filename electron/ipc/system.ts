@@ -142,6 +142,110 @@ ipcMain.handle('system:set-startup', async (_event, enabled: boolean) => {
   }
 });
 
+// --- Real profile content (mods / shaders / resource packs / worlds) ---
+
+const CONTENT_SUBFOLDER: Record<string, string> = {
+  mods: 'mods',
+  shaders: 'shaderpacks',
+  resources: 'resourcepacks',
+  worlds: 'saves'
+};
+
+// Reject anything that isn't a plain file/dir name (path-traversal safe).
+function safeName(name: string): boolean {
+  return !!name && !name.includes('/') && !name.includes('\\') && !name.includes('..');
+}
+
+function dirSizeShallow(dir: string): number {
+  let total = 0;
+  try {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.isFile()) {
+        try { total += fs.statSync(path.join(dir, e.name)).size; } catch { /* ignore */ }
+      }
+    }
+  } catch { /* ignore */ }
+  return total;
+}
+
+ipcMain.handle('system:list-content', async (_event, kind: string) => {
+  const sub = CONTENT_SUBFOLDER[kind];
+  if (!sub) return [];
+  const dir = path.join(resolveGameDir(), sub);
+  if (!fs.existsSync(dir)) return [];
+  const isWorlds = kind === 'worlds';
+  const items: any[] = [];
+  let entries: fs.Dirent[];
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return []; }
+
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (isWorlds) {
+      if (!entry.isDirectory()) continue;
+      let modified = 0;
+      try { modified = fs.statSync(full).mtimeMs; } catch { /* ignore */ }
+      items.push({ name: entry.name, displayName: entry.name, size: dirSizeShallow(full), enabled: true, modified });
+    } else {
+      if (!entry.isFile()) continue;
+      const n = entry.name;
+      const lower = n.toLowerCase();
+      const isPack = lower.endsWith('.jar') || lower.endsWith('.jar.disabled') || lower.endsWith('.zip') || lower.endsWith('.zip.disabled');
+      if (!isPack) continue;
+      const enabled = !lower.endsWith('.disabled');
+      const base = n.replace(/\.disabled$/i, '');
+      let size = 0, modified = 0;
+      try { const st = fs.statSync(full); size = st.size; modified = st.mtimeMs; } catch { /* ignore */ }
+      items.push({ name: n, displayName: base.replace(/\.(jar|zip)$/i, ''), size, enabled, modified });
+    }
+  }
+  // Newest first for worlds, alphabetical for packs.
+  items.sort((a, b) => isWorlds ? b.modified - a.modified : a.displayName.localeCompare(b.displayName));
+  return items;
+});
+
+ipcMain.handle('system:toggle-content', async (_event, kind: string, name: string) => {
+  const sub = CONTENT_SUBFOLDER[kind];
+  if (!sub || kind === 'worlds' || !safeName(name)) return { success: false };
+  const dir = path.join(resolveGameDir(), sub);
+  const current = path.join(dir, name);
+  try {
+    if (!fs.existsSync(current)) return { success: false };
+    const target = name.toLowerCase().endsWith('.disabled')
+      ? path.join(dir, name.replace(/\.disabled$/i, ''))
+      : path.join(dir, name + '.disabled');
+    fs.renameSync(current, target);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('system:delete-content', async (_event, kind: string, name: string) => {
+  const sub = CONTENT_SUBFOLDER[kind];
+  if (!sub || !safeName(name)) return { success: false };
+  const full = path.join(resolveGameDir(), sub, name);
+  try {
+    if (!fs.existsSync(full)) return { success: false };
+    fs.rmSync(full, { recursive: true, force: true });
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('system:open-content-folder', async (_event, kind: string) => {
+  const sub = CONTENT_SUBFOLDER[kind];
+  if (!sub) return { success: false };
+  const dir = path.join(resolveGameDir(), sub);
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    await shell.openPath(dir);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle('system:select-directory', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openDirectory'],

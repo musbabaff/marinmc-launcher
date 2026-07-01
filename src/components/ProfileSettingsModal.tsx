@@ -507,25 +507,36 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                       </div>
 
                       <div className="grid grid-cols-5 gap-2.5">
-                        {SUPPORTED_VERSIONS.map((v) => (
-                          <button
-                            key={v.sub}
-                            onClick={() => setSelectedSubVer(v.sub)}
-                            className={`relative p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
-                              selectedSubVer === v.sub
-                                ? 'border-[#259457] bg-[#259457]/10 text-white shadow-[0_0_15px_rgba(37,148,87,0.12)]'
-                                : 'border-white/[0.04] bg-black/40 hover:bg-black/60 text-[#A1A1AA]'
-                            }`}
-                          >
-                            <span className="text-[12px] font-black leading-none">{v.num}</span>
-                            <span className="text-[7.5px] font-bold mt-1 opacity-70">{v.sub}</span>
-                            {v.full && (
-                              <span className="absolute -top-1.5 -right-1.5 text-[6.5px] font-black uppercase tracking-wider bg-[#259457] text-white px-1.5 py-0.5 rounded-md shadow">
-                                {t('profileSettings.fullMods')}
-                              </span>
-                            )}
-                          </button>
-                        ))}
+                        {SUPPORTED_VERSIONS.map((v) => {
+                          // Only 1.21.8 is active for now; others are "Coming Soon".
+                          const active = v.full;
+                          return (
+                            <button
+                              key={v.sub}
+                              disabled={!active}
+                              onClick={() => active && setSelectedSubVer(v.sub)}
+                              className={`relative p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
+                                !active
+                                  ? 'border-white/[0.03] bg-black/40 text-[#52525B] opacity-50 cursor-not-allowed'
+                                  : selectedSubVer === v.sub
+                                    ? 'border-[#259457] bg-[#259457]/10 text-white shadow-[0_0_15px_rgba(37,148,87,0.12)]'
+                                    : 'border-white/[0.04] bg-black/40 hover:bg-black/60 text-[#A1A1AA]'
+                              }`}
+                            >
+                              <span className="text-[12px] font-black leading-none">{v.num}</span>
+                              <span className="text-[7.5px] font-bold mt-1 opacity-70">{v.sub}</span>
+                              {active ? (
+                                <span className="absolute -top-1.5 -right-1.5 text-[6.5px] font-black uppercase tracking-wider bg-[#259457] text-white px-1.5 py-0.5 rounded-md shadow">
+                                  {t('profileSettings.fullMods')}
+                                </span>
+                              ) : (
+                                <span className="absolute -top-1.5 -right-1.5 text-[6px] font-black uppercase tracking-wider bg-[#EF4444]/80 text-white px-1.5 py-0.5 rounded-md shadow">
+                                  {t('profileSettings.comingSoon')}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
 
                       {/* Honest note: full MarinMC mod suite is 1.21.8; others run clean Fabric */}

@@ -22,8 +22,8 @@ interface VersionItem {
 const VERSION_LIST: VersionItem[] = [
   {
     num: '1.21',
-    label: 'Fabric 🔷 1.21.x',
-    subs: ['1.21.8', '1.21.4', '1.21.1'],
+    label: 'Fabric 🔷 1.21.8',
+    subs: ['1.21.8'],
     bgUrl: vBg2,
     iconType: 'tag'
   },
@@ -141,7 +141,8 @@ export default function VersionsPage() {
       {/* Grid of Version Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pb-6">
         {VERSION_LIST.map((ver) => {
-          const isActive = ['1.21', '1.20', '1.19', '1.18', '1.17'].includes(ver.num);
+          // Yalnızca 1.21.8 şu an aktif; diğer tüm sürümler "Yakında" olarak gösterilir.
+          const isActive = ver.num === '1.21';
           const isSelected = settings.selectedVersion === ver.num && isActive;
           const currentSub = settings.selectedVersion === ver.num ? settings.selectedSubVersion : ver.subs[0];
           const isOpen = activeDropdown === ver.num && isActive;

@@ -65,7 +65,7 @@ public class ServerListMixin {
         if (marinServer == null) {
             marinServer = new ServerInfo("§6§l★ MarinMC Network §r§7[1.21.x]", "oyna.marinmc.com", ServerInfo.ServerType.OTHER);
         } else {
-            marinServer.name = "§6§l★ MarinMC Network §r§7[1.21.x]";
+            marinServer.name = "§6§l★ MarinMC §r§7[1.21.x]";
         }
 
         servers.add(0, marinServer);

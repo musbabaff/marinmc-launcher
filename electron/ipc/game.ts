@@ -246,12 +246,19 @@ const PERFORMANCE_MODS = [
     url: 'https://cdn.modrinth.com/data/mOgUt4GM/versions/ku5NivOP/modmenu-15.0.2.jar',
     md5: '0f70ab88677a7404dbc95798604c7833'
   },
+  // --- Voice Chat ---
+  {
+    name: 'Simple Voice Chat',
+    filename: 'voicechat-fabric-1.21.8-2.6.20.jar',
+    url: 'https://cdn.modrinth.com/data/9eGKb6K1/versions/hWuFISLu/voicechat-fabric-1.21.8-2.6.20.jar',
+    md5: 'c994d9e8fbb7d1376158c8a6a4b4d34b'
+  },
   // --- MarinMC Custom ---
   {
     name: 'MarinMC Client Mod',
     filename: 'marinmc-client-mod-1.0.0.jar',
     url: 'https://media.githubusercontent.com/media/musbabaff/marinmc-launcher/main/assets/marinmc-client-mod-1.0.0.jar',
-    md5: 'f6dd140989628ef72e26c85b7837dea7'
+    md5: 'e3ef01186c8f9c4b8389f6c13405b84e'
   }
 ];
 
@@ -292,10 +299,10 @@ function cleanDuplicateMods(modsDir: string, logCallback: (msg: string) => void)
       { key: 'threadtweak', target: 'threadtweak-fabric-0.1.7+mc1.21.5.jar' },
       { key: 'zfastnoise', target: 'zfastnoise-1.0.11+1+1.21.jar' },
       { key: 'noisium', target: '' },
-      // Library dependencies
       { key: 'yet_another_config_lib', target: 'yet_another_config_lib_v3-3.8.2+1.21.6-fabric.jar' },
       { key: 'cloth-config', target: 'cloth-config-19.0.147-fabric.jar' },
       { key: 'modmenu', target: 'modmenu-15.0.2.jar' },
+      { key: 'voicechat', target: 'voicechat-fabric-1.21.8-2.6.20.jar' },
       { key: 'marinmc-client-mod', target: 'marinmc-client-mod-1.0.0.jar' }
     ];
 

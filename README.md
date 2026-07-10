@@ -6,7 +6,7 @@
 
 **MarinMC ağı için resmi, modern Minecraft launcher'ı — özel Fabric client modu, gerçek-zamanlı sosyal özellikler ve tek tıkla oyun.**
 
-[![Version](https://img.shields.io/badge/sürüm-1.3.6-EAB308?style=for-the-badge)](https://github.com/musbabaff/marinmc-launcher/releases)
+[![Version](https://img.shields.io/badge/sürüm-1.3.24-EAB308?style=for-the-badge)](https://github.com/musbabaff/marinmc-launcher/releases)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21.8-2D7DD2?style=for-the-badge)](https://minecraft.net)
 [![Fabric](https://img.shields.io/badge/Fabric-Loader-7B6FFF?style=for-the-badge)](https://fabricmc.net)
 [![License](https://img.shields.io/badge/lisans-MIT-10B981?style=for-the-badge)](LICENSE)

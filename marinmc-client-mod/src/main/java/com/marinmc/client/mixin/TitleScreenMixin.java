@@ -251,8 +251,8 @@ public class TitleScreenMixin extends Screen {
                 if (mouseX >= bx && mouseX <= bx + socialBtnSize) {
                     String[] socialUrls = {
                         "https://marinmc.com/discord",
-                        "https://instagram.com/marinmc",
-                        "https://tiktok.com/@marinmc",
+                        "https://instagram.com/marinmc.offical",
+                        "https://tiktok.com/@marinmc.official",
                         "https://youtube.com/@marinmc"
                     };
                     Util.getOperatingSystem().open(socialUrls[i]);

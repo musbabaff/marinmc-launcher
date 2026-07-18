@@ -961,6 +961,92 @@ async function installVersionMods(
   log(`[MarinMC Launcher] ${gameVersion} mod kurulumu tamamlandı (${installed} kuruldu, ${skipped} atlandı).`);
 }
 
+// Detect the major Java version of an executable (e.g. 8, 17, 21). 0 = unknown.
+function getJavaMajor(javaExe: string): Promise<number> {
+  return new Promise((resolve) => {
+    const { execFile } = require('child_process');
+    try {
+      execFile(javaExe, ['-version'], { timeout: 8000 }, (err: any, _stdout: any, stderr: any) => {
+        if (err) return resolve(0);
+        const out = String(stderr || _stdout || '');
+        const m = out.match(/version "(\d+)(?:\.(\d+))?/);
+        if (!m) return resolve(0);
+        let major = parseInt(m[1], 10);
+        if (major === 1 && m[2]) major = parseInt(m[2], 10); // "1.8" → 8
+        resolve(major || 0);
+      });
+    } catch {
+      resolve(0);
+    }
+  });
+}
+
+// Ensure a Java 21 runtime is available. Downloads an Adoptium Temurin 21 JRE
+// into the game dir on first use so the game ALWAYS runs on the right Java,
+// regardless of what (if any) Java the user has installed. Returns the absolute
+// path to the java(w) executable, or null on failure.
+async function ensureManagedJava(gameDir: string, isCancelled: () => boolean, log: (msg: string) => void): Promise<string | null> {
+  const isWin = process.platform === 'win32';
+  const exeName = isWin ? 'javaw.exe' : 'java';
+  const runtimeDir = path.join(gameDir, 'runtime', 'jre-21');
+
+  const findJava = (): string | null => {
+    if (!fs.existsSync(runtimeDir)) return null;
+    const direct = path.join(runtimeDir, 'bin', exeName);
+    if (fs.existsSync(direct)) return direct;
+    try {
+      for (const entry of fs.readdirSync(runtimeDir)) {
+        const nested = path.join(runtimeDir, entry, 'bin', exeName);
+        if (fs.existsSync(nested)) return nested;
+      }
+    } catch { /* ignore */ }
+    return null;
+  };
+
+  const existing = findJava();
+  if (existing) return existing;
+
+  const osName = isWin ? 'windows' : process.platform === 'darwin' ? 'mac' : 'linux';
+  const arch = process.arch === 'arm64' ? 'aarch64' : 'x64';
+  const url = `https://api.adoptium.net/v3/binary/latest/21/ga/${osName}/${arch}/jre/hotspot/normal/eclipse`;
+
+  try {
+    fs.mkdirSync(runtimeDir, { recursive: true });
+    log('[MarinMC Launcher] Java 21 çalışma zamanı indiriliyor (ilk sefer, ~45 MB)...');
+    const resp = await axios.get(url, {
+      responseType: 'arraybuffer',
+      timeout: 180000,
+      maxRedirects: 5,
+      headers: { 'User-Agent': 'MarinMC-Launcher/1.0' }
+    });
+    if (isCancelled()) return null;
+
+    const archivePath = path.join(runtimeDir, isWin ? 'jre.zip' : 'jre.tar.gz');
+    fs.writeFileSync(archivePath, Buffer.from(resp.data));
+    log('[MarinMC Launcher] Java 21 indirildi, çıkartılıyor...');
+
+    if (isWin) {
+      const AdmZip = require('adm-zip');
+      new AdmZip(archivePath).extractAllTo(runtimeDir, true);
+    } else {
+      const { execFileSync } = require('child_process');
+      execFileSync('tar', ['-xzf', archivePath, '-C', runtimeDir], { timeout: 120000 });
+    }
+    try { fs.unlinkSync(archivePath); } catch { /* ignore */ }
+
+    const resolved = findJava();
+    if (resolved) {
+      log('[MarinMC Launcher] Java 21 hazır ✓');
+      return resolved;
+    }
+    log('[HATA] Java 21 arşivi açıldı ama çalıştırılabilir bulunamadı.');
+    return null;
+  } catch (err: any) {
+    log(`[HATA] Java 21 indirilemedi: ${err.message}`);
+    return null;
+  }
+}
+
 let gameProcess: any = null;
 let isLaunching = false;
 let launchCancelled = false;
@@ -1155,31 +1241,49 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
           }
         : Authenticator.getAuth(options.username);
 
-      let javaPathResolved = (options.javaPath && options.javaPath !== 'Bundled Java')
-        ? options.javaPath
-        : 'java';
+      // --- Java runtime resolution ---
+      // 1.21.8 requires Java 21. We guarantee it: honor a valid user-set path,
+      // otherwise use the system Java only if it's new enough, else download and
+      // use a managed Temurin 21 runtime. This fixes "requires Java 21 but 8 is
+      // present" crashes for users whose system Java is old.
+      const REQUIRED_JAVA = 21;
+      let javaPathResolved: string;
 
-      if (process.platform === 'win32') {
-        if (javaPathResolved === 'java') {
-          javaPathResolved = 'javaw';
-        } else {
+      if (options.javaPath && options.javaPath !== 'Bundled Java') {
+        // User-specified Java path — validate and respect it.
+        javaPathResolved = options.javaPath;
+        if (process.platform === 'win32') {
           if (javaPathResolved.toLowerCase().endsWith('java.exe')) {
             javaPathResolved = javaPathResolved.slice(0, -8) + 'javaw.exe';
           } else if (javaPathResolved.toLowerCase().endsWith('java')) {
             javaPathResolved = javaPathResolved.slice(0, -4) + 'javaw';
           }
         }
-      }
-
-      // Security check on custom javaPath
-      if (javaPathResolved !== 'java' && javaPathResolved !== 'javaw') {
-        const normalized = javaPathResolved.toLowerCase().trim();
-        const base = path.basename(normalized);
+        const base = path.basename(javaPathResolved.toLowerCase().trim());
         if (base !== 'java.exe' && base !== 'java' && base !== 'javaw.exe' && base !== 'javaw') {
           throw new Error('Geçersiz Java yürütülebilir dosyası. Seçilen dosya java veya java.exe olmalıdır.');
         }
         if (!fs.existsSync(javaPathResolved)) {
           throw new Error('Belirtilen Java yolu bulunamadı.');
+        }
+      } else {
+        // Default ("Bundled Java"): use system Java if >= 21, else managed Java 21.
+        const systemJava = process.platform === 'win32' ? 'javaw' : 'java';
+        const systemMajor = await getJavaMajor('java');
+        if (systemMajor >= REQUIRED_JAVA) {
+          javaPathResolved = systemJava;
+          sendAndLog(`[MarinMC Launcher] Sistem Java ${systemMajor} kullanılıyor.`);
+        } else {
+          if (systemMajor > 0) {
+            sendAndLog(`[MarinMC Launcher] Sistem Java ${systemMajor} yetersiz (Java ${REQUIRED_JAVA} gerekli). Yönetilen Java indiriliyor...`);
+          }
+          const managed = await ensureManagedJava(gameDir, () => launchCancelled, (msg) => sendAndLog(msg));
+          if (launchCancelled) { isLaunching = false; return { success: false, error: 'Başlatma iptal edildi.' }; }
+          if (!managed) {
+            isLaunching = false;
+            return { success: false, error: `Java ${REQUIRED_JAVA} çalışma zamanı hazırlanamadı. İnternet bağlantısını kontrol edip tekrar dene.` };
+          }
+          javaPathResolved = managed;
         }
       }
 

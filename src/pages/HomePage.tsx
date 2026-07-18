@@ -248,15 +248,11 @@ export default function HomePage() {
           try { await window.electronAPI.optimizeMemory?.(); } catch { /* non-fatal */ }
         }
 
-        // Step 1: Detect Java
-        const javaCheck = await window.electronAPI.detectJava();
-        if (!javaCheck.found) {
-          setLaunchStatus('ERROR');
-          setErrorMessage(t('home.javaNotFoundError'));
-          return;
-        }
+        // Java is ensured by the backend at launch (managed Java 21 is downloaded
+        // automatically if the system Java is missing or too old), so we no longer
+        // hard-block here on detection.
 
-        // Step 2: Launch with Session UUID
+        // Launch with Session UUID
         const launchOptions = {
           ram: settings.ram,
           jvmArgs: settings.jvmArgs,

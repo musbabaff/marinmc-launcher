@@ -117,15 +117,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     let defaultDir = '';
     let sysRAM = 8192;
     let sysOS = 'Windows';
-    let sysJava = 'Bundled Java';
     let defaultGameDirResolved = '';
-
     if (window.electronAPI) {
       try {
         const sysInfo = await window.electronAPI.getSystemInfo();
         sysRAM = sysInfo.totalRAM;
         sysOS = sysInfo.os;
-        sysJava = sysInfo.javaPath;
         if (sysInfo.defaultGameDir) {
           defaultGameDirResolved = sysInfo.defaultGameDir;
         }
@@ -147,7 +144,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 
     const finalDefaultDir = defaultGameDirResolved || defaultDir;
     const savedDir = localStorage.getItem('marinmc_setting_launcherDir') || finalDefaultDir;
-    const savedJava = localStorage.getItem('marinmc_setting_javaPath') || sysJava;
+    const savedJava = localStorage.getItem('marinmc_setting_javaPath') || 'Bundled Java';
     const savedBehavior = localStorage.getItem('marinmc_setting_behavior') || 'minimize';
 
     set({

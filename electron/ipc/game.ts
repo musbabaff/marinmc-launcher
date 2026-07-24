@@ -1004,7 +1004,12 @@ async function ensureManagedJava(gameDir: string, isCancelled: () => boolean, lo
   };
 
   const existing = findJava();
-  if (existing) return existing;
+  if (existing) {
+    if (!isWin) {
+      try { fs.chmodSync(existing, 0o755); } catch { /* ignore */ }
+    }
+    return existing;
+  }
 
   const osName = isWin ? 'windows' : process.platform === 'darwin' ? 'mac' : 'linux';
   const arch = process.arch === 'arm64' ? 'aarch64' : 'x64';
@@ -1012,7 +1017,7 @@ async function ensureManagedJava(gameDir: string, isCancelled: () => boolean, lo
 
   try {
     fs.mkdirSync(runtimeDir, { recursive: true });
-    log('[MarinMC Launcher] Java 21 çalışma zamanı indiriliyor (ilk sefer, ~45 MB)...');
+    log('[MarinMC Launcher] Java 21 çalışma zamanı otomatik indiriliyor (~45 MB)...');
     const resp = await axios.get(url, {
       responseType: 'arraybuffer',
       timeout: 180000,
@@ -1023,7 +1028,7 @@ async function ensureManagedJava(gameDir: string, isCancelled: () => boolean, lo
 
     const archivePath = path.join(runtimeDir, isWin ? 'jre.zip' : 'jre.tar.gz');
     fs.writeFileSync(archivePath, Buffer.from(resp.data));
-    log('[MarinMC Launcher] Java 21 indirildi, çıkartılıyor...');
+    log('[MarinMC Launcher] Java 21 dosyaları indirildi, çıkarılıyor...');
 
     if (isWin) {
       const AdmZip = require('adm-zip');
@@ -1036,10 +1041,13 @@ async function ensureManagedJava(gameDir: string, isCancelled: () => boolean, lo
 
     const resolved = findJava();
     if (resolved) {
-      log('[MarinMC Launcher] Java 21 hazır ✓');
+      if (!isWin) {
+        try { fs.chmodSync(resolved, 0o755); } catch { /* ignore */ }
+      }
+      log('[MarinMC Launcher] Java 21 kuruldu ve hazır ✓');
       return resolved;
     }
-    log('[HATA] Java 21 arşivi açıldı ama çalıştırılabilir bulunamadı.');
+    log('[HATA] Java 21 arşivi çıkarıldı fakat javaw.exe çalıştırılabilir dosyası bulunamadı.');
     return null;
   } catch (err: any) {
     log(`[HATA] Java 21 indirilemedi: ${err.message}`);
@@ -1242,46 +1250,57 @@ export function registerGameHandlers(rawMainWindow: BrowserWindow) {
         : Authenticator.getAuth(options.username);
 
       // --- Java runtime resolution ---
-      // 1.21.8 requires Java 21. We guarantee it: honor a valid user-set path,
-      // otherwise use the system Java only if it's new enough, else download and
-      // use a managed Temurin 21 runtime. This fixes "requires Java 21 but 8 is
-      // present" crashes for users whose system Java is old.
+      // Minecraft 1.21.8 and Fabric mods require Java 21+. We guarantee it:
+      // Check user-specified Java path or system Java. If missing or < 21,
+      // automatically download and use a managed Temurin 21 runtime.
       const REQUIRED_JAVA = 21;
-      let javaPathResolved: string;
+      let javaPathResolved: string | null = null;
 
       if (options.javaPath && options.javaPath !== 'Bundled Java') {
-        // User-specified Java path — validate and respect it.
-        javaPathResolved = options.javaPath;
+        // User-specified Java path — validate and check major version.
+        let candidatePath = options.javaPath;
         if (process.platform === 'win32') {
-          if (javaPathResolved.toLowerCase().endsWith('java.exe')) {
-            javaPathResolved = javaPathResolved.slice(0, -8) + 'javaw.exe';
-          } else if (javaPathResolved.toLowerCase().endsWith('java')) {
-            javaPathResolved = javaPathResolved.slice(0, -4) + 'javaw';
+          if (candidatePath.toLowerCase().endsWith('java.exe')) {
+            candidatePath = candidatePath.slice(0, -8) + 'javaw.exe';
+          } else if (candidatePath.toLowerCase().endsWith('java')) {
+            candidatePath = candidatePath.slice(0, -4) + 'javaw';
           }
         }
-        const base = path.basename(javaPathResolved.toLowerCase().trim());
+        const base = path.basename(candidatePath.toLowerCase().trim());
         if (base !== 'java.exe' && base !== 'java' && base !== 'javaw.exe' && base !== 'javaw') {
           throw new Error('Geçersiz Java yürütülebilir dosyası. Seçilen dosya java veya java.exe olmalıdır.');
         }
-        if (!fs.existsSync(javaPathResolved)) {
-          throw new Error('Belirtilen Java yolu bulunamadı.');
+        if (!fs.existsSync(candidatePath)) {
+          sendAndLog(`[UYARI] Belirtilen Java yolu bulunamadı (${candidatePath}). Yönetilen Java 21 kullanılacak.`);
+        } else {
+          const customMajor = await getJavaMajor(candidatePath);
+          if (customMajor > 0 && customMajor < REQUIRED_JAVA) {
+            sendAndLog(`[MarinMC Launcher] Seçilen Java sürümü (Java ${customMajor}) yetersiz (Java ${REQUIRED_JAVA} gerekli). Otomatik olarak yönetilen Java 21 indiriliyor ve kullanılıyor...`);
+          } else {
+            javaPathResolved = candidatePath;
+            sendAndLog(`[MarinMC Launcher] Özel Java ${customMajor > 0 ? customMajor : ''} doğrulanarak kullanılıyor.`);
+          }
         }
-      } else {
-        // Default ("Bundled Java"): use system Java if >= 21, else managed Java 21.
+      }
+
+      if (!javaPathResolved) {
+        // Bundled Java / Auto mode: use system Java if >= 21, else download & use managed Java 21.
         const systemJava = process.platform === 'win32' ? 'javaw' : 'java';
         const systemMajor = await getJavaMajor('java');
         if (systemMajor >= REQUIRED_JAVA) {
           javaPathResolved = systemJava;
-          sendAndLog(`[MarinMC Launcher] Sistem Java ${systemMajor} kullanılıyor.`);
+          sendAndLog(`[MarinMC Launcher] Uyumlu sistem Java ${systemMajor} kullanılıyor.`);
         } else {
           if (systemMajor > 0) {
-            sendAndLog(`[MarinMC Launcher] Sistem Java ${systemMajor} yetersiz (Java ${REQUIRED_JAVA} gerekli). Yönetilen Java indiriliyor...`);
+            sendAndLog(`[MarinMC Launcher] Sisteminizdeki Java sürümü (Java ${systemMajor}) yetersiz. Java ${REQUIRED_JAVA} otomatik olarak indiriliyor...`);
+          } else {
+            sendAndLog(`[MarinMC Launcher] Sistemde Java bulunamadı. Java ${REQUIRED_JAVA} otomatik olarak indiriliyor...`);
           }
           const managed = await ensureManagedJava(gameDir, () => launchCancelled, (msg) => sendAndLog(msg));
           if (launchCancelled) { isLaunching = false; return { success: false, error: 'Başlatma iptal edildi.' }; }
           if (!managed) {
             isLaunching = false;
-            return { success: false, error: `Java ${REQUIRED_JAVA} çalışma zamanı hazırlanamadı. İnternet bağlantısını kontrol edip tekrar dene.` };
+            return { success: false, error: `Java ${REQUIRED_JAVA} çalışma zamanı hazırlanamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.` };
           }
           javaPathResolved = managed;
         }
